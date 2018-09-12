@@ -45,7 +45,7 @@ component accessors="true"{
 	// Static enum for valid states for rules
 	this.STATES = {
 		NEXT = "NEXT",
-		BREAK = "BREAK"
+		STOP = "STOP"
 	};
 
 	/**
@@ -136,7 +136,7 @@ component accessors="true"{
 			}
 
 			// if stop() was invoked, stop the rule chain after then is finished executing
-			if( variables.currentState == this.STATES.BREAK ){
+			if( variables.currentState == this.STATES.STOP ){
 				return;
 			}
 
@@ -193,7 +193,7 @@ component accessors="true"{
 	 * The stop() method causes the rule chain to stop if the when() condition is true and only after the then() actions have been executed.
 	 */
 	Rule function stop(){
-		variables.currentState = this.STATES.BREAK;
+		variables.currentState = this.STATES.STOP;
 		return this;
 	}
 
