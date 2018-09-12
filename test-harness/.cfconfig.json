@@ -1,0 +1,36 @@
+{
+    "datasources":{
+        "coolblog":{
+            "allowAlter":true,
+            "allowCreate":true,
+            "allowDelete":true,
+            "allowDrop":true,
+            "allowGrant":true,
+            "allowInsert":true,
+            "allowRevoke":true,
+            "allowSelect":true,
+            "allowUpdate":true,
+            "blob":"false",
+            "class":"org.gjt.mm.mysql.Driver",
+            "clob":"false",
+            "connectionTimeout":"1",
+            "custom":"useUnicode=true&characterEncoding=UTF-8&useLegacyDatetimeCode=true&useSSL=false",
+            "database":"coolblog",
+            "dbdriver":"MySQL",
+            "dsn":"jdbc:mysql://{host}:{port}/{database}",
+            "host":"${DB_HOST}",
+            "metaCacheTimeout":"60000",
+            "password":"${DB_PASSWORD}",
+            "port":"3306",
+            "storage":"false",
+            "username":"${DB_USERNAME}",
+            "validate":"false"
+        }
+    },
+    "debuggingEnabled":true,
+    "debuggingReportExecutionTimes":false,
+    "disableInternalCFJavaComponents":false,
+    "inspectTemplate":"always",
+    "requestTimeout":"0,0,0,90",
+    "robustExceptionEnabled":true
+}

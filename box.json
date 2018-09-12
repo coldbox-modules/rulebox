@@ -1,0 +1,25 @@
+{
+	"name" 		: "RuleBox: A ColdBox Rules Engine",
+	"version"   : "@build.version@+@build.number@",
+    "location"  : "http://downloads.ortussolutions.com/ortussolutions/coldbox-modules/rulebox/@build.version@/rulebox-@build.version@.zip",
+	"author" 	: "Ortus Solutions <info@ortussolutions.com",
+	"homepage"	: "https://github.com/coldbox-modules/rulebox",
+	"documentation"		: "https://github.com/coldbox-modules/rulebox/wiki",
+	"repository"		: { "type" : "git", "url" : "https://github.com/coldbox-modules/rulebox" },
+	"bugs" : "https://github.com/coldbox-modules/rulebox/issues",
+	"shortDescription"	: "A Simple & Intuitive Natural Langue Rules Abstraction for ColdBox Applications",
+	"slug"		: "rulebox",
+	"type"		: "modules",
+	"keywords":"rules engine, rule engine, rules, rulebook",
+	"license"			: [
+		{ "type" : "Apache2", "url" : "http://www.apache.org/licenses/LICENSE-2.0.html" }
+	],
+	"contributors"		: [
+	],
+	"dependencies" 	:{
+	},
+	"ignore":[
+        "**/.*",
+        "test-harness"
+    ]
+}
