@@ -62,7 +62,7 @@ component extends="coldbox.system.testing.BaseTestCase" appMapping="/root"{
 				it( "can stop execution chains", function(){
 					var rule = getInstance( "rule@rulebox" )
 						.stop();
-					expect( rule.getCurrentState() ).toBe( rule.STATES.BREAK );
+					expect( rule.getCurrentState() ).toBe( rule.STATES.STOP );
 				});
 
 				it( "can store using fact names when none are defined", function(){
