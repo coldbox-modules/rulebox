@@ -42,6 +42,11 @@ component accessors="true"{
 	 */
 	property name="consumers";
 
+	/**
+	 * The result value; this should be set for RuleBooks that are expected to produce a Result.
+	 */
+	property name="result" type="any";
+
 	// Static enum for valid states for rules
 	this.STATES = {
 		NEXT = "NEXT",
@@ -68,6 +73,16 @@ component accessors="true"{
 		// Create the consumers array
 		variables.consumers = [];
 
+		return this;
+	}
+
+	/**
+	 * Set the result in the rule
+	 *
+	 * @result The result object
+	 */
+	Rule function setResult( required result ){
+		variables.result = arguments.result;
 		return this;
 	}
 
@@ -120,9 +135,9 @@ component accessors="true"{
 						} );
 					}
 
-					// Invoke the consumer action
+					// Invoke the consumer action with facts and result object
 					try{
-						action( targetFacts );
+						action( targetFacts, variables.result );
 					} catch( Any e ){
 						// logger here for the action that failed
 						logger.error( "Error running rule (#variables.name#) action method: #e.message# #e.detail#", e );
@@ -147,7 +162,9 @@ component accessors="true"{
 
 		// Continue down the rule rabbit hole and pass the facts along
 		if( !isNull( variables.nextRule ) ){
-			variables.nextRule.run( argumentCollection=arguments );
+			variables.nextRule
+				.setResult( variables.result )
+				.run( argumentCollection=arguments );
 		}
 
 	}

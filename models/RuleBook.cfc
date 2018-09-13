@@ -18,9 +18,14 @@ component accessors="true"{
 	property name="name" type="string";
 
 	/**
-	 * The result value; this should be set for RuleBooks that are expected to produce a Result.
+	 * The result object, where a rulebook can keep track of result across the rule chain
 	 */
 	property name="result" type="any";
+
+	/**
+	 * The default result value, if expressed.
+	 */
+	property name="defaultResult" type="any";
 
 	/**
 	 * Head rule
@@ -40,7 +45,21 @@ component accessors="true"{
 	RuleBook function init( name="" ){
 		variables.facts 	= {};
 		variables.name 		= arguments.name;
+		variables.result 	= new Result();
 
+		return this;
+	}
+
+	/**
+	 * The withDefaultResult method allows a default result value to be specified.
+	 * When using the DSL syntax to chain calls, this method should be the first one specified.
+	 *
+	 * @result The initial value of the stored result
+	 */
+	RuleBook function withDefaultResult( required result ){
+		variables.defaultResult = arguments.result;
+		variables.result.setDefaultValue( arguments.result );
+		variables.result.setValue( arguments.result );
 		return this;
 	}
 
@@ -81,7 +100,7 @@ component accessors="true"{
 	 * @name The name of the rule, else empty.
 	 */
 	Rule function newRule( name="" ){
-		return new Rule( arguments.name );
+		return wirebox.getInstance( name="Rule@rulebox", initArguments={ name=arguments.name } );
 	}
 
 	/**
@@ -92,10 +111,12 @@ component accessors="true"{
 	RuleBook function addRule( required Rule rule ){
 		// Chain of Responsiblity Rules
 		if( isNull( variables.headRule ) ){
+			// Store rules and initial result
+			arguments.rule.setResult( variables.result );
 			variables.headRule = arguments.rule;
 			variables.tailRule = arguments.rule;
 		} else {
-			// We already have a head, set the next rule
+			// Set the next rule chain
 			variables.tailRule.setNextRule( arguments.rule );
 			// Change the pointer in the chain
 			variables.tailRule = arguments.rule;
@@ -111,7 +132,10 @@ component accessors="true"{
 	 * @overwrite Overwrite the facts if they exist or not, defauls to true
 	 */
 	RuleBook function run( struct facts={}, boolean overwrite=true ){
+		// Process Facts
 		this.givenAll( argumentCollection=arguments );
+		// Result Result just in case
+		variables.result.ifPresent( variables.result.reset );
 
 		// Verify if rules are loaded? If not, load them via the `defineRules()` call.
 		if( !hasRules() ){
@@ -119,13 +143,15 @@ component accessors="true"{
 			defineRules();
 			// If still no rules, then exit out
 			if( !hasRules() ){
-				logger.info( "Cannot rule RuleBook (#variables.name#) as it has no defined rules." );
+				logger.info( "Cannot run RuleBook (#variables.name#) as it has no defined rules." );
 				return this;
 			}
 		}
 
 		// run the chain with the given facts
-		variables.headRule.run( variables.facts );
+		variables.headRule
+			.setResult( variables.result )
+			.run( variables.facts );
 
 		return this;
 	}

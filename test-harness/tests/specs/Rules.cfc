@@ -95,18 +95,19 @@ component extends="coldbox.system.testing.BaseTestCase" appMapping="/root"{
 				});
 
 				it( "can run the rules when the predicate is true", function(){
-					var result = false;
+					var ruleResult = false;
 					var rule = getInstance( "rule@rulebox" )
+						.setResult( getInstance( "Result@rulebox" ) )
 						.given( "name", "luis" )
 						.when( function( facts ){
 							return ( facts.keyExists( "name" ) );
 						} )
-						.then( function( facts ){
-							result = true;
+						.then( function( facts, results ){
+							ruleResult = true;
 						} )
 						.run();
 
-					expect( result ).toBeTrue();
+					expect( ruleResult ).toBeTrue();
 				});
 
 			});
