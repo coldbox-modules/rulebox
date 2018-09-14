@@ -8,7 +8,7 @@ RuleBox allows you to write rules in an expressive and dynamic Domain Specific L
 
 ## Requirements
 
-* Lucee4.5+
+* Lucee 4.5+
 * Adobe ColdFusion 11+
 
 ## Installation
@@ -21,18 +21,21 @@ The module will register the following objects in WireBox:
 
 * `Rule@rulebox` - A transient rule
 * `RuleBook@rulebox` - A transient rule book object
-* `RuleBookBuilder@rulebox` - A static class that can be used to build a-la-carte rules and rule books.
+* `Builder@rulebox` - A static class that can be used to build a-la-carte rules and rule books.
+* `Result@rulebox` - RuleBooks produce results and this is the object that models such results.
 
 ### Defining Rules
 
-The preferred approach is for you to create your own RuleBook that extends: `rulebox.models.RuleBook` with a method called `defineRules()`.  In this method you will define all the rules that apply to that specific RuleBook using our DSL.
+The preferred approach is for you to create your own RuleBook that extends: `rulebox.models.RuleBook` with a method called `defineRules()`.  In this method you will define all the rules that apply to that specific RuleBook using our DSL.  There is nothing stopping you from creating rulebooks on the fly, which can allow you to create dynamic or a-la-carte rules if needed.
+
+> RuleBooks should be transient objects as they are reused when binded with facts.
 
 ### A HelloWorld Example
 
 ```js
-component extends="rulebox.models.RuleBook" singleton{
+component extends="rulebox.models.RuleBook"{
 
-	function defineRules(){
+function defineRules(){
 		// Add a new rule to this rulebook
 		addRule(
 			newRule( "MyRule" )
@@ -44,6 +47,7 @@ component extends="rulebox.models.RuleBook" singleton{
 				} )
 		);
 	}
+
 }
 ```
 
@@ -54,7 +58,7 @@ As you can see from above, new rules are created by calling the `newRule()` meth
 ...or use 2 rules
 
 ```js
-component extends="rulebox.models.RuleBook" singleton{
+component extends="rulebox.models.RuleBook"{
 
 	function defineRules(){
 		.addRule( 
@@ -79,10 +83,32 @@ now, run it!
 getInstance( "HelloWorld" ).run();
 ```
 
+Like mentioned before, I can also create a-la-carte rules and a rulebook by leveraging the `Builder`:
+
+```js
+builder = getInstance( "Builder@rulebox" );
+
+builder
+	.create( "My RuleBook" );
+		.addRule(
+			builder.rule()
+				.then( function( facts ){
+					sytemOutput( "Hello " );
+				} )
+		)
+		.addRule(
+			builder.rule()
+				.then( function( facts ){
+					sytemOutput( "World " );
+				} )
+		)
+	.run();
+```
+
 ### The Above Example Using Facts
 
 ```js
-component extends="rulebox.models.RuleBook" singleton{
+component extends="rulebox.models.RuleBook"{
 
 	function defineRules(){
 		addRule( 
@@ -110,7 +136,7 @@ component extends="rulebox.models.RuleBook" singleton{
 ..or it could be a single rule
 
 ```js
-component extends="rulebox.models.RuleBook" singleton{
+component extends="rulebox.models.RuleBook"{
 
 	function defineRules(){
 		addRule( 
@@ -147,9 +173,20 @@ getInstance( "MyRuleBook" )
 	.run();
 ```
 
-### A More Comple Scenario
+### A More Complex Scenario
+
+**The Requirements**:
 
 *MegaBank issues home loans. If an applicant's credit score is less than 600 then they must pay 4x the current rate. If an applicant’s credit score is between 600, but less than 700, then they must pay a an additional point on top of their rate. If an applicant’s credit score is at least 700 and they have at least $25,000 cash on hand, then they get a quarter point reduction on their rate. If an applicant is a first time home buyer then they get a 20% reduction on their calculated rate after adjustments are made based on credit score (note: first time home buyer discount is only available for applicants with a 600 credit score or greater).*
+
+Given those set of requirements we will create the rules, but this time we will also track results using a RuleBox `Result` object.  The `Result` object is passed to the `then()` methods and it has a very simple API for dealing with results.  Please note that the same instance of that `Result` object is passed from rule to rule, so you can work on the result.  Much how map, reduce functions work.  The `Result` object can also be pre-set with a default value by leveraging the `withDefaultValue()` method in the `RuleBook` object.  If not, the default value would be `null`.
+
+Basic `Result` methods are:
+
+* `setValue()` - Set the value in the result
+* `getValue()` - Get the value
+* `isPresent()` - Has the value been set or is it `null`
+
 
 **Applicant.cfc**
 
@@ -321,6 +358,24 @@ describe( "Home Loan Rate Rules", function(){
 });
 ```
 
+#### `Result` Object
+
+From the code above you might have noticed some nice conveniene methods in the `Result` object.  Here are some more:
+
+* `ifPresent( closure )` - You pass a closure that receives the value and it is only called if the value is **NOT** null
+* `orElse( value )` - You can get a value or a default value if the value is not set.
+* `orEleseGet( closure )` - If the value is not set, then we will call your closure which should return a value back.
+
+```js
+if( rulebook.getResult().isPresent() ){
+	// do something.
+}
+
+rulebook.getResult().ifPresent( function( value ){
+	systemoutput( "The vaue produced is #arguments.value#" );
+});
+```
+
 ### Thread Safety
 
 RuleBooks are threadsafe since they hold state and are transient.  This means that a single instance of a RuleBook can be run in different threads with different Facts without unexpected results. However, using the same exact fact structures across different threads may cause unexpected results. Facts represent data for individual invocations of a RuleBook, whereas RuleBooks represent reusable sets of Rules.
@@ -354,3 +409,4 @@ Stop methods break the rule chain. If a `stop()` method is specified when defini
 #### Working With Facts
 
 Facts can be provided to Rules using the `given() and givenAll()` methods. In RuleBooks, facts are provided to Rules when the RuleBook is run. The facts available to Rules and RuleBooks are contained in a struct, so this means that the facts are passed by referece. The reason why facts exist is so that there is always a reference to the objects that Rules work with - even if say, an immutable object is replaced, the perception is that the Fact still exists and provides a named reference to a representative object.
+

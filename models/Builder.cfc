@@ -19,7 +19,7 @@ component singleton{
 	 *
 	 * @name Give the rulebook a name
 	 */
-	RuleBook function create( name="" ){
+	RuleBook function rulebook( name="" ){
 		return wirebox.getInstance( name="RuleBook@rulebox", initArguments={ name = arguments.name } );
 	}
 

@@ -1,9 +1,9 @@
 /**
- * A RuleBook object that stores all the rules to execute in a given context against given facts
+ * A RuleBook object that stores all the rules to execute in a given context against given facts.
  */
 component accessors="true"{
 
-	// WireBox Reference
+	// DI
 	property name="wirebox" inject="wirebox";
 	property name="logger" 	inject="logbox:logger:{this}";
 
@@ -15,15 +15,15 @@ component accessors="true"{
 	/**
 	 * The name of this rulebook, else defaults to empty.
 	 */
-	property name="name" type="string";
+	property name="name" type="string" default="";
 
 	/**
 	 * The result object, where a rulebook can keep track of result across the rule chain
 	 */
-	property name="result" type="any";
+	property name="result" type="Result";
 
 	/**
-	 * The default result value, if expressed.
+	 * The default result value, if expressed using the `withDefaultValue()`
 	 */
 	property name="defaultResult" type="any";
 
@@ -109,7 +109,7 @@ component accessors="true"{
 	 * @rule A rule object
 	 */
 	RuleBook function addRule( required Rule rule ){
-		// Chain of Responsiblity Rules
+		// Chain of Responsiblity Rules, are we starting with the head?
 		if( isNull( variables.headRule ) ){
 			// Store rules and initial result
 			arguments.rule.setResult( variables.result );
@@ -143,12 +143,12 @@ component accessors="true"{
 			defineRules();
 			// If still no rules, then exit out
 			if( !hasRules() ){
-				logger.info( "Cannot run RuleBook (#variables.name#) as it has no defined rules." );
+				logger.info( "Cannot run a RuleBook (#variables.name#) that has no rules. See ya!" );
 				return this;
 			}
 		}
 
-		// run the chain with the given facts
+		// run the chain with the given facts and passed result object
 		variables.headRule
 			.setResult( variables.result )
 			.run( variables.facts );

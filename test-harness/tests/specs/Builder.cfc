@@ -25,7 +25,7 @@ component extends="coldbox.system.testing.BaseTestCase" appMapping="/root"{
 		describe( "Rule Book Builder", function(){
 
 			it( "can build a rulebook", function(){
-				var ruleBook = getInstance( "Builder@rulebox" ).create( "my-rulebook" );
+				var ruleBook = getInstance( "Builder@rulebox" ).ruleBook( "my-rulebook" );
 				expect(	ruleBook ).toBeComponent();
 				expect( ruleBook.getName() ).toBe( "my-rulebook" );
 			});
