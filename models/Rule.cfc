@@ -13,6 +13,11 @@ component accessors="true"{
 	property name="name";
 
 	/**
+	 * The rulebook this rule belongs to
+	 */
+	property name="ruleBook";
+
+	/**
 	 * The current state of the rule
 	 */
 	property name="currentState";
@@ -56,9 +61,9 @@ component accessors="true"{
 	/**
 	 * Constructor
 	 *
-	 * @name The name of the rule
+	 * @name The name of the rule, if empty, we assign it a UUID
 	 */
-	Rule function init( name="" ){
+	Rule function init( name=createUUID() ){
 		// Setup properties
 		variables.name 			= arguments.name;
 		variables.facts 		= {};
@@ -119,45 +124,39 @@ component accessors="true"{
 		// Do assignment of facts if passed
 		this.givenAll( argumentCollection=arguments );
 
-		try{
-			// Only invoke when the predicate is true
-			if( variables.predicate( variables.facts ) ){
+		// Only invoke when the predicate is true
+		if( variables.predicate( variables.facts ) ){
 
-				// iterate through the then() actions specified since our predicate passed
-				variables.consumers.each( function( action, index ){
-					// default to use all facts
-					var targetFacts = variables.facts;
-					// Check if we filtered the facts using the `using()` methods
-					if( variables.factsNameMap.keyExists( index ) ){
-						// filter out only the names we need
-						targetFacts = variables.facts.filter( function( key, value ){
-							return( variables.factsNameMap[ index ].findNoCase( key ) );
-						} );
-					}
+			// iterate through the then() actions specified since our predicate passed
+			variables.consumers.each( function( action, index ){
+				// default to use all facts
+				var targetFacts = variables.facts;
+				// Check if we filtered the facts using the `using()` methods
+				if( variables.factsNameMap.keyExists( index ) ){
+					// filter out only the names we need
+					targetFacts = variables.facts.filter( function( key, value ){
+						return( variables.factsNameMap[ index ].findNoCase( key ) );
+					} );
+				}
 
-					// Invoke the consumer action with facts and result object
-					try{
-						action( targetFacts, variables.result );
-					} catch( Any e ){
-						// logger here for the action that failed
-						logger.error( "Error running rule (#variables.name#) action method: #e.message# #e.detail#", e );
-					}
+				// Invoke the consumer action with facts and result object
+				action( targetFacts, variables.result );
 
-				} ); // End iteration of consumer actions
+			} ); // End iteration of consumer actions
 
-			} // end if predicate was true
-			else {
-				log.debug( "Predicate was false, skipping rule (#variables.name#)" );
-			}
+			// Register in the status Map
+			variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.EXECUTED );
 
-			// if stop() was invoked, stop the rule chain after then is finished executing
-			if( variables.currentState == this.STATES.STOP ){
-				return;
-			}
+		} // end if predicate was true
+		else {
+			log.debug( "Predicate was false, skipping rule (#variables.name#)" );
+			variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.SKIPPED );
+		}
 
-		} catch( Any e ){
-			// Add logger here
-			logger.error( "Error running rule (#variables.name#): #e.message# #e.detail#", e );
+		// if stop() was invoked, stop the rule chain after then is finished executing
+		if( variables.currentState == this.STATES.STOP ){
+			variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.STOPPED );
+			return;
 		}
 
 		// Continue down the rule rabbit hole and pass the facts along

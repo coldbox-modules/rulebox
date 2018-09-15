@@ -38,14 +38,29 @@ component accessors="true"{
 	property name="tailRule" type="any";
 
 	/**
+	 * A struct that tracks the states of the rules defined in this rulebook
+	 */
+	property name="ruleStatusMap" type="struct";
+
+	// Static lookup map for rule states
+	this.RULE_STATES = {
+		NOT_AVAILABLE 	= "NOT_AVAILABLE",
+		EXECUTED      	= "EXECUTED",
+		SKIPPED       	= "SKIPPED",
+		REGISTERED 	  	= "NONE",
+		STOPPED 		= "STOPPED"
+	};
+
+	/**
 	 * Constructor
 	 *
 	 * @name A name to give this rulebook, else defaults to empty
 	 */
 	RuleBook function init( name="" ){
-		variables.facts 	= {};
-		variables.name 		= arguments.name;
-		variables.result 	= new Result();
+		variables.facts 		= {};
+		variables.name 			= arguments.name;
+		variables.result 		= new Result();
+		variables.ruleStatusMap = {};
 
 		return this;
 	}
@@ -100,7 +115,8 @@ component accessors="true"{
 	 * @name The name of the rule, else empty.
 	 */
 	Rule function newRule( name="" ){
-		return wirebox.getInstance( name="Rule@rulebox", initArguments={ name=arguments.name } );
+		return wirebox
+			.getInstance( name="Rule@rulebox", initArguments={ name=arguments.name } );
 	}
 
 	/**
@@ -112,7 +128,6 @@ component accessors="true"{
 		// Chain of Responsiblity Rules, are we starting with the head?
 		if( isNull( variables.headRule ) ){
 			// Store rules and initial result
-			arguments.rule.setResult( variables.result );
 			variables.headRule = arguments.rule;
 			variables.tailRule = arguments.rule;
 		} else {
@@ -121,6 +136,11 @@ component accessors="true"{
 			// Change the pointer in the chain
 			variables.tailRule = arguments.rule;
 		}
+
+		// Link the rule book
+		arguments.rule.setRuleBook( this );
+		// Track it's status
+		variables.ruleStatusMap[ arguments.rule.getName() ] = this.RULE_STATES.REGISTERED;
 
 		return this;
 	}
@@ -161,6 +181,15 @@ component accessors="true"{
 	 */
 	boolean function hasRules(){
 		return !isNull( variables.headRule );
+	}
+
+	/**
+	 * Get the status of a ranned rule, if the rule doesn't exist it will return a NOT_AVAILABLE status
+	 *
+	 * @name The name of the rule
+	 */
+	string function getRuleStatus( required name ){
+		return variables.ruleStatusMap[ arguments.name ] ?: this.RULE_STATES.NOT_AVAILABLE;
 	}
 
 }
