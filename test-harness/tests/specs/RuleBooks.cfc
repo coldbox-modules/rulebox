@@ -33,9 +33,6 @@ component extends="coldbox.system.testing.BaseTestCase" appMapping="/root"{
 
 					homeLoans.run();
 
-					//writeDump( var=homeLoans.getResult().getValue() );
-					//writeDump( var=homeLoans.getRuleStatusMap() );abort;
-
 					expect( homeLoans.getResult().isPresent() ).toBeTrue();
 					expect( homeLoans.getResult().getValue() ).toBe( 4.4 );
 

@@ -122,9 +122,18 @@ component accessors="true"{
 	/**
 	 * Add a rule to the rule book. You can pass in a closure/lambda that represents the rule or an actual Rule object
 	 *
-	 * @rule A rule object or a closure that will represent the rule.
+	 * @rule A rule object or a closure/lambda that will represent the rule.
 	 */
 	RuleBook function addRule( required rule ){
+
+		// Determine closure or object?
+		if( isClosure( arguments.rule ) || isCustomFunction( arguments.rule ) ){
+			var targetRule = newRule();
+			arguments.rule( targetRule );
+			// Clean it now that it built
+			arguments.rule = targetRule;
+		}
+
 		// Chain of Responsiblity Rules, are we starting with the head?
 		if( isNull( variables.headRule ) ){
 			// Store rules and initial result
