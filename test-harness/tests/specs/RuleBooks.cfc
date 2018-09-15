@@ -19,8 +19,11 @@ component extends="coldbox.system.testing.BaseTestCase" appMapping="/root"{
 		function run( testResults, testBox ){
 			describe( "Hello World Rules", function(){
 				it( "Can run the hello world rules", function(){
-					var helloRules = getInstance( "tests.resources.HelloWorld" );
+					var helloRules = getInstance( "tests.resources.HelloWorld" )
+						.given( "hello", "Hello" );
 					helloRules.run();
+
+					expect( helloRules.getResult().getValue() ).toBe( 1 );
 				});
 			});
 

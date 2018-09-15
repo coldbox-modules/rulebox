@@ -17,14 +17,17 @@ component extends="rulebox.models.RuleBook"{
 		// Add Rule With Closure Syntax
 		addRule( function( rule ){
 			rule
+			.setName( "stop multiple when" )
 			.when( function( facts ){
-				return facts.keyExists( "hello" ) && facts.keyExists( "world" );
+				return facts.keyExists( "hello" );
 			})
-			.using( "hello" ).then( function( facts ){
-				systemOutput( facts.hello );
+			.then( function( facts, result ){
+				result.setValue( 1 );
+				// Return true to stop the next then(), return void or false to continue
+				return true;
 			} )
-			.using( "world" ).then( function( facts ){
-				systemOutput( facts.world );
+			.then( function( facts, result ){
+				result.setValue( 2 );
 			} );
 		} );
 	}

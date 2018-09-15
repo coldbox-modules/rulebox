@@ -128,9 +128,13 @@ component accessors="true"{
 		if( variables.predicate( variables.facts ) ){
 
 			// iterate through the then() actions specified since our predicate passed
+			var stopConsumerChain = false;
 			variables.consumers.each( function( action, index ){
+				if( stopConsumerChain ){ return; }
+
 				// default to use all facts
 				var targetFacts = variables.facts;
+
 				// Check if we filtered the facts using the `using()` methods
 				if( variables.factsNameMap.keyExists( index ) ){
 					// filter out only the names we need
@@ -140,7 +144,11 @@ component accessors="true"{
 				}
 
 				// Invoke the consumer action with facts and result object
-				action( targetFacts, variables.result );
+				var stopConsumers = action( targetFacts, variables.result );
+
+				if( !isNull( stopConsumers ) && stopConsumers ){
+					stopConsumerChain = true;
+				}
 
 			} ); // End iteration of consumer actions
 
