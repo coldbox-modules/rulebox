@@ -396,7 +396,19 @@ Much like the Given-When-Then language for defining tests that was popularized b
 
 `When` methods accept a Predicate closure/lambda that evaluates a condition based on the Facts provided. Only one `when()` method can be specified per Rule and it must return boolean.
 
-`Then` methods accept a Consumer closure/lambda that describe the action to be invoked if the condition in the `when()` method evaluates to `true`. There can be **multiple** `then()` methods specified in a Rule that will all be invoked in the order they are specified if the `when()` condition evaluates to `true`.
+`Then` methods accept a Consumer closure/lambda that describe the action to be invoked if the condition in the `when()` method evaluates to `true`. There can be **multiple** `then()` methods specified in a Rule that will all be invoked in the order they are specified if the `when()` condition evaluates to `true`.  If a `then()` returns a `true` then no more consumers left in the execution will execute, thus breaking the consumer chain.  If you return void or `false` the chain continues.
+
+```js
+.then( function( facts, result ) ){
+	//  do stuff
+
+	// break the next then()
+	return true;
+})
+.then( function( facts, result ) ){
+	// This never fires
+})
+```
 
 #### The Using Method
 
