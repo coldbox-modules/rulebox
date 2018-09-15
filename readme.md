@@ -410,3 +410,37 @@ Stop methods break the rule chain. If a `stop()` method is specified when defini
 
 Facts can be provided to Rules using the `given() and givenAll()` methods. In RuleBooks, facts are provided to Rules when the RuleBook is run. The facts available to Rules and RuleBooks are contained in a struct, so this means that the facts are passed by referece. The reason why facts exist is so that there is always a reference to the objects that Rules work with - even if say, an immutable object is replaced, the perception is that the Fact still exists and provides a named reference to a representative object.
 
+### Audint Rules
+
+Rule auditing is also very handy in knowing which rules fired and which ones did not.  The RuleBook is in charge of tracking its rules in a special struture called `RuleStatusMap`.  It is imperative that you give rules a `name` in order for the auditing to present you meaningful data, if not you will see the intern ID of the rule.  You can name rules in many ways:
+
+```js
+// Using the Builder
+builder.rule( "ruleName" );
+
+// Using the new Rule method
+addRule(
+	newRule( "ruleName" )
+)
+
+// Or using it's setter
+addRule(
+	newRule()
+		.setName( "ruleName" )
+)
+```
+
+Each Auditable Rule added to a RuleBook has its state recorded in the RuleBook. At the time when rules are registered in the RuleBook, their Rule Status is `NONE`. After the RuleBook is run, their Rule Status is changed to `SKIPPED` for all rules that fail or whose conditions do not evaluate to true. For rules whose conditions do evaluate to true and whose `then()` action completes successfully, their RuleStatus is changed to `EXECUTED`.
+
+Retrieving the status of a rule can be done as follows:
+
+```js
+status = ruleBook.getRuleStatus( "rule1" );
+status = ruleBook.getRuleStatus( "rule2" );
+```
+
+Or you can retrieve the entire struct of statuses:
+
+```js
+writeDump( ruleBook.getRuleStatusMap() );
+```
