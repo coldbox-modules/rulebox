@@ -20,8 +20,13 @@ component extends="coldbox.system.testing.BaseTestCase" appMapping="/root"{
 			// all your suites go here.
 			describe( "A Rule", function(){
 
+				beforeEach(function( currentSpec ){
+					rulebook = getInstance( "rulebook@rulebox" );
+				});
+
 				it( "can be created", function(){
-					var rule = getInstance( "Rule@rulebox" );
+					var rule = getInstance( "Rule@rulebox" )
+						.setRuleBook( rulebook );
 					expect( rule ).toBeComponent();
 					expect( rule.getFacts() ).toBeEmpty();
 					expect( rule.getCurrentState() ).toBe( rule.STATES.NEXT );
@@ -87,6 +92,7 @@ component extends="coldbox.system.testing.BaseTestCase" appMapping="/root"{
 
 				it( "can run the rules when the predicate is false", function(){
 					var rule = getInstance( "rule@rulebox" )
+						.setRuleBook( rulebook )
 						.given( "name", "luis" )
 						.when( function( facts ){
 							return ( facts.keyExists( "age" ) );
@@ -98,6 +104,7 @@ component extends="coldbox.system.testing.BaseTestCase" appMapping="/root"{
 					var ruleResult = false;
 					var rule = getInstance( "rule@rulebox" )
 						.setResult( getInstance( "Result@rulebox" ) )
+						.setRuleBook( rulebook )
 						.given( "name", "luis" )
 						.when( function( facts ){
 							return ( facts.keyExists( "name" ) );

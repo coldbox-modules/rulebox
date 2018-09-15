@@ -114,17 +114,17 @@ component accessors="true"{
 	 *
 	 * @name The name of the rule, else empty.
 	 */
-	Rule function newRule( name="" ){
+	Rule function newRule( name ){
 		return wirebox
-			.getInstance( name="Rule@rulebox", initArguments={ name=arguments.name } );
+			.getInstance( name="Rule@rulebox", initArguments=arguments );
 	}
 
 	/**
-	 * Add a rule to the rule book
+	 * Add a rule to the rule book. You can pass in a closure/lambda that represents the rule or an actual Rule object
 	 *
-	 * @rule A rule object
+	 * @rule A rule object or a closure that will represent the rule.
 	 */
-	RuleBook function addRule( required Rule rule ){
+	RuleBook function addRule( required rule ){
 		// Chain of Responsiblity Rules, are we starting with the head?
 		if( isNull( variables.headRule ) ){
 			// Store rules and initial result

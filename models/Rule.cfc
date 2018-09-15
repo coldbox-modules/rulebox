@@ -147,16 +147,16 @@ component accessors="true"{
 			// Register in the status Map
 			variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.EXECUTED );
 
+			// if stop() was invoked, stop the rule chain after then is finished executing
+			if( variables.currentState == this.STATES.STOP ){
+				variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.STOPPED );
+				return;
+			}
+
 		} // end if predicate was true
 		else {
-			log.debug( "Predicate was false, skipping rule (#variables.name#)" );
+			logger.debug( "Predicate was false, skipping rule (#variables.name#)" );
 			variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.SKIPPED );
-		}
-
-		// if stop() was invoked, stop the rule chain after then is finished executing
-		if( variables.currentState == this.STATES.STOP ){
-			variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.STOPPED );
-			return;
 		}
 
 		// Continue down the rule rabbit hole and pass the facts along

@@ -28,8 +28,8 @@ component singleton{
 	 *
 	 * @name Give the rule a name
 	 */
-	Rule function rule( name="" ){
-		return wirebox.getInstance( name="Rule@rulebox", initArguments={ name = arguments.name } );
+	Rule function rule( name){
+		return wirebox.getInstance( name="Rule@rulebox", initArguments=arguments );
 	}
 
 }
