@@ -51,7 +51,39 @@ function defineRules(){
 }
 ```
 
-As you can see from above, new rules are created by calling the `newRule()` method with an optional `name` that you can use to identify the rule you register.
+As you can see from above, new rules are created by calling the `newRule()` method with an optional `name` that you can use to identify the rule you register.  You can also define rules as a closure/lambda with slightly different syntax:
+
+```js
+component extends="rulebox.models.RuleBook"{
+
+// Closures
+function defineRules(){
+		addRule( function( rule ){
+			rule
+				.setName( "MyRule" )
+				.then( function( facts ){
+					sytemOutput( "Hello " );
+				} )
+				.then( function( facts ){
+					systemOutput( "World" );
+				} );
+		} );
+	}
+
+}
+
+// Lambdas: Lucee 5+ ONLY
+function defineRules(){
+		addRule( ( rule ) => {
+			rule
+				.setName( "MyRule" )
+				.then( ( facts ) => sytemOutput( "Hello " ) )
+				.then( ( facts ) => sytemOutput( "World " ) )
+		} );
+	}
+
+}
+```
 
 > The RuleBook also has a `name` property, so you can attach a human readable name to the RuleBook via `setName( name )` method.
 
@@ -81,6 +113,18 @@ now, run it!
 
 ```js
 getInstance( "HelloWorld" ).run();
+```
+
+If you are in Lucee 5+, you can also leverage lambdas, which can provide a nicer syntax for declaring rules:
+
+```js
+component extends="rulebox.models.RuleBook"{
+
+	function defineRules(){
+		.addRule( (rule) => rule.then( () => sytemOutput( "Hello " ) ) )
+		.addRule( (rule) => rule.then( () => sytemOutput( "World " ) ) )
+	}
+}
 ```
 
 Like mentioned before, I can also create a-la-carte rules and a rulebook by leveraging the `Builder`:
@@ -422,7 +466,7 @@ Stop methods break the rule chain. If a `stop()` method is specified when defini
 
 Facts can be provided to Rules using the `given() and givenAll()` methods. In RuleBooks, facts are provided to Rules when the RuleBook is run. The facts available to Rules and RuleBooks are contained in a struct, so this means that the facts are passed by referece. The reason why facts exist is so that there is always a reference to the objects that Rules work with - even if say, an immutable object is replaced, the perception is that the Fact still exists and provides a named reference to a representative object.
 
-### Audint Rules
+### Auditing Rules
 
 Rule auditing is also very handy in knowing which rules fired and which ones did not.  The RuleBook is in charge of tracking its rules in a special struture called `RuleStatusMap`.  It is imperative that you give rules a `name` in order for the auditing to present you meaningful data, if not you will see the intern ID of the rule.  You can name rules in many ways:
 
