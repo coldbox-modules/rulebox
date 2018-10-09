@@ -474,6 +474,7 @@ var homeLoans = getInstance( "tests.resources.HomeLoanRateRuleBook" )
 except( function( facts ){
 	return facts.accountDisabled;
 } );
+```
 
 `Then` methods accept a Consumer closure/lambda that describe the action to be invoked if the condition in the `when()` method evaluates to `true`. There can be **multiple** `then()` methods specified in a Rule that will all be invoked in the order they are specified if the `when()` condition evaluates to `true`.  If a `then()` returns a `true` then no more consumers left in the execution will execute, thus breaking the consumer chain.  If you return void or `false` the chain continues.
 
