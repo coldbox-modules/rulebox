@@ -424,21 +424,56 @@ rulebook.getResult().ifPresent( function( value ){
 
 RuleBooks are threadsafe since they hold state and are transient.  This means that a single instance of a RuleBook can be run in different threads with different Facts without unexpected results. However, using the same exact fact structures across different threads may cause unexpected results. Facts represent data for individual invocations of a RuleBook, whereas RuleBooks represent reusable sets of Rules.
 
-### The RuleBook Domain Specific Language Explained
+## The RuleBook Domain Specific Language Explained
 
 The RuleBox CFML Domain Specific Language (DSL) uses the `Given-When-Then` format, popularized by Behavior Driven Development (BDD) and associated testing frameworks (e.g. TestBox, Cucumber and Spock) and highly inspired by our Java Counterpart: **RuleBook** (https://github.com/rulebook-rules/rulebook). Many of the ideas that went into creating the RuleBox CFML DSL are also borrowed from BDD, including: **Sentences should be used to describe rules and Rules should be defined using a ubiquitous language that translates into the codebase.**
 
-#### Given-When-Then: The Basis of the RuleBook Language
+### Given-When-Then: The Basis of the RuleBook Language
 
-Much like the Given-When-Then language for defining tests that was popularized by BDD, RuleBox uses a Given-When-Then language for defining rules. The RuleBox Given-When-Then methods have the following meanings.
+Much like the Given-When-Then language for defining tests that was popularized by BDD, RuleBox uses a Given-When-Then language for defining rules. The RuleBox Given-When-Then methods have the following meanings:
 
 * **Given** - some Fact(s)
 * **When** - a condition evaluates to true
+* **Except** - a condition that evalutes to false
 * **Then** - an action is triggered
+
+This is great, but we have determined that the `when()` operations can also get out of hand, so we introduced another rule to the language: `except()`.  So you can say: `when().except().then()`.  This can be a handy exception function that even though the when condition evaulates to `true`, if you chain an `except()` to it that must evaluate to `false`.
 
 `given, givenAll` methods can accept one or more facts in various different forms and are used as a collection of information provided to a single Rule. When grouping Rules into a RuleBook, facts are supplied to the Rules when the RuleBook is run, so the `Given` can be inferred.
 
+```js
+var homeLoans = getInstance( "tests.resources.HomeLoanRateRuleBook" )
+	.withDefaultResult( 4.5 )
+	.given( "creditScore", 650 )
+	.given( "cashOnHand", 20000 )
+	.given( "firstTimeHomeBuyer", false )
+	.run();
+
+var homeLoans = getInstance( "tests.resources.HomeLoanRateRuleBook" )
+	.withDefaultResult( 4.5 )
+	.givenAll( {
+		"creditScore"        : 650,
+		"cashOnHand"         : 20000,
+		"firstTimeHomeBuyer" : false
+	} )
+	.run();
+```
+
 `When` methods accept a Predicate closure/lambda that evaluates a condition based on the Facts provided. Only one `when()` method can be specified per Rule and it must return boolean.
+
+```js
+.when( function( facts ){
+	// determine if we continue or not
+	return boolean;
+} );
+```
+
+`Except` methods negate the `when()` operation if it passes.  Thus you can say, when the balance is greater than 100, except when your account is disabled, then dispense some money.
+
+```js
+except( function( facts ){
+	return facts.accountDisabled;
+} );
 
 `Then` methods accept a Consumer closure/lambda that describe the action to be invoked if the condition in the `when()` method evaluates to `true`. There can be **multiple** `then()` methods specified in a Rule that will all be invoked in the order they are specified if the `when()` condition evaluates to `true`.  If a `then()` returns a `true` then no more consumers left in the execution will execute, thus breaking the consumer chain.  If you return void or `false` the chain continues.
 
@@ -454,15 +489,15 @@ Much like the Given-When-Then language for defining tests that was popularized b
 })
 ```
 
-#### The Using Method
+### The Using Method
 
 Using methods reduce the set of facts available to a `then()` method. Multiple `using()` methods can also be chained together if so desired. The aggregate of the facts with the names specified in all `using()` methods immediately preceeding a `then()` method will be made available to that `then()` method. Please look above for the `using()` examples.
 
-#### The Stop Method
+### The Stop Method
 
 Stop methods break the rule chain. If a `stop()` method is specified when defining a rule, it means that if the `when()` condition evaluates to `true`, following the completion of the `then()` action(s), the rule chain should be broken and no more rules in that chain should be evaluated.
 
-#### Working With Facts
+### Working With Facts
 
 Facts can be provided to Rules using the `given() and givenAll()` methods. In RuleBooks, facts are provided to Rules when the RuleBook is run. The facts available to Rules and RuleBooks are contained in a struct, so this means that the facts are passed by referece. The reason why facts exist is so that there is always a reference to the objects that Rules work with - even if say, an immutable object is replaced, the perception is that the Fact still exists and provides a named reference to a representative object.
 

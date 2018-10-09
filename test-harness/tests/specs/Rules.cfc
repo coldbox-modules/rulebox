@@ -64,6 +64,16 @@ component extends="coldbox.system.testing.BaseTestCase" appMapping="/root"{
 					expect( rule.getConsumers().len() ).toBe( 1 );
 				});
 
+				it( "can store except functions", function(){
+					var rule = getInstance( "rule@rulebox" )
+						.except( function( facts ){
+							return false;
+						} );
+					expect( isClosure( rule.getExcept() ) ).toBeTrue();
+					var except = rule.getExcept();
+					expect( except() ).toBeFalse();
+				});
+
 				it( "can stop execution chains", function(){
 					var rule = getInstance( "rule@rulebox" )
 						.stop();

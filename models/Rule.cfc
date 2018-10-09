@@ -43,6 +43,11 @@ component accessors="true"{
 	property name="predicate";
 
 	/**
+	 * The except closure, there can only be one per rule defined
+	 */
+	property name="except";
+
+	/**
 	 * An array of consumers registered in this rule.  Basically multiple `then()` calls using different facts
 	 */
 	property name="consumers";
@@ -73,6 +78,11 @@ component accessors="true"{
 		// Define an empty predicate that always returns true
 		variables.predicate = function(){
 			return true;
+		};
+
+		// Define an empty except that always returns false
+		variables.except = function(){
+			return false;
 		};
 
 		// Create the consumers array
@@ -124,8 +134,13 @@ component accessors="true"{
 		// Do assignment of facts if passed
 		this.givenAll( argumentCollection=arguments );
 
-		// Only invoke when the predicate is true
-		if( variables.predicate( variables.facts ) ){
+		if(
+			// Check the predicate is TRUE
+			variables.predicate( variables.facts )
+			&&
+			// Check the except is FALSE
+			!variables.except( variables.facts )
+		){
 
 			// iterate through the then() actions specified since our predicate passed
 			var stopConsumerChain = false;
@@ -189,6 +204,23 @@ component accessors="true"{
 	 */
 	Rule function when( required predicate ){
 		variables.predicate = arguments.predicate;
+		return this;
+	}
+
+	/**
+	 * Except methods accept a closure/lambda that evaluates a condition based on the Facts provided. Only one except() method can be specified per Rule.
+	 *
+	 * The except is a closure that takes in one argument and MUST return boolean, if true then the when is negated and no consumers are fired.
+	 * If false, then when() operation is still valid and the consumers are fired.
+	 * <pre>
+	 * boolean function( facts ){
+	 * }
+	 * </pre>
+	 *
+	 * @except A closure/lambda that accepts a facts struct and MUST return boolean: ( facts ) => boolean
+	 */
+	Rule function except( required except ){
+		variables.except = arguments.except;
 		return this;
 	}
 

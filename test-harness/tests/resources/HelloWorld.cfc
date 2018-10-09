@@ -21,6 +21,9 @@ component extends="rulebox.models.RuleBook"{
 			.when( function( facts ){
 				return facts.keyExists( "hello" );
 			})
+			.except( function( facts ){
+				return facts.disabled;
+			} )
 			.then( function( facts, result ){
 				result.setValue( 1 );
 				// Return true to stop the next then(), return void or false to continue

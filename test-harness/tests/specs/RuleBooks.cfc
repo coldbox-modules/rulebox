@@ -20,10 +20,20 @@ component extends="coldbox.system.testing.BaseTestCase" appMapping="/root"{
 			describe( "Hello World Rules", function(){
 				it( "Can run the hello world rules", function(){
 					var helloRules = getInstance( "tests.resources.HelloWorld" )
-						.given( "hello", "Hello" );
+						.given( "hello", "Hello" )
+						.given( "disabled", false );
 					helloRules.run();
 
 					expect( helloRules.getResult().getValue() ).toBe( 1 );
+				});
+
+				it( "can stop when using exceptions", function(){
+					var helloRules = getInstance( "tests.resources.HelloWorld" )
+						.given( "hello", "Hello" )
+						.given( "disabled", true );
+					helloRules.run();
+
+					expect( helloRules.getResult().isPresent() ).toBeFalse();
 				});
 			});
 
