@@ -13,6 +13,11 @@ component accessors="true"{
 	property name="name";
 
 	/**
+	 * The rulebook this rule belongs to
+	 */
+	property name="ruleBook";
+
+	/**
 	 * The current state of the rule
 	 */
 	property name="currentState";
@@ -38,22 +43,32 @@ component accessors="true"{
 	property name="predicate";
 
 	/**
+	 * The except closure, there can only be one per rule defined
+	 */
+	property name="except";
+
+	/**
 	 * An array of consumers registered in this rule.  Basically multiple `then()` calls using different facts
 	 */
 	property name="consumers";
 
+	/**
+	 * The result value; this should be set for RuleBooks that are expected to produce a Result.
+	 */
+	property name="result" type="any";
+
 	// Static enum for valid states for rules
 	this.STATES = {
 		NEXT = "NEXT",
-		BREAK = "BREAK"
+		STOP = "STOP"
 	};
 
 	/**
 	 * Constructor
 	 *
-	 * @name The name of the rule
+	 * @name The name of the rule, if empty, we assign it a UUID
 	 */
-	Rule function init( name="" ){
+	Rule function init( name=createUUID() ){
 		// Setup properties
 		variables.name 			= arguments.name;
 		variables.facts 		= {};
@@ -65,9 +80,24 @@ component accessors="true"{
 			return true;
 		};
 
+		// Define an empty except that always returns false
+		variables.except = function(){
+			return false;
+		};
+
 		// Create the consumers array
 		variables.consumers = [];
 
+		return this;
+	}
+
+	/**
+	 * Set the result in the rule
+	 *
+	 * @result The result object
+	 */
+	Rule function setResult( required result ){
+		variables.result = arguments.result;
 		return this;
 	}
 
@@ -104,50 +134,59 @@ component accessors="true"{
 		// Do assignment of facts if passed
 		this.givenAll( argumentCollection=arguments );
 
-		try{
-			// Only invoke when the predicate is true
-			if( variables.predicate( variables.facts ) ){
+		if(
+			// Check the predicate is TRUE
+			variables.predicate( variables.facts )
+			&&
+			// Check the except is FALSE
+			!variables.except( variables.facts )
+		){
 
-				// iterate through the then() actions specified since our predicate passed
-				variables.consumers.each( function( action, index ){
-					// default to use all facts
-					var targetFacts = variables.facts;
-					// Check if we filtered the facts using the `using()` methods
-					if( variables.factsNameMap.keyExists( index ) ){
-						// filter out only the names we need
-						targetFacts = variables.facts.filter( function( key, value ){
-							return( variables.factsNameMap[ index ].findNoCase( key ) );
-						} );
-					}
+			// iterate through the then() actions specified since our predicate passed
+			var stopConsumerChain = false;
+			variables.consumers.each( function( action, index ){
+				if( stopConsumerChain ){ return; }
 
-					// Invoke the consumer action
-					try{
-						action( targetFacts );
-					} catch( Any e ){
-						// logger here for the action that failed
-						logger.error( "Error running rule (#variables.name#) action method: #e.message# #e.detail#", e );
-					}
+				// default to use all facts
+				var targetFacts = variables.facts;
 
-				} ); // End iteration of consumer actions
+				// Check if we filtered the facts using the `using()` methods
+				if( variables.factsNameMap.keyExists( index ) ){
+					// filter out only the names we need
+					targetFacts = variables.facts.filter( function( key, value ){
+						return( variables.factsNameMap[ index ].findNoCase( key ) );
+					} );
+				}
 
-			} // end if predicate was true
-			else {
-				log.debug( "Predicate was false, skipping rule (#variables.name#)" );
-			}
+				// Invoke the consumer action with facts and result object
+				var stopConsumers = action( targetFacts, variables.result );
+
+				if( !isNull( stopConsumers ) && stopConsumers ){
+					stopConsumerChain = true;
+				}
+
+			} ); // End iteration of consumer actions
+
+			// Register in the status Map
+			variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.EXECUTED );
 
 			// if stop() was invoked, stop the rule chain after then is finished executing
-			if( variables.currentState == this.STATES.BREAK ){
+			if( variables.currentState == this.STATES.STOP ){
+				variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.STOPPED );
 				return;
 			}
 
-		} catch( Any e ){
-			// Add logger here
-			logger.error( "Error running rule (#variables.name#): #e.message# #e.detail#", e );
+		} // end if predicate was true
+		else {
+			logger.debug( "Predicate was false, skipping rule (#variables.name#)" );
+			variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.SKIPPED );
 		}
 
 		// Continue down the rule rabbit hole and pass the facts along
 		if( !isNull( variables.nextRule ) ){
-			variables.nextRule.run( argumentCollection=arguments );
+			variables.nextRule
+				.setResult( variables.result )
+				.run( argumentCollection=arguments );
 		}
 
 	}
@@ -165,6 +204,23 @@ component accessors="true"{
 	 */
 	Rule function when( required predicate ){
 		variables.predicate = arguments.predicate;
+		return this;
+	}
+
+	/**
+	 * Except methods accept a closure/lambda that evaluates a condition based on the Facts provided. Only one except() method can be specified per Rule.
+	 *
+	 * The except is a closure that takes in one argument and MUST return boolean, if true then the when is negated and no consumers are fired.
+	 * If false, then when() operation is still valid and the consumers are fired.
+	 * <pre>
+	 * boolean function( facts ){
+	 * }
+	 * </pre>
+	 *
+	 * @except A closure/lambda that accepts a facts struct and MUST return boolean: ( facts ) => boolean
+	 */
+	Rule function except( required except ){
+		variables.except = arguments.except;
 		return this;
 	}
 
@@ -193,7 +249,7 @@ component accessors="true"{
 	 * The stop() method causes the rule chain to stop if the when() condition is true and only after the then() actions have been executed.
 	 */
 	Rule function stop(){
-		variables.currentState = this.STATES.BREAK;
+		variables.currentState = this.STATES.STOP;
 		return this;
 	}
 

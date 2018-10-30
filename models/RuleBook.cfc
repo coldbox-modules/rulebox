@@ -1,9 +1,9 @@
 /**
- * A RuleBook object that stores all the rules to execute in a given context against given facts
+ * A RuleBook object that stores all the rules to execute in a given context against given facts.
  */
 component accessors="true"{
 
-	// WireBox Reference
+	// DI
 	property name="wirebox" inject="wirebox";
 	property name="logger" 	inject="logbox:logger:{this}";
 
@@ -15,12 +15,17 @@ component accessors="true"{
 	/**
 	 * The name of this rulebook, else defaults to empty.
 	 */
-	property name="name" type="string";
+	property name="name" type="string" default="";
 
 	/**
-	 * The result value; this should be set for RuleBooks that are expected to produce a Result.
+	 * The result object, where a rulebook can keep track of result across the rule chain
 	 */
-	property name="result" type="any";
+	property name="result" type="Result";
+
+	/**
+	 * The default result value, if expressed using the `withDefaultValue()`
+	 */
+	property name="defaultResult" type="any";
 
 	/**
 	 * Head rule
@@ -33,14 +38,43 @@ component accessors="true"{
 	property name="tailRule" type="any";
 
 	/**
+	 * A struct that tracks the states of the rules defined in this rulebook
+	 */
+	property name="ruleStatusMap" type="struct";
+
+	// Static lookup map for rule states
+	this.RULE_STATES = {
+		NOT_AVAILABLE 	= "NOT_AVAILABLE",
+		EXECUTED      	= "EXECUTED",
+		SKIPPED       	= "SKIPPED",
+		REGISTERED 	  	= "NONE",
+		STOPPED 		= "STOPPED"
+	};
+
+	/**
 	 * Constructor
 	 *
 	 * @name A name to give this rulebook, else defaults to empty
 	 */
 	RuleBook function init( name="" ){
-		variables.facts 	= {};
-		variables.name 		= arguments.name;
+		variables.facts 		= {};
+		variables.name 			= arguments.name;
+		variables.result 		= new Result();
+		variables.ruleStatusMap = {};
 
+		return this;
+	}
+
+	/**
+	 * The withDefaultResult method allows a default result value to be specified.
+	 * When using the DSL syntax to chain calls, this method should be the first one specified.
+	 *
+	 * @result The initial value of the stored result
+	 */
+	RuleBook function withDefaultResult( required result ){
+		variables.defaultResult = arguments.result;
+		variables.result.setDefaultValue( arguments.result );
+		variables.result.setValue( arguments.result );
 		return this;
 	}
 
@@ -80,26 +114,42 @@ component accessors="true"{
 	 *
 	 * @name The name of the rule, else empty.
 	 */
-	Rule function newRule( name="" ){
-		return new Rule( arguments.name );
+	Rule function newRule( name ){
+		return wirebox
+			.getInstance( name="Rule@rulebox", initArguments=arguments );
 	}
 
 	/**
-	 * Add a rule to the rule book
+	 * Add a rule to the rule book. You can pass in a closure/lambda that represents the rule or an actual Rule object
 	 *
-	 * @rule A rule object
+	 * @rule A rule object or a closure/lambda that will represent the rule.
 	 */
-	RuleBook function addRule( required Rule rule ){
-		// Chain of Responsiblity Rules
+	RuleBook function addRule( required rule ){
+
+		// Determine closure or object?
+		if( isClosure( arguments.rule ) || isCustomFunction( arguments.rule ) ){
+			var targetRule = newRule();
+			arguments.rule( targetRule );
+			// Clean it now that it built
+			arguments.rule = targetRule;
+		}
+
+		// Chain of Responsiblity Rules, are we starting with the head?
 		if( isNull( variables.headRule ) ){
+			// Store rules and initial result
 			variables.headRule = arguments.rule;
 			variables.tailRule = arguments.rule;
 		} else {
-			// We already have a head, set the next rule
+			// Set the next rule chain
 			variables.tailRule.setNextRule( arguments.rule );
 			// Change the pointer in the chain
 			variables.tailRule = arguments.rule;
 		}
+
+		// Link the rule book
+		arguments.rule.setRuleBook( this );
+		// Track it's status
+		variables.ruleStatusMap[ arguments.rule.getName() ] = this.RULE_STATES.REGISTERED;
 
 		return this;
 	}
@@ -111,7 +161,10 @@ component accessors="true"{
 	 * @overwrite Overwrite the facts if they exist or not, defauls to true
 	 */
 	RuleBook function run( struct facts={}, boolean overwrite=true ){
+		// Process Facts
 		this.givenAll( argumentCollection=arguments );
+		// Result Result just in case
+		variables.result.ifPresent( variables.result.reset );
 
 		// Verify if rules are loaded? If not, load them via the `defineRules()` call.
 		if( !hasRules() ){
@@ -119,13 +172,15 @@ component accessors="true"{
 			defineRules();
 			// If still no rules, then exit out
 			if( !hasRules() ){
-				logger.info( "Cannot rule RuleBook (#variables.name#) as it has no defined rules." );
+				logger.info( "Cannot run a RuleBook (#variables.name#) that has no rules. See ya!" );
 				return this;
 			}
 		}
 
-		// run the chain with the given facts
-		variables.headRule.run( variables.facts );
+		// run the chain with the given facts and passed result object
+		variables.headRule
+			.setResult( variables.result )
+			.run( variables.facts );
 
 		return this;
 	}
@@ -135,6 +190,15 @@ component accessors="true"{
 	 */
 	boolean function hasRules(){
 		return !isNull( variables.headRule );
+	}
+
+	/**
+	 * Get the status of a ranned rule, if the rule doesn't exist it will return a NOT_AVAILABLE status
+	 *
+	 * @name The name of the rule
+	 */
+	string function getRuleStatus( required name ){
+		return variables.ruleStatusMap[ arguments.name ] ?: this.RULE_STATES.NOT_AVAILABLE;
 	}
 
 }

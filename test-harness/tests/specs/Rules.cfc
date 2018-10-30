@@ -20,8 +20,13 @@ component extends="coldbox.system.testing.BaseTestCase" appMapping="/root"{
 			// all your suites go here.
 			describe( "A Rule", function(){
 
+				beforeEach(function( currentSpec ){
+					rulebook = getInstance( "rulebook@rulebox" );
+				});
+
 				it( "can be created", function(){
-					var rule = getInstance( "Rule@rulebox" );
+					var rule = getInstance( "Rule@rulebox" )
+						.setRuleBook( rulebook );
 					expect( rule ).toBeComponent();
 					expect( rule.getFacts() ).toBeEmpty();
 					expect( rule.getCurrentState() ).toBe( rule.STATES.NEXT );
@@ -59,10 +64,20 @@ component extends="coldbox.system.testing.BaseTestCase" appMapping="/root"{
 					expect( rule.getConsumers().len() ).toBe( 1 );
 				});
 
+				it( "can store except functions", function(){
+					var rule = getInstance( "rule@rulebox" )
+						.except( function( facts ){
+							return false;
+						} );
+					expect( isClosure( rule.getExcept() ) ).toBeTrue();
+					var except = rule.getExcept();
+					expect( except() ).toBeFalse();
+				});
+
 				it( "can stop execution chains", function(){
 					var rule = getInstance( "rule@rulebox" )
 						.stop();
-					expect( rule.getCurrentState() ).toBe( rule.STATES.BREAK );
+					expect( rule.getCurrentState() ).toBe( rule.STATES.STOP );
 				});
 
 				it( "can store using fact names when none are defined", function(){
@@ -87,6 +102,7 @@ component extends="coldbox.system.testing.BaseTestCase" appMapping="/root"{
 
 				it( "can run the rules when the predicate is false", function(){
 					var rule = getInstance( "rule@rulebox" )
+						.setRuleBook( rulebook )
 						.given( "name", "luis" )
 						.when( function( facts ){
 							return ( facts.keyExists( "age" ) );
@@ -95,18 +111,20 @@ component extends="coldbox.system.testing.BaseTestCase" appMapping="/root"{
 				});
 
 				it( "can run the rules when the predicate is true", function(){
-					var result = false;
+					var ruleResult = false;
 					var rule = getInstance( "rule@rulebox" )
+						.setResult( getInstance( "Result@rulebox" ) )
+						.setRuleBook( rulebook )
 						.given( "name", "luis" )
 						.when( function( facts ){
 							return ( facts.keyExists( "name" ) );
 						} )
-						.then( function( facts ){
-							result = true;
+						.then( function( facts, results ){
+							ruleResult = true;
 						} )
 						.run();
 
-					expect( result ).toBeTrue();
+					expect( ruleResult ).toBeTrue();
 				});
 
 			});

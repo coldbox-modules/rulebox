@@ -1,13 +1,13 @@
 {
 	"name" 		: "RuleBox: A ColdBox Rules Engine",
-	"version"   : "@build.version@+@build.number@",
-    "location"  : "http://downloads.ortussolutions.com/ortussolutions/coldbox-modules/rulebox/@build.version@/rulebox-@build.version@.zip",
+	"version"   : "1.0.0",
+    "location"  : "https://downloads.ortussolutions.com/ortussolutions/coldbox-modules/rulebox/@build.version@/rulebox-@build.version@.zip",
 	"author" 	: "Ortus Solutions <info@ortussolutions.com",
 	"homepage"	: "https://github.com/coldbox-modules/rulebox",
 	"documentation"		: "https://github.com/coldbox-modules/rulebox/wiki",
 	"repository"		: { "type" : "git", "url" : "https://github.com/coldbox-modules/rulebox" },
 	"bugs" : "https://github.com/coldbox-modules/rulebox/issues",
-	"shortDescription"	: "A Simple & Intuitive Natural Langue Rules Abstraction for ColdBox Applications",
+	"shortDescription"	: "A Simple & Intuitive Natural Language Rules Engine for ColdBox Applications",
 	"slug"		: "rulebox",
 	"type"		: "modules",
 	"keywords":"rules engine, rule engine, rules, rulebook",
@@ -19,7 +19,11 @@
 	"dependencies" 	:{
 	},
 	"ignore":[
-        "**/.*",
-        "test-harness"
-    ]
+		"**/.*",
+        "test-harness",
+        "*/.md"
+	],
+    "scripts":{
+		"toMaster":"recipe build/toMaster.boxr"
+    }
 }
