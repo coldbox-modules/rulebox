@@ -8,7 +8,7 @@ RuleBox allows you to write rules in an expressive and dynamic Domain Specific L
 
 ## Requirements
 
-* Lucee 4.5+
+* Lucee 5+
 * Adobe ColdFusion 11+
 
 ## Installation
