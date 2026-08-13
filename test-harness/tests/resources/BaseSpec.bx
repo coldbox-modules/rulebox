@@ -1,0 +1,75 @@
+@appMapping( "/root" )
+@autowire
+class extends="coldbox.system.testing.BaseTestCase"{
+
+	/**
+	 * --------------------------------------------------------------------------
+	 * Dependency Injection
+	 * --------------------------------------------------------------------------
+	 */
+
+    // Load on first test
+    this.loadColdBox    = true;
+    // Never unload until the request dies
+    this.unloadColdBox  = false;
+
+	/**
+	 * --------------------------------------------------------------------------
+	 * Fixture Data
+	 * --------------------------------------------------------------------------
+	 * Here is the global fixture data you can use
+	 */
+
+	/**
+	 * --------------------------------------------------------------------------
+	 * Life Cycle Methods
+	 * --------------------------------------------------------------------------
+	 */
+
+	function beforeAll() {
+		// Setup ColdBox
+		super.beforeAll()
+	}
+
+    /**
+     * This function is tagged as an around each handler.  All the integration tests we build
+     * will be automatically rolled backed. No database corruption
+     *
+     * @aroundEach
+     */
+    function aroundTransaction( spec ) {
+        transaction action="begin" {
+            try {
+                arguments.spec.body();
+            } catch ( any e ){
+                rethrow;
+            } finally {
+                transaction action="rollback";
+            }
+        }
+    }
+
+	/****************** fixture methods *********************/
+
+	function keyChecksOff() {
+		queryExecute( "SET FOREIGN_KEY_CHECKS=0;" );
+	}
+
+	function keyChecksOn() {
+		queryExecute( "SET FOREIGN_KEY_CHECKS=1;" );
+	}
+
+	/**
+	 * Seed a table with records.  This is a helper method to make it easier to seed data for integration tests.
+	 *
+	 * @table The table name to seed
+	 * @records The array of structs to seed into the table
+	 */
+	function seed( required table, required records ) {
+		variables.qb.newQuery()
+			.from( arguments.table )
+			.insert( arguments.records )
+		return this
+	}
+
+}

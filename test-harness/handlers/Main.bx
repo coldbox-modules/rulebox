@@ -1,0 +1,11 @@
+﻿/**
+* My Event Handler Hint
+*/
+class{
+
+	// Index
+	any function index( event,rc, prc ){
+		return "ColdBox Module Template";
+	}
+
+}

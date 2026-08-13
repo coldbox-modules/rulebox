@@ -1,0 +1,39 @@
+class extends="rulebox.models.RuleBook"{
+
+	function defineRules(){
+		addRule(
+			newRule()
+			.when( ( facts ) =>{
+				return facts.keyExists( "hello" ) && facts.keyExists( "world" );
+			})
+			.using( "hello" ).then( ( facts ) =>{
+				systemOutput( facts.hello );
+			} )
+			.using( "world" ).then( ( facts ) =>{
+				systemOutput( facts.world );
+			} )
+		);
+
+		// Add Rule With Closure Syntax
+		addRule( ( rule ) =>{
+			rule
+			.setName( "stop multiple when" )
+			.when( ( facts ) =>{
+				return facts.keyExists( "hello" );
+			})
+			.except( ( facts ) =>{
+				return facts.disabled;
+			} )
+			.then( ( facts, result ) =>{
+				result.setValue( 1 );
+				// Return true to stop the next then(), return void or false to continue
+				return true;
+			} )
+			.then( ( facts, result ) =>{
+				result.setValue( 2 );
+			} );
+		} );
+	}
+
+
+}

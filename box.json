@@ -1,6 +1,6 @@
 {
     "name":"RuleBox: A ColdBox Rules Engine",
-    "version":"1.1.0",
+    "version":"2.0.0",
     "location":"https://downloads.ortussolutions.com/ortussolutions/coldbox-modules/rulebox/@build.version@/rulebox-@build.version@.zip",
     "author":"Ortus Solutions <info@ortussolutions.com",
     "homepage":"https://github.com/coldbox-modules/rulebox",
@@ -10,7 +10,7 @@
         "url":"https://github.com/coldbox-modules/rulebox"
     },
     "bugs":"https://github.com/coldbox-modules/rulebox/issues",
-    "shortDescription":"A Simple & Intuitive Natural Language Rules Engine for ColdBox Applications",
+    "shortDescription":"A Simple & Intuitive Natural Language Rules Engine for ColdBox BoxLang Applications",
     "slug":"rulebox",
     "type":"modules",
     "keywords":"rules engine, rule engine, rules, rulebook",
@@ -22,12 +22,26 @@
     ],
     "contributors":[],
     "dependencies":{},
+	"devDependencies" 	:{
+		"commandbox-boxlang":"*",
+        "commandbox-docbox":"*"
+	},
     "ignore":[
         "**/.*",
         "test-harness",
         "*/.md"
     ],
     "scripts":{
-        "toMaster":"recipe build/toMaster.boxr"
+		"build:module":"task run taskFile=build/Build.cfc :projectName=`package show slug` :version=`package show version`",
+		"build:docs":"task run taskFile=build/Build.cfc target=docs :projectName=`package show slug` :version=`package show version`",
+        "install:dependencies":"install && cd test-harness && install",
+		"release":"recipe build/release.boxr",
+		"start" : "server start serverConfigFile=server-boxlang@1.json",
+		"stop" : "server stop serverConfigFile=server-boxlang@1.json",
+		"logs" : "server log serverConfigFile=server-boxlang@1.json",
+        "forget" : "server forget serverConfigFile=server-boxlang@1.json"
+    },
+	"testbox":{
+        "runner":"http://localhost:60299/tests/runner.cfm"
     }
 }

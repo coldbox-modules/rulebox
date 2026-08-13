@@ -1,0 +1,6 @@
+﻿<bx:output>
+<h1>Module Tester</h1>
+<div>
+	#view()#
+</div>
+</bx:output>

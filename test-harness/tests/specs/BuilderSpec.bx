@@ -1,0 +1,31 @@
+/**
+* BuilderSpec
+*/
+class extends="tests.resources.BaseSpec"{
+
+	// executes before all suites+specs in the run() method
+	function beforeAll(){
+		super.beforeAll();
+		setup();
+	}
+
+	function run( testResults, testBox ){
+		// all your suites go here.
+		describe( "Rule Book Builder", function(){
+
+			it( "can build a rulebook", function(){
+				var ruleBook = getInstance( "Builder@rulebox" ).ruleBook( "my-rulebook" );
+				expect(	ruleBook ).toBeclass();
+				expect( ruleBook.getName() ).toBe( "my-rulebook" );
+			});
+
+			it( "can build rules", function(){
+				var rule = getInstance( "Builder@rulebox" ).rule( "my-rule" );
+				expect(	rule ).toBeclass();
+				expect( rule.getName() ).toBe( "my-rule" );
+			});
+
+		});
+	}
+
+}

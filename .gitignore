@@ -1,8 +1,9 @@
+## Ignore IDE and editor folders
 .vscode
-
 .artifacts/**
 .tmp/**
 
+## Ignore test harness folders
 test-harness/.engine/**
 test-harness/coldbox/**
 test-harness/docbox/**
@@ -13,3 +14,12 @@ test-harness/.env
 
 # log files
 logs/**
+
+### ENGINE ###
+.engine/**
+
+### AI UPDATES ###
+.agents/guidelines/**
+.agents/skills/**
+.pi/**
+.opencode/**

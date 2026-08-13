@@ -1,0 +1,125 @@
+name: Test Suites
+
+# We are a reusable Workflow only
+on:
+  workflow_call:
+    secrets:
+      SLACK_WEBHOOK_URL:
+        required: false
+
+jobs:
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    env:
+      DB_USER: root
+      DB_PASSWORD: root
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        cfengine: [ "boxlang@1" ]
+        coldboxVersion: [ "^8.0.0" ]
+        experimental: [ false ]
+        # Experimental: ColdBox BE vs All Engines
+        include:
+          - coldboxVersion: "be"
+            cfengine: "boxlang@1"
+            experimental: true
+          - coldboxVersion: "8.0.0"
+            cfengine: "boxlang@be"
+            experimental: true
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      # DATABASE SETUP: uncomment if you need to setup a database
+      # - name: Setup Database and Fixtures
+      #   run: |
+      #     sudo systemctl start mysql.service
+      #     mysql -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }} -e 'CREATE DATABASE mementifier;'
+      #     mysql -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }} < test-harness/tests/resources/coolblog.sql
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Setup Environment For Testing Process
+        run: |
+          # Setup .env
+          touch .env
+          # ENV
+          printf "ENVIRONMENT=development\n" >> .env
+          printf "DB_HOST=localhost\n" >> .env
+          printf "DB_USER=${{ env.DB_USER }}\n" >> .env
+          printf "DB_PASSWORD=${{ env.DB_PASSWORD }}\n" >> .env
+          printf "DB_CLASS=com.mysql.cj.jdbc.Driver\n" >> .env
+
+      - name: Setup CommandBox CLI
+        uses: ortus-boxlang/setup-boxlang@main
+        with:
+          with-commandbox: true
+
+      - name: Install Dependencies
+        run: |
+          box install
+          cd test-harness
+          box package set dependencies.coldbox=${{ matrix.coldboxVersion }}
+          box install
+
+      - name: Start ${{ matrix.cfengine }} Server
+        run: |
+          box server start serverConfigFile="server-${{ matrix.cfengine }}.json" --noSaveSettings --debug
+          curl http://127.0.0.1:60299
+
+      - name: Run Tests
+        run: |
+          mkdir -p test-harness/tests/results
+          box testbox run --verbose outputFile=test-harness/tests/results/test-results outputFormats=json,antjunit
+
+      - name: Publish Test Reports
+        uses: mikepenz/action-junit-report@v6.4.2
+        if: always()
+        with:
+          report_paths: |
+            test-harness/tests/results/**/*.xml
+          check_name: "TestBox Report ${{ matrix.cfengine }}-${{ matrix.coldboxVersion }}"
+          include_passed: false
+          fail_on_failure: true
+          detailed_summary: true
+
+      - name: Upload Test Results to Artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.cfengine }}-${{ matrix.coldboxVersion }}
+          path: |
+            test-harness/tests/results/**/*
+
+      - name: Show Server Log On Failures
+        if: ${{ failure() }}
+        run: |
+          box server log serverConfigFile="server-${{ matrix.cfengine }}.json"
+
+      - name: Upload Debug Logs To Artifacts
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: Failure Debugging Info - ${{ matrix.cfengine }} - ${{ matrix.coldboxVersion }}
+          path: |
+            .engine/**/logs/*
+
+      - name: Slack Notifications
+        # Only on failures and NOT in pull requests
+        if: ${{ failure() && !startsWith( 'pull_request', github.event_name ) }}
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_CHANNEL: coding
+          SLACK_COLOR: ${{ job.status }} # or a specific color like 'green' or '#ff00ff'
+          SLACK_ICON_EMOJI: ":bell:"
+          SLACK_MESSAGE: '${{ github.repository }} tests failed :cry:'
+          SLACK_TITLE: ${{ github.repository }} Tests For ${{ matrix.cfengine }} with ColdBox ${{ matrix.coldboxVersion }} failed
+          SLACK_USERNAME: CI
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
