@@ -8,8 +8,7 @@ RuleBox allows you to write rules in an expressive and dynamic Domain Specific L
 
 ## Requirements
 
--   Lucee 5+
--   Adobe ColdFusion 2016+
+- BoxLang 1.14+
 
 ## Installation
 
@@ -19,10 +18,10 @@ Just leverage CommandBox: `box install rulebox` and it will install as a module 
 
 The module will register the following objects in WireBox:
 
--   `Rule@rulebox` - A transient rule
--   `RuleBook@rulebox` - A transient rule book object
--   `Builder@rulebox` - A static class that can be used to build a-la-carte rules and rule books.
--   `Result@rulebox` - RuleBooks produce results and this is the object that models such results.
+- `Rule@rulebox` - A transient rule
+- `RuleBook@rulebox` - A transient rule book object
+- `Builder@rulebox` - A static class that can be used to build a-la-carte rules and rule books.
+- `Result@rulebox` - RuleBooks produce results and this is the object that models such results.
 
 ### Defining Rules
 
@@ -39,13 +38,9 @@ function defineRules(){
 		// Add a new rule to this rulebook
 		addRule(
 			newRule( "MyRule" )
-				.then( function( facts ){
-					systemOutput( "Hello " );
-				} )
-				.then( function( facts ){
-					systemOutput( "World" );
-				} )
-		);
+				.then( ( facts ) => println( "Hello " ) )
+				.then( ( facts ) => println( "World" ) )
+		)
 	}
 
 }
@@ -56,33 +51,18 @@ As you can see from above, new rules are created by calling the `newRule()` meth
 ```js
 component extends="rulebox.models.RuleBook"{
 
-// Closures
-function defineRules(){
-		addRule( function( rule ){
-			rule
-				.setName( "MyRule" )
-				.then( function( facts ){
-					systemOutput( "Hello " );
-				} )
-				.then( function( facts ){
-					systemOutput( "World" );
-				} );
-		} );
-	}
-
-}
-
-// Lambdas: Lucee 5+ ONLY
+// Lambdas
 function defineRules(){
 		addRule( ( rule ) => {
 			rule
 				.setName( "MyRule" )
-				.then( ( facts ) => systemOutput( "Hello " ) )
-				.then( ( facts ) => systemOutput( "World " ) )
-		} );
+				.then( ( facts ) => println( "Hello " ) )
+				.then( ( facts ) => println( "World" ) )
+		} )
 	}
 
 }
+
 ```
 
 > The RuleBook also has a `name` property, so you can attach a human readable name to the RuleBook via `setName( name )` method.
@@ -95,15 +75,11 @@ component extends="rulebox.models.RuleBook"{
 	function defineRules(){
 		.addRule(
 			newRule()
-				.then( function(){
-					systemOutput( "Hello " );
-				} )
+				.then( () => println( "Hello " ) )
 		)
 		.addRule(
 			newRule()
-				.then( function(){
-					systemOutput( "World " );
-				} )
+				.then( () => println( "World " ) )
 		)
 	}
 }
@@ -112,7 +88,7 @@ component extends="rulebox.models.RuleBook"{
 now, run it!
 
 ```js
-getInstance("HelloWorld").run();
+getInstance("HelloWorld").run()
 ```
 
 If you are in Lucee 5+, you can also leverage lambdas, which can provide a nicer syntax for declaring rules:
@@ -121,8 +97,8 @@ If you are in Lucee 5+, you can also leverage lambdas, which can provide a nicer
 component extends="rulebox.models.RuleBook"{
 
 	function defineRules(){
-		.addRule( (rule) => rule.then( () => systemOutput( "Hello " ) ) )
-		.addRule( (rule) => rule.then( () => systemOutput( "World " ) ) )
+		.addRule( ( rule ) => rule.then( () => println( "Hello " ) ) )
+		.addRule( ( rule ) => rule.then( () => println( "World " ) ) )
 	}
 }
 ```
@@ -130,23 +106,19 @@ component extends="rulebox.models.RuleBook"{
 Like mentioned before, I can also create a-la-carte rules and a rulebook by leveraging the `Builder`:
 
 ```js
-builder = getInstance( "Builder@rulebox" );
+builder = getInstance( "Builder@rulebox" )
 
 builder
-	.create( "My RuleBook" );
+	.create( "My RuleBook" )
 		.addRule(
 			builder.rule()
-				.then( function( facts ){
-					systemOutput( "Hello " );
-				} )
+				.then( ( facts ) => println( "Hello " ) )
 		)
 		.addRule(
 			builder.rule()
-				.then( function( facts ){
-					systemOutput( "World " );
-				} )
+				.then( ( facts ) => println( "World " ) )
 		)
-	.run();
+	.run()
 ```
 
 ### The Above Example Using Facts
@@ -157,22 +129,14 @@ component extends="rulebox.models.RuleBook"{
 	function defineRules(){
 		addRule(
 			newRule()
-				.when( function( facts ){
-					return facts.keyExists( "hello" );
-				})
-				.then( function( facts ){
-					systemOutput( facts.hello );
-				} )
+				.when( ( facts ) => facts.keyExists( "hello" ) )
+				.then( ( facts ) => println( facts.hello ) )
 		)
 		.addRule(
 			newRule()
-				.when( function( facts ){
-					return facts.keyExists( "world" );
-				})
-				.then( function( facts ){
-					systemOutput( facts.world );
-				} )
-		);
+				.when( ( facts ) => facts.keyExists( "world" ) )
+				.then( ( facts ) => println( facts.world ) )
+		)
 	}
 }
 ```
@@ -185,16 +149,10 @@ component extends="rulebox.models.RuleBook"{
 	function defineRules(){
 		addRule(
 			newRule()
-			.when( function(){
-				return facts.keyExists( "hello" ) && facts.keyExists( "world" );
-			})
-			using( "hello" ).then( function(){
-				systemOutput( facts.hello );
-			} );
-			using( "world" ).then( function(){
-				systemOutput( facts.world );
-			} );
-		);
+			.when( ( facts ) => facts.keyExists( "hello" ) && facts.keyExists( "world" ) )
+			using( "hello" ).then( ( facts ) => println( facts.hello ) )
+			using( "world" ).then( ( facts ) => println( facts.world ) )
+		)
 	}
 }
 ```
@@ -206,7 +164,7 @@ getInstance( "MyRuleBook" )
 	.run( {
 		"hello" : "Hello ",
 		"world" : " World"
-	} );
+	} )
 
 # or using the givenAll() method
 getInstance( "MyRuleBook" )
@@ -214,7 +172,7 @@ getInstance( "MyRuleBook" )
 		"hello" : "Hello ",
 		"world" : " World"
 	} )
-	.run();
+	.run()
 ```
 
 ### A More Complex Scenario
@@ -236,15 +194,15 @@ Basic `Result` methods are:
 ```js
 component accessors="true"{
 
-	property creditScore;
-	property cashOnHand;
-	property firstTimeHomeBuyer;
+	property creditScore
+	property cashOnHand
+	property firstTimeHomeBuyer
 
 	function init( creditScore, cashOnHand, firstTimeHomeBuyer ){
-		variables.creditScore        = arguments.creditScore;
-		variables.cashOnHand         = arguments.cashOnHand;
-		variables.firstTimeHomeBuyer = arguments.firstTimeHomeBuyer;
-		return this;
+		variables.creditScore        = arguments.creditScore
+		variables.cashOnHand         = arguments.cashOnHand
+		variables.firstTimeHomeBuyer = arguments.firstTimeHomeBuyer
+		return this
 	}
 
 }
@@ -264,33 +222,31 @@ component extends="rulebox.models.RuleBook"{
 		//credit score under 600 gets a 4x rate increase
 		addRule(
 			newRule()
-			.when( function( facts ){ return facts.applicant.getCreditScore() < 600; } )
-			.then( function( facts, result ){ result.setValue( result.getValue() * 4 ); } )
+			.when( ( facts ) => facts.applicant.getCreditScore() < 600 )
+			.then( ( facts, result ) => result.setValue( result.getValue() * 4 ) )
 			.stop()
-		);
+		)
 
 		//credit score between 600 and 700 pays a 1 point increase
 		addRule(
 			newRule()
-			.when( function( facts ){ return facts.applicant.getCreditScore() < 700; } )
-			.then( function( facts, result ){ result.setValue( result.getValue() + 1 ); } )
-		);
+			.when( ( facts ) => facts.applicant.getCreditScore() < 700 )
+			.then( ( facts, result ) => result.setValue( result.getValue() + 1 ) )
+		)
 
 		//credit score is 700 and they have at least $25,000 cash on hand
 		addRule(
 			newRule()
-			.when( function( facts ){
-				return ( facts.applicant.getCreditScore() >= 700 && facts.applicant.getCashOnHand() >= 25000 );
-			} )
-			.then( function( facts, result ){ result.setValue( result.getValue() - 0.25 ); } )
-		);
+			.when( ( facts ) => facts.applicant.getCreditScore() >= 700 && facts.applicant.getCashOnHand() >= 25000 )
+			.then( ( facts, result ) => result.setValue( result.getValue() - 0.25 ) )
+		)
 
 		// first time homebuyers get 20% off their rate (except if they have a creditScore < 600)
 		addRule(
 			newRule()
-			.when( function( facts ){ return facts.applicant.getFirstTimeHomeBuyer(); } )
-			.then( function( facts, result ){ result.setValue( result.getValue() * 0.80 ); } )
-		);
+			.when( ( facts ) => facts.applicant.getFirstTimeHomeBuyer() )
+			.then( ( facts, result ) => result.setValue( result.getValue() * 0.80 ) )
+		)
 	}
 
 }
@@ -299,35 +255,35 @@ component extends="rulebox.models.RuleBook"{
 Now that we have built the rules and applicant, let's run them with a few example applicants. Remember, you would run these from a handler or another service method. Below I am running them from a BDD test:
 
 ```js
-describe("Home Loan Rate Rules", function () {
-	it("Can calculate a first time home buyer with 20,000 down and 650 credit score", function () {
+describe("Home Loan Rate Rules", () => {
+	it("Can calculate a first time home buyer with 20,000 down and 650 credit score", () => {
 		var homeLoans = getInstance("tests.resources.HomeLoanRateRuleBook")
 			.withDefaultResult(4.5)
 			.given(
 				"applicant",
 				new tests.resources.Applicant(650, 20000, true)
-			);
+			)
 
-		homeLoans.run();
+		homeLoans.run()
 
-		expect(homeLoans.getResult().isPresent()).toBeTrue();
-		expect(homeLoans.getResult().getValue()).toBe(4.4);
-	});
+		expect(homeLoans.getResult().isPresent()).toBeTrue()
+		expect(homeLoans.getResult().getValue()).toBe(4.4)
+	})
 
-	it("Can calculate a non first home buyer with 20,000 down and 650 credit score", function () {
+	it("Can calculate a non first home buyer with 20,000 down and 650 credit score", () => {
 		var homeLoans = getInstance("tests.resources.HomeLoanRateRuleBook")
 			.withDefaultResult(4.5)
 			.given(
 				"applicant",
 				new tests.resources.Applicant(650, 20000, false)
-			);
+			)
 
-		homeLoans.run();
+		homeLoans.run()
 
-		expect(homeLoans.getResult().isPresent()).toBeTrue();
-		expect(homeLoans.getResult().getValue()).toBe(5.5);
-	});
-});
+		expect(homeLoans.getResult().isPresent()).toBeTrue()
+		expect(homeLoans.getResult().getValue()).toBe(5.5)
+	})
+})
 ```
 
 Let's even take this further and just use facts instead of the `Applicant.cfc`
@@ -342,65 +298,64 @@ component extends="rulebox.models.RuleBook"{
 		//credit score under 600 gets a 4x rate increase
 		addRule(
 			newRule()
-			.when( function( facts ){ return facts[ "creditScore" ] < 600; } )
-			.then( function( facts, result ){ result.setValue( result.getValue() * 4 ); } )			.stop()
-		);
+			.when( ( facts ) => facts[ "creditScore" ] < 600 )
+			.then( ( facts, result ) => result.setValue( result.getValue() * 4 ) )
+			.stop()
+		)
 
 		//credit score between 600 and 700 pays a 1 point increase
 		addRule(
 			newRule()
-			.when( function( facts ){ return facts[ "creditScore" ] < 700; } )
-			.then( function( facts, result ){ result.setValue( result.getValue() + 1 ); } )
-		);
+			.when( ( facts ) => facts[ "creditScore" ] < 700 )
+			.then( ( facts, result ) => result.setValue( result.getValue() + 1 ) )
+		)
 
 		//credit score is 700 and they have at least $25,000 cash on hand
 		addRule(
 			newRule()
-			.when( function( facts ){
-				return ( facts[ "creditScore" ] >= 700 && facts[ "cashOnHand" ] >= 25000 );
-			} )
-			.then( function( facts, result ){ result.setValue( result.getValue() - 0.25 ); } )
-		);
+			.when( ( facts ) => facts[ "creditScore" ] >= 700 && facts[ "cashOnHand" ] >= 25000 )
+			.then( ( facts, result ) => result.setValue( result.getValue() - 0.25 ) )
+		)
 
 		// first time homebuyers get 20% off their rate (except if they have a creditScore < 600)
 		addRule(
 			newRule()
-			.when( function( facts ){ return facts[ "firstTimeHomeBuyer" ]; } )
-			.then( function( facts, result ){ result.setValue( result.getValue() * 0.80 ); } )
-		);
+			.when( ( facts ) => facts[ "firstTimeHomeBuyer" ] )
+			.then( ( facts, result ) => result.setValue( result.getValue() * 0.80 ) )
+		)
 	}
 
 }
 ```
 
 ```js
-describe("Home Loan Rate Rules", function () {
-	it("Can calculate a first time home buyer with 20,000 down and 650 credit score", function () {
+describe("Home Loan Rate Rules", () => {
+	it("Can calculate a first time home buyer with 20,000 down and 650 credit score", () => {
 		var homeLoans = getInstance("tests.resources.HomeLoanRateRuleBook")
 			.withDefaultResult(4.5)
 			.given("creditScore", 650)
 			.given("cashOnHand", 20000)
-			.given("firstTimeHomeBuyer", true);
+			.given("firstTimeHomeBuyer", true)
 
-		homeLoans.run();
+		homeLoans.run()
 
-		expect(homeLoans.getResult().isPresent()).toBeTrue();
-		expect(homeLoans.getResult().getValue()).toBe(4.4);
-	});
+		expect(homeLoans.getResult().isPresent()).toBeTrue()
+		expect(homeLoans.getResult().getValue()).toBe(4.4)
+	})
 
-	it("Can calculate a non first home buyer with 20,000 down and 650 credit score", function () {
+	it("Can calculate a non first home buyer with 20,000 down and 650 credit score", () => {
 		var homeLoans = getInstance("tests.resources.HomeLoanRateRuleBook")
 			.withDefaultResult(4.5)
 			.given("creditScore", 650)
 			.given("cashOnHand", 20000)
-			.given("firstTimeHomeBuyer", false);
+			.given("firstTimeHomeBuyer", false)
 
-		homeLoans.run();
+		homeLoans.run()
 
-		expect(homeLoans.getResult().isPresent()).toBeTrue();
-		expect(homeLoans.getResult().getValue()).toBe(5.5);
-	});
-});
+		expect(homeLoans.getResult().isPresent()).toBeTrue()
+		expect(homeLoans.getResult().getValue()).toBe(5.5)
+	})
+})
 ```
 
 #### `Result` Object
@@ -416,9 +371,7 @@ if (rulebook.getResult().isPresent()) {
 	// do something.
 }
 
-rulebook.getResult().ifPresent(function (value) {
-	systemoutput("The vaue produced is #arguments.value#");
-});
+rulebook.getResult().ifPresent( ( value ) => println("The vaue produced is #value#") )
 ```
 
 ### Thread Safety
@@ -448,7 +401,7 @@ var homeLoans = getInstance("tests.resources.HomeLoanRateRuleBook")
 	.given("creditScore", 650)
 	.given("cashOnHand", 20000)
 	.given("firstTimeHomeBuyer", false)
-	.run();
+	.run()
 
 var homeLoans = getInstance("tests.resources.HomeLoanRateRuleBook")
 	.withDefaultResult(4.5)
@@ -457,38 +410,36 @@ var homeLoans = getInstance("tests.resources.HomeLoanRateRuleBook")
 		cashOnHand: 20000,
 		firstTimeHomeBuyer: false,
 	})
-	.run();
+	.run()
 ```
 
 `When` methods accept a Predicate closure/lambda that evaluates a condition based on the Facts provided. Only one `when()` method can be specified per Rule and it must return boolean.
 
 ```js
-.when( function( facts ){
+.when( ( facts ) => {
 	// determine if we continue or not
-	return boolean;
-} );
+	return boolean
+} )
 ```
 
 `Except` methods negate the `when()` operation if it passes. Thus you can say, when the balance is greater than 100, except when your account is disabled, then dispense some money.
 
 ```js
-except(function (facts) {
-	return facts.accountDisabled;
-});
+except( ( facts ) => facts.accountDisabled )
 ```
 
 `Then` methods accept a Consumer closure/lambda that describe the action to be invoked if the condition in the `when()` method evaluates to `true`. There can be **multiple** `then()` methods specified in a Rule that will all be invoked in the order they are specified if the `when()` condition evaluates to `true`. If a `then()` returns a `true` then no more consumers left in the execution will execute, thus breaking the consumer chain. If you return void or `false` the chain continues.
 
 ```js
-.then( function( facts, result ) ){
+.then( ( facts, result ) => {
 	//  do stuff
 
 	// break the next then()
-	return true;
-})
-.then( function( facts, result ) ){
+	return true
+} )
+.then( ( facts, result ) => {
 	// This never fires
-})
+} )
 ```
 
 ### The Using Method
@@ -509,13 +460,13 @@ Rule auditing is also very handy in knowing which rules fired and which ones did
 
 ```js
 // Using the Builder
-builder.rule("ruleName");
+builder.rule("ruleName")
 
 // Using the new Rule method
-addRule(newRule("ruleName"));
+addRule(newRule("ruleName"))
 
 // Or using it's setter
-addRule(newRule().setName("ruleName"));
+addRule(newRule().setName("ruleName"))
 ```
 
 Each Auditable Rule added to a RuleBook has its state recorded in the RuleBook. At the time when rules are registered in the RuleBook, their Rule Status is `NONE`. After the RuleBook is run, their Rule Status is changed to `SKIPPED` for all rules that fail or whose conditions do not evaluate to true. For rules whose conditions do evaluate to true and whose `then()` action completes successfully, their RuleStatus is changed to `EXECUTED`.
@@ -523,12 +474,12 @@ Each Auditable Rule added to a RuleBook has its state recorded in the RuleBook. 
 Retrieving the status of a rule can be done as follows:
 
 ```js
-status = ruleBook.getRuleStatus("rule1");
-status = ruleBook.getRuleStatus("rule2");
+status = ruleBook.getRuleStatus("rule1")
+status = ruleBook.getRuleStatus("rule2")
 ```
 
 Or you can retrieve the entire struct of statuses:
 
 ```js
-writeDump(ruleBook.getRuleStatusMap());
+writeDump(ruleBook.getRuleStatusMap())
 ```

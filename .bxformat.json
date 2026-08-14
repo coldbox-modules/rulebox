@@ -1,7 +1,7 @@
 {
   "indentSize" : 4,
   "tabIndent" : true,
-  "maxLineLength" : 120,
+  "maxLineLength" : 150,
   "newLine" : "os",
   "singleQuote" : false,
   "preserveStringQuotes" : false,
@@ -10,14 +10,14 @@
   "bracketPadding" : true,
   "parensPadding" : true,
   "binaryOperatorsPadding" : true,
-  "semicolons" : true,
+  "semicolons" : false,
   "cfFormatCompatibility" : true,
   "sourceType" : null,
   "struct" : {
     "padding" : true,
     "empty_padding" : false,
     "quote_keys" : false,
-    "separator" : " : ",
+    "separator" : ": ",
     "multiline" : {
       "element_count" : 4,
       "comma_dangle" : false,
@@ -25,7 +25,7 @@
         "enabled" : false,
         "padding" : true
       },
-      "min_length" : 40
+      "min_length" : 60
     }
   },
   "property" : {
@@ -36,7 +36,7 @@
         "enabled" : false,
         "padding" : true
       },
-      "min_length" : 40
+      "min_length" : 60
     },
     "key_value" : {
       "padding" : false
@@ -52,7 +52,7 @@
         "enabled" : false,
         "padding" : true
       },
-      "min_length" : 40
+      "min_length" : 60
     }
   },
   "for_loop_semicolons" : {
@@ -65,7 +65,7 @@
       "empty_padding" : false,
       "comma_dangle" : false,
       "multiline_count" : 4,
-      "multiline_length" : 40
+      "multiline_length" : 60
     },
     "arrow" : {
       "parens" : "always"
@@ -76,8 +76,8 @@
     "empty_padding" : false,
     "comma_dangle" : false,
     "multiline_count" : 4,
-    "multiline_length" : 40,
-    "separator" : " = "
+    "multiline_length" : 60,
+    "separator" : ": "
   },
   "braces" : {
     "style" : "same-line",
@@ -99,7 +99,7 @@
     "break_length" : 60
   },
   "template" : {
-    "enabled" : true,
+    "enabled" : false,
     "component_prefix" : "bx",
     "indent_content" : false,
     "single_attribute_per_line" : false,

@@ -35,6 +35,8 @@
 		"build:module":"task run taskFile=build/Build.cfc :projectName=`package show slug` :version=`package show version`",
 		"build:docs":"task run taskFile=build/Build.cfc target=docs :projectName=`package show slug` :version=`package show version`",
         "install:dependencies":"install && cd test-harness && install",
+		"format:check": "boxlang format --source models/,test-harness/tests/,ModuleConfig.bx --check",
+		"format": "boxlang format --source models/,test-harness/tests/,ModuleConfig.bx",
 		"release":"recipe build/release.boxr",
 		"start" : "server start serverConfigFile=server-boxlang@1.json",
 		"stop" : "server stop serverConfigFile=server-boxlang@1.json",
