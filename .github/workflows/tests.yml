@@ -80,7 +80,7 @@ jobs:
           box testbox run --verbose outputFile=test-harness/tests/results/test-results outputFormats=json,antjunit
 
       - name: Publish Test Reports
-        uses: mikepenz/action-junit-report@v6.4.2
+        uses: mikepenz/action-junit-report@v6.5.0
         if: always()
         with:
           report_paths: |
