@@ -78,6 +78,9 @@ class{
 		variables.result 		= new Result()
 		variables.ruleStatusMap = {}
 
+		// Expose the static rule states enum on the instance for external access
+		this.RULE_STATES = static.RULE_STATES
+
 		return this
 	}
 

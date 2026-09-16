@@ -89,11 +89,14 @@ class{
 		variables.factsNameMap 	= {}
 		variables.currentState 	= static.STATES.NEXT
 
+		// Expose the static rule states enum on the instance for external access
+		this.STATES = static.STATES
+
 		// Define an empty predicate that always returns true
-		variables.predicate = () -> return true;
+		variables.predicate = () => { return true; };
 
 		// Define an empty except that always returns false
-		variables.except = () -> return false;
+		variables.except = () => { return false; };
 
 		// Create the consumers array
 		variables.consumers = []
