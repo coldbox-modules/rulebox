@@ -34,7 +34,7 @@ component {
 			variables.buildDir,
 			variables.artifactsDir,
 			variables.apidDocsDir
-		].each( item => {
+		].each( ( item ) => {
 			if ( directoryExists( item ) ) {
 				directoryDelete( item, true );
 			}
