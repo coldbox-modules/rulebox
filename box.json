@@ -44,6 +44,6 @@
         "forget" : "server forget serverConfigFile=server-boxlang@1.json"
     },
 	"testbox":{
-        "runner":"http://localhost:60299/tests/runner.cfm"
+        "runner":"http://localhost:60299/tests/runner.bxm"
     }
 }
