@@ -13,6 +13,7 @@
 - [Guides](https://rulebox.coldbox.org/guides/index.html)
 - [The Builder](https://rulebox.coldbox.org/guides/the-builder/index.html)
 - [Auditing Rules](https://rulebox.coldbox.org/guides/auditing/index.html)
+- [Externalized Rule Definitions](https://rulebox.coldbox.org/guides/external-rules/index.html)
 - [Thread Safety](https://rulebox.coldbox.org/guides/thread-safety/index.html)
 - [Error Handling](https://rulebox.coldbox.org/guides/error-handling/index.html)
 - [A Complex Example](https://rulebox.coldbox.org/guides/complex-example/index.html)
