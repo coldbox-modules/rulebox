@@ -257,7 +257,7 @@ component {
 	}
 
 	/**
-	 * DirectoryCopy is broken in lucee
+	 * DirectoryCopy is broken in the CommandBox task runner engine
 	 */
 	private function copy( src, target, recurse = true ){
 		// process paths with excludes

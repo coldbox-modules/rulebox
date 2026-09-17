@@ -16,7 +16,7 @@ class{
     this.setClientCookies  = true;
 
     /**************************************
-	LUCEE Specific Settings
+	Engine Settings
 	**************************************/
 	// buffer the output of a tag/function body to output in case of a exception
 	this.bufferOutput 					= true;
@@ -75,9 +75,6 @@ class{
 	public boolean function onRequestStart(String targetPage){
 
 		if( url.keyExists( "fwreinit" ) ){
-			if( server.keyExists( "lucee" ) ){
-				pagePoolClear();
-			}
 			//ormReload();
 		}
 

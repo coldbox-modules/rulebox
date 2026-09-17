@@ -63,14 +63,13 @@ If you discover a security vulnerability, please send an email to the Ortus secu
 
 ## Language Compatibility
 
-Please make sure your code runs on the following CFML Engines:
+This is a BoxLang-only project. Please make sure your code runs on:
 
-- Lucee 5+
-- Adobe ColdFusion 2018+
+- BoxLang 1.14+
 
 ## Coding Styles & Formatting
 
-We are big on coding styles and have included a `.cfformat.json` in the root of the project so that you can run the formatting tools and CommandBox scripts:
+We are big on coding styles and have included a `.bxformat.json` in the root of the project so that you can run the formatting tools and CommandBox scripts:
 
 ```bash
 # Format everything
