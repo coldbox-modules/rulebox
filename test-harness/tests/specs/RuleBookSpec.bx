@@ -89,7 +89,7 @@ class extends="tests.resources.BaseSpec"{
 				var ruleBook = getInstance( "RuleBook@rulebox" );
 				ruleBook.addRule(
 					ruleBook.newRule().then( ( facts ) => {
-						capturedFacts.append( duplicate( facts ) );
+						capturedFacts.append( facts.copy() );
 					} )
 				);
 

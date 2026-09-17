@@ -163,8 +163,10 @@ class{
 			);
 		}
 
-		// Build an ephemeral working fact set for this invocation only: sticky facts + this call's facts
-		var workingFacts = duplicate( variables.facts )
+		// Build an ephemeral working fact set for this invocation only: sticky facts + this call's facts.
+		// A shallow copy() is used on purpose: facts commonly hold arbitrary domain objects, and a deep
+		// duplicate() would recursively clone entire object graphs instead of just isolating the top-level map.
+		var workingFacts = variables.facts.copy()
 		structAppend( workingFacts, arguments.facts, arguments.overwrite )
 
 		try{

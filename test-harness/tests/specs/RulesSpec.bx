@@ -126,7 +126,7 @@ class extends="tests.resources.BaseSpec"{
 					var rule = getInstance( "rule@rulebox" )
 						.setRuleBook( rulebook )
 						.then( ( facts ) => {
-							capturedFacts.append( duplicate( facts ) );
+							capturedFacts.append( facts.copy() );
 						} );
 
 					rule.run( { "a" : 1 } );
