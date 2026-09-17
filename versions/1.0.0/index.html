@@ -1,0 +1,686 @@
+
+
+
+
+
+
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>RuleBox 1.0.0 - RuleBox</title>
+	<meta property="og:type" content="website">
+	<meta property="og:site_name" content="RuleBox">
+	<meta property="og:title" content="RuleBox 1.0.0">
+	
+
+	<link rel="canonical" href="https&#x3a;&#x2f;&#x2f;rulebox.coldbox.org&#x2f;versions&#x2f;1.0.0&#x2f;index.html">
+
+
+	<meta name="description" content="Archived documentation for RuleBox 1.0.0, frozen as it shipped in 2018.">
+	<meta property="og:description" content="Archived documentation for RuleBox 1.0.0, frozen as it shipped in 2018.">
+
+
+
+	<script>
+		( function () {
+			var configuredMode = "auto";
+			var stored = localStorage.getItem( "bxsites-theme" );
+			var prefersDark = window.matchMedia( "(prefers-color-scheme: dark)" ).matches;
+			var wantsDark = stored ? stored === "dark" : ( configuredMode === "dark" || ( configuredMode === "auto" && prefersDark ) );
+			if ( wantsDark ) {
+				document.documentElement.setAttribute( "data-theme", "dark" );
+			}
+		} )();
+	</script>
+	<link rel="stylesheet" href="/versions/1.0.0/assets/vendor/bootstrap/bootstrap.min.css">
+	<link rel="stylesheet" href="/versions/1.0.0/assets/vendor/highlight/github.min.css">
+	<link rel="stylesheet" href="/versions/1.0.0/assets/theme/style.08f867df.css">
+	
+
+	<style>
+
+		:root {
+			--bxsites-accent: #CC3300;
+			--bxsites-link: #CC3300;
+			--bxsites-link-hover: color-mix( in srgb, #CC3300 85%, black );
+		}
+
+
+	</style>
+
+
+
+
+
+	<script>window.__BXSITES_BASE_PATH__ = "/versions/1.0.0/";</script>
+	<script>window.__BXSITES_SEARCH_NO_RESULTS__ = "No\x20results\x20found.";</script>
+	<script src="/versions/1.0.0/assets/vendor/minisearch/minisearch.js"></script>
+	<script src="/versions/1.0.0/assets/search.js" defer></script>
+
+
+
+	<script src="/versions/1.0.0/assets/vendor/alpine/cdn.min.js" defer></script>
+</head>
+<body x-data="{ dark: document.documentElement.getAttribute( 'data-theme' ) === 'dark', navOpen: window.matchMedia( '(min-width: 992px)' ).matches ? ( localStorage.getItem( 'bxsites-nav-open' ) !== null ? localStorage.getItem( 'bxsites-nav-open' ) === 'true' : true ) : false }" x-init="$watch( 'dark', v => { document.documentElement.setAttribute( 'data-theme', v ? 'dark' : 'light' ); localStorage.setItem( 'bxsites-theme', v ? 'dark' : 'light' ) } ); $watch( 'navOpen', v => { if ( window.matchMedia( '(min-width: 992px)' ).matches ) localStorage.setItem( 'bxsites-nav-open', v ) } )">
+	<nav class="navbar navbar-expand-lg brand-navbar">
+		<div class="container-fluid navbar-row">
+			<button class="navbar-toggler" type="button" @click="navOpen = !navOpen" :aria-expanded="navOpen.toString()" aria-controls="bxsites-sidebar" aria-label="Toggle navigation">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+			<a class="navbar-brand brand-mark" href="/versions/1.0.0/">⚡ RuleBox</a>
+			<div class="navbar-controls">
+
+	
+
+
+
+
+	<div class="bxsites-search position-relative">
+	<input type="search" id="bxsites-search-input" class="form-control" placeholder="Search..." aria-label="Search">
+	<kbd class="bxsites-search-kbd" aria-hidden="true">Ctrl K</kbd>
+	<ul id="bxsites-search-results" class="bxsites-search-results list-unstyled"></ul>
+</div>
+
+
+
+
+
+
+
+				<select class="version-switcher form-select form-select-sm" onchange="location.href=this.value" aria-label="Version"><option value="/">Latest</option><option value="/versions/1.0.0/" selected>1.0.0</option></select>
+
+
+
+				<a class="repo-link" href="https://github.com/coldbox-modules/rulebox" target="_blank" rel="noopener noreferrer" aria-label="Repository" title="Repository"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.333-1.754-1.333-1.754-1.089-.744.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.303-5.467-1.332-5.467-5.93 0-1.31.468-2.38 1.235-3.22-.123-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23A11.5 11.5 0 0 1 12 5.803c1.02.005 2.045.138 3.003.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.118 3.176.77.84 1.235 1.91 1.235 3.22 0 4.61-2.807 5.625-5.48 5.92.43.372.823 1.102.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .322.216.694.825.576C20.565 21.795 24 17.298 24 12c0-6.63-5.37-12-12-12"/></svg></a>
+
+				<button type="button" class="theme-toggle" @click="dark = !dark" aria-label="Toggle dark mode">
+					<span x-show="!dark"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg></span>
+					<span x-show="dark" x-cloak><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg></span>
+				</button>
+			</div>
+		</div>
+	</nav>
+	<div class="container-fluid">
+		<div class="row" :class="{ 'bxsites-nav-collapsed' : !navOpen }">
+			<aside class="col-lg-3 col-xl-2 sidebar" id="bxsites-sidebar" x-show="navOpen" x-cloak>
+				<ul class="nav flex-column"><li class="nav-item"><a class="nav-link active" href="/versions/1.0.0/index.html"><svg class="bxsites-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M216,96v96a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V96Z" opacity="0.2"/><path d="M224,48H32A16,16,0,0,0,16,64V88a16,16,0,0,0,16,16v88a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V104a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48ZM208,192H48V104H208ZM224,88H32V64H224V88ZM96,136a8,8,0,0,1,8-8h48a8,8,0,0,1,0,16H104A8,8,0,0,1,96,136Z"/></svg> RuleBox 1.0.0</a></li></ul>
+				<a class="bxsites-powered-by" href="https://bxsites.io" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg> <span>Powered by BxSites</span></a>
+			</aside>
+			<main class="col-lg-9 col-xl-8 content">
+
+
+				<article class="page-content">
+
+
+
+					<h1 class="page-title" id="page-title"><a href="#page-title" id="page-title" class="anchor"></a>
+
+	<span class="page-icon"><svg class="bxsites-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M216,96v96a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V96Z" opacity="0.2"/><path d="M224,48H32A16,16,0,0,0,16,64V88a16,16,0,0,0,16,16v88a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V104a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48ZM208,192H48V104H208ZM224,88H32V64H224V88ZM96,136a8,8,0,0,1,8-8h48a8,8,0,0,1,0,16H104A8,8,0,0,1,96,136Z"/></svg></span>
+
+RuleBox 1.0.0</h1>
+
+	<p class="page-summary">Archived documentation for RuleBox 1.0.0, frozen as it shipped in 2018.</p>
+
+
+
+
+
+	<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#requirements">Requirements</a></li><li class="toc-level-2"><a href="#installation">Installation</a></li><li class="toc-level-2"><a href="#usage">Usage</a></li><li class="toc-level-3"><a href="#defining-rules">Defining Rules</a></li><li class="toc-level-3"><a href="#a-helloworld-example">A HelloWorld Example</a></li><li class="toc-level-3"><a href="#the-above-example-using-facts">The Above Example Using Facts</a></li><li class="toc-level-3"><a href="#a-more-complex-scenario">A More Complex Scenario</a></li><li class="toc-level-3"><a href="#thread-safety">Thread Safety</a></li><li class="toc-level-2"><a href="#the-rulebook-domain-specific-language-explained">The RuleBook Domain Specific Language Explained</a></li><li class="toc-level-3"><a href="#given-when-then-the-basis-of-the-rulebook-language">Given-When-Then&#x3a; The Basis of the RuleBook Language</a></li><li class="toc-level-3"><a href="#the-using-method">The Using Method</a></li><li class="toc-level-3"><a href="#the-stop-method">The Stop Method</a></li><li class="toc-level-3"><a href="#working-with-facts">Working With Facts</a></li><li class="toc-level-3"><a href="#auditing-rules">Auditing Rules</a></li></ul></details>
+
+					<h1 id="rulebox-100"><a href="#rulebox-100" id="rulebox-100" name="rulebox-100" class="anchor"></a>RuleBox 1.0.0</h1>
+<blockquote>
+<p><strong>Archived version.</strong> This page preserves the RuleBox 1.0.0 docs as
+originally written. For the current release, see the
+<a href="/versions/1.0.0/index.html">Latest docs</a>.</p>
+</blockquote>
+<p><strong>RuleBox</strong> is a modern intuitive and natural language rule engine based
+upon the great work of <strong>RuleBook</strong>: <a href="https://github.com/rulebook-rules/rulebook">https://github.com/rulebook-rules/rulebook</a>
+ported over to BoxLang.</p>
+<p>Tired of classes filled with if/then/else statements? Need a nice
+abstraction that allows rules to be easily specified in a way that
+decouples them from each other? Want to write rules the same way that you
+write the rest of your code in BoxLang? RuleBox is right for you!</p>
+<p>RuleBox allows you to write rules in an expressive and dynamic Domain
+Specific Language modeled closely after the
+<a href="https://martinfowler.com/bliki/GivenWhenThen.html">Given-When-Then</a>
+methodology.</p>
+<h2 id="requirements"><a href="#requirements" id="requirements" name="requirements" class="anchor"></a>Requirements</h2>
+<ul>
+<li>BoxLang 1.14+</li>
+</ul>
+<h2 id="installation"><a href="#installation" id="installation" name="installation" class="anchor"></a>Installation</h2>
+<p>Just leverage CommandBox: <code>box install rulebox</code> and it will install as a
+module in your ColdBox application.</p>
+<h2 id="usage"><a href="#usage" id="usage" name="usage" class="anchor"></a>Usage</h2>
+<p>The module will register the following objects in WireBox:</p>
+<ul>
+<li><code>Rule@rulebox</code> - A transient rule</li>
+<li><code>RuleBook@rulebox</code> - A transient rule book object</li>
+<li><code>Builder@rulebox</code> - A static class that can be used to build a-la-carte rules and rule books.</li>
+<li><code>Result@rulebox</code> - RuleBooks produce results and this is the object that models such results.</li>
+</ul>
+<h3 id="defining-rules"><a href="#defining-rules" id="defining-rules" name="defining-rules" class="anchor"></a>Defining Rules</h3>
+<p>The preferred approach is for you to create your own RuleBook that
+extends: <code>rulebox.models.RuleBook</code> with a method called <code>defineRules()</code>.
+In this method you will define all the rules that apply to that specific
+RuleBook using our DSL. There is nothing stopping you from creating
+rulebooks on the fly, which can allow you to create dynamic or a-la-carte
+rules if needed.</p>
+<blockquote>
+<p>RuleBooks should be transient objects as they are reused when binded
+with facts.</p>
+</blockquote>
+<h3 id="a-helloworld-example"><a href="#a-helloworld-example" id="a-helloworld-example" name="a-helloworld-example" class="anchor"></a>A HelloWorld Example</h3>
+<pre><code class="language-js">class extends=&quot;rulebox.models.RuleBook&quot;{
+
+function defineRules(){
+		// Add a new rule to this rulebook
+		addRule(
+			newRule( &quot;MyRule&quot; )
+				.then( ( facts ) =&gt; println( &quot;Hello &quot; ) )
+				.then( ( facts ) =&gt; println( &quot;World&quot; ) )
+		)
+	}
+
+}
+</code></pre>
+<p>As you can see from above, new rules are created by calling the
+<code>newRule()</code> method with an optional <code>name</code> that you can use to identify
+the rule you register. You can also define rules as a closure/lambda
+with slightly different syntax:</p>
+<pre><code class="language-js">class extends=&quot;rulebox.models.RuleBook&quot;{
+
+// Lambdas
+function defineRules(){
+		addRule( ( rule ) =&gt; {
+			rule
+				.setName( &quot;MyRule&quot; )
+				.then( ( facts ) =&gt; println( &quot;Hello &quot; ) )
+				.then( ( facts ) =&gt; println( &quot;World&quot; ) )
+		} )
+	}
+
+}
+
+</code></pre>
+<blockquote>
+<p>The RuleBook also has a <code>name</code> property, so you can attach a human
+readable name to the RuleBook via <code>setName( name )</code> method.</p>
+</blockquote>
+<p>...or use 2 rules</p>
+<pre><code class="language-js">class extends=&quot;rulebox.models.RuleBook&quot;{
+
+	function defineRules(){
+		.addRule(
+			newRule()
+				.then( () =&gt; println( &quot;Hello &quot; ) )
+		)
+		.addRule(
+			newRule()
+				.then( () =&gt; println( &quot;World &quot; ) )
+		)
+	}
+}
+</code></pre>
+<p>now, run it!</p>
+<pre><code class="language-js">getInstance(&quot;HelloWorld&quot;).run()
+</code></pre>
+<p>Like mentioned before, I can also create a-la-carte rules and a rulebook
+by leveraging the <code>Builder</code>:</p>
+<pre><code class="language-js">builder = getInstance( &quot;Builder@rulebox&quot; )
+
+builder
+	.create( &quot;My RuleBook&quot; )
+		.addRule(
+			builder.rule()
+				.then( ( facts ) =&gt; println( &quot;Hello &quot; ) )
+		)
+		.addRule(
+			builder.rule()
+				.then( ( facts ) =&gt; println( &quot;World &quot; ) )
+		)
+	.run()
+</code></pre>
+<h3 id="the-above-example-using-facts"><a href="#the-above-example-using-facts" id="the-above-example-using-facts" name="the-above-example-using-facts" class="anchor"></a>The Above Example Using Facts</h3>
+<pre><code class="language-js">class extends=&quot;rulebox.models.RuleBook&quot;{
+
+	function defineRules(){
+		addRule(
+			newRule()
+				.when( ( facts ) =&gt; facts.keyExists( &quot;hello&quot; ) )
+				.then( ( facts ) =&gt; println( facts.hello ) )
+		)
+		.addRule(
+			newRule()
+				.when( ( facts ) =&gt; facts.keyExists( &quot;world&quot; ) )
+				.then( ( facts ) =&gt; println( facts.world ) )
+		)
+	}
+}
+</code></pre>
+<p>..or it could be a single rule</p>
+<pre><code class="language-js">class extends=&quot;rulebox.models.RuleBook&quot;{
+
+	function defineRules(){
+		addRule(
+			newRule()
+			.when( ( facts ) =&gt; facts.keyExists( &quot;hello&quot; ) &amp;&amp; facts.keyExists( &quot;world&quot; ) )
+			using( &quot;hello&quot; ).then( ( facts ) =&gt; println( facts.hello ) )
+			using( &quot;world&quot; ).then( ( facts ) =&gt; println( facts.world ) )
+		)
+	}
+}
+</code></pre>
+<p>now, run it!</p>
+<pre><code class="language-js">getInstance( &quot;MyRuleBook&quot; )
+	.run( {
+		&quot;hello&quot; : &quot;Hello &quot;,
+		&quot;world&quot; : &quot; World&quot;
+	} )
+
+# or using the givenAll() method
+getInstance( &quot;MyRuleBook&quot; )
+	.givenAll( {
+		&quot;hello&quot; : &quot;Hello &quot;,
+		&quot;world&quot; : &quot; World&quot;
+	} )
+	.run()
+</code></pre>
+<h3 id="a-more-complex-scenario"><a href="#a-more-complex-scenario" id="a-more-complex-scenario" name="a-more-complex-scenario" class="anchor"></a>A More Complex Scenario</h3>
+<p><strong>The Requirements</strong>:</p>
+<p><em>MegaBank issues home loans. If an applicant's credit score is less than
+600 then they must pay 4x the current rate. If an applicant's credit
+score is between 600, but less than 700, then they must pay a an
+additional point on top of their rate. If an applicant's credit score is
+at least 700 and they have at least $25,000 cash on hand, then they get a
+quarter point reduction on their rate. If an applicant is a first time
+home buyer then they get a 20% reduction on their calculated rate after
+adjustments are made based on credit score (note: first time home buyer
+discount is only available for applicants with a 600 credit score or
+greater).</em></p>
+<p>Given those set of requirements we will create the rules, but this time
+we will also track results using a RuleBox <code>Result</code> object. The <code>Result</code>
+object is passed to the <code>then()</code> methods and it has a very simple API for
+dealing with results. Please note that the same instance of that <code>Result</code>
+object is passed from rule to rule, so you can work on the result. Much
+how map, reduce functions work. The <code>Result</code> object can also be pre-set
+with a default value by leveraging the <code>withDefaultValue()</code> method in the
+<code>RuleBook</code> object. If not, the default value would be <code>null</code>.</p>
+<p>Basic <code>Result</code> methods are:</p>
+<ul>
+<li><code>setValue()</code> - Set the value in the result</li>
+<li><code>getValue()</code> - Get the value</li>
+<li><code>isPresent()</code> - Has the value been set or is it <code>null</code></li>
+</ul>
+<p><strong>Applicant.bx</strong></p>
+<pre><code class="language-js">class{
+
+	property creditScore
+	property cashOnHand
+	property firstTimeHomeBuyer
+
+	function init( creditScore, cashOnHand, firstTimeHomeBuyer ){
+		variables.creditScore        = arguments.creditScore
+		variables.cashOnHand         = arguments.cashOnHand
+		variables.firstTimeHomeBuyer = arguments.firstTimeHomeBuyer
+		return this
+	}
+
+}
+</code></pre>
+<p>This <code>Applicant.bx</code> tracks our home loan applicants, now let's build the
+rules for this home loan.</p>
+<p><strong>HomeLoanRateRuleBook.bx</strong></p>
+<pre><code class="language-js">/**
+ * This rule book determines rules for a home loan rate
+ */
+class extends=&quot;rulebox.models.RuleBook&quot;{
+
+	function defineRules(){
+		//credit score under 600 gets a 4x rate increase
+		addRule(
+			newRule()
+			.when( ( facts ) =&gt; facts.applicant.getCreditScore() &lt; 600 )
+			.then( ( facts, result ) =&gt; result.setValue( result.getValue() * 4 ) )
+			.stop()
+		)
+
+		//credit score between 600 and 700 pays a 1 point increase
+		addRule(
+			newRule()
+			.when( ( facts ) =&gt; facts.applicant.getCreditScore() &lt; 700 )
+			.then( ( facts, result ) =&gt; result.setValue( result.getValue() + 1 ) )
+		)
+
+		//credit score is 700 and they have at least $25,000 cash on hand
+		addRule(
+			newRule()
+			.when( ( facts ) =&gt; facts.applicant.getCreditScore() &gt;= 700 &amp;&amp; facts.applicant.getCashOnHand() &gt;= 25000 )
+			.then( ( facts, result ) =&gt; result.setValue( result.getValue() - 0.25 ) )
+		)
+
+		// first time homebuyers get 20% off their rate (except if they have a creditScore &lt; 600)
+		addRule(
+			newRule()
+			.when( ( facts ) =&gt; facts.applicant.getFirstTimeHomeBuyer() )
+			.then( ( facts, result ) =&gt; result.setValue( result.getValue() * 0.80 ) )
+		)
+	}
+
+}
+</code></pre>
+<p>Now that we have built the rules and applicant, let's run them with a
+few example applicants. Remember, you would run these from a handler or
+another service method. Below I am running them from a BDD test:</p>
+<pre><code class="language-js">describe(&quot;Home Loan Rate Rules&quot;, () =&gt; {
+	it(&quot;Can calculate a first time home buyer with 20,000 down and 650 credit score&quot;, () =&gt; {
+		var homeLoans = getInstance(&quot;tests.resources.HomeLoanRateRuleBook&quot;)
+			.withDefaultResult(4.5)
+			.given(
+				&quot;applicant&quot;,
+				new tests.resources.Applicant(650, 20000, true)
+			)
+
+		homeLoans.run()
+
+		expect(homeLoans.getResult().isPresent()).toBeTrue()
+		expect(homeLoans.getResult().getValue()).toBe(4.4)
+	})
+
+	it(&quot;Can calculate a non first home buyer with 20,000 down and 650 credit score&quot;, () =&gt; {
+		var homeLoans = getInstance(&quot;tests.resources.HomeLoanRateRuleBook&quot;)
+			.withDefaultResult(4.5)
+			.given(
+				&quot;applicant&quot;,
+				new tests.resources.Applicant(650, 20000, false)
+			)
+
+		homeLoans.run()
+
+		expect(homeLoans.getResult().isPresent()).toBeTrue()
+		expect(homeLoans.getResult().getValue()).toBe(5.5)
+	})
+})
+</code></pre>
+<p>Let's even take this further and just use facts instead of the
+<code>Applicant.bx</code></p>
+<pre><code class="language-js">/**
+ * This rule book determines rules for a home loan rate using facts
+ */
+class extends=&quot;rulebox.models.RuleBook&quot;{
+
+	function defineRules(){
+		//credit score under 600 gets a 4x rate increase
+		addRule(
+			newRule()
+			.when( ( facts ) =&gt; facts[ &quot;creditScore&quot; ] &lt; 600 )
+			.then( ( facts, result ) =&gt; result.setValue( result.getValue() * 4 ) )
+			.stop()
+		)
+
+		//credit score between 600 and 700 pays a 1 point increase
+		addRule(
+			newRule()
+			.when( ( facts ) =&gt; facts[ &quot;creditScore&quot; ] &lt; 700 )
+			.then( ( facts, result ) =&gt; result.setValue( result.getValue() + 1 ) )
+		)
+
+		//credit score is 700 and they have at least $25,000 cash on hand
+		addRule(
+			newRule()
+			.when( ( facts ) =&gt; facts[ &quot;creditScore&quot; ] &gt;= 700 &amp;&amp; facts[ &quot;cashOnHand&quot; ] &gt;= 25000 )
+			.then( ( facts, result ) =&gt; result.setValue( result.getValue() - 0.25 ) )
+		)
+
+		// first time homebuyers get 20% off their rate (except if they have a creditScore &lt; 600)
+		addRule(
+			newRule()
+			.when( ( facts ) =&gt; facts[ &quot;firstTimeHomeBuyer&quot; ] )
+			.then( ( facts, result ) =&gt; result.setValue( result.getValue() * 0.80 ) )
+		)
+	}
+
+}
+</code></pre>
+<pre><code class="language-js">describe(&quot;Home Loan Rate Rules&quot;, () =&gt; {
+	it(&quot;Can calculate a first time home buyer with 20,000 down and 650 credit score&quot;, () =&gt; {
+		var homeLoans = getInstance(&quot;tests.resources.HomeLoanRateRuleBook&quot;)
+			.withDefaultResult(4.5)
+			.given(&quot;creditScore&quot;, 650)
+			.given(&quot;cashOnHand&quot;, 20000)
+			.given(&quot;firstTimeHomeBuyer&quot;, true)
+
+		homeLoans.run()
+
+		expect(homeLoans.getResult().isPresent()).toBeTrue()
+		expect(homeLoans.getResult().getValue()).toBe(4.4)
+	})
+
+	it(&quot;Can calculate a non first home buyer with 20,000 down and 650 credit score&quot;, () =&gt; {
+		var homeLoans = getInstance(&quot;tests.resources.HomeLoanRateRuleBook&quot;)
+			.withDefaultResult(4.5)
+			.given(&quot;creditScore&quot;, 650)
+			.given(&quot;cashOnHand&quot;, 20000)
+			.given(&quot;firstTimeHomeBuyer&quot;, false)
+
+		homeLoans.run()
+
+		expect(homeLoans.getResult().isPresent()).toBeTrue()
+		expect(homeLoans.getResult().getValue()).toBe(5.5)
+	})
+})
+</code></pre>
+<h4 id="result-object"><a href="#result-object" id="result-object" name="result-object" class="anchor"></a><code>Result</code> Object</h4>
+<p>From the code above you might have noticed some nice convenience methods
+in the <code>Result</code> object. Here are some more:</p>
+<ul>
+<li><code>ifPresent( closure )</code> - You pass a closure that receives the value and it is only called if the value is <strong>NOT</strong> null</li>
+<li><code>orElse( value )</code> - You can get a value or a default value if the value is not set.</li>
+<li><code>orEleseGet( closure )</code> - If the value is not set, then we will call your closure which should return a value back.</li>
+</ul>
+<pre><code class="language-js">if (rulebook.getResult().isPresent()) {
+	// do something.
+}
+
+rulebook.getResult().ifPresent( ( value ) =&gt; println(&quot;The vaue produced is #value#&quot;) )
+</code></pre>
+<h3 id="thread-safety"><a href="#thread-safety" id="thread-safety" name="thread-safety" class="anchor"></a>Thread Safety</h3>
+<p><code>RuleBook</code> and <code>Rule</code> are transient (non-singleton) objects, and
+<code>given()</code>/<code>givenAll()</code> write facts directly onto the instance's own
+state. That means a single <code>RuleBook</code> instance is <strong>not</strong> safe to <code>run()</code>
+concurrently from multiple threads, or with different facts across
+separate calls - the facts and rule status audit trail accumulate on
+that instance across every <code>run()</code> call. Always request a fresh
+transient instance (e.g. <code>getInstance( &quot;MyRuleBook&quot; )</code>) per invocation,
+whether that invocation happens on a separate thread or simply at a
+separate point in time with different facts. A <code>RuleBook</code> instance is
+only safe to <code>run()</code> again with the exact same facts it already holds.</p>
+<h2 id="the-rulebook-domain-specific-language-explained"><a href="#the-rulebook-domain-specific-language-explained" id="the-rulebook-domain-specific-language-explained" name="the-rulebook-domain-specific-language-explained" class="anchor"></a>The RuleBook Domain Specific Language Explained</h2>
+<p>The RuleBox BoxLang Domain Specific Language (DSL) uses the
+<code>Given-When-Then</code> format, popularized by Behavior Driven Development
+(BDD) and associated testing frameworks (e.g. TestBox, Cucumber and
+Spock) and highly inspired by our Java Counterpart: <strong>RuleBook</strong>
+(<a href="https://github.com/rulebook-rules/rulebook">https://github.com/rulebook-rules/rulebook</a>). Many of the ideas that went
+into creating the RuleBox BoxLang DSL are also borrowed from BDD,
+including: <strong>Sentences should be used to describe rules and Rules should
+be defined using a ubiquitous language that translates into the
+codebase.</strong></p>
+<h3 id="given-when-then-the-basis-of-the-rulebook-language"><a href="#given-when-then-the-basis-of-the-rulebook-language" id="given-when-then-the-basis-of-the-rulebook-language" name="given-when-then-the-basis-of-the-rulebook-language" class="anchor"></a>Given-When-Then: The Basis of the RuleBook Language</h3>
+<p>Much like the Given-When-Then language for defining tests that was
+popularized by BDD, RuleBox uses a Given-When-Then language for defining
+rules. The RuleBox Given-When-Then methods have the following meanings:</p>
+<ul>
+<li><strong>Given</strong> - some Fact(s)</li>
+<li><strong>When</strong> - a condition evaluates to true</li>
+<li><strong>Except</strong> - a condition that evaluates to false</li>
+<li><strong>Then</strong> - an action is triggered</li>
+</ul>
+<p>This is great, but we have determined that the <code>when()</code> operations can
+also get out of hand, so we introduced another rule to the language:
+<code>except()</code>. So you can say: <code>when().except().then()</code>. This can be a handy
+exception function that even though the when condition evaulates to
+<code>true</code>, if you chain an <code>except()</code> to it that must evaluate to <code>false</code>.</p>
+<p><code>given, givenAll</code> methods can accept one or more facts in various
+different forms and are used as a collection of information provided to
+a single Rule. When grouping Rules into a RuleBook, facts are supplied to
+the Rules when the RuleBook is run, so the <code>Given</code> can be inferred.</p>
+<pre><code class="language-js">var homeLoans = getInstance(&quot;tests.resources.HomeLoanRateRuleBook&quot;)
+	.withDefaultResult(4.5)
+	.given(&quot;creditScore&quot;, 650)
+	.given(&quot;cashOnHand&quot;, 20000)
+	.given(&quot;firstTimeHomeBuyer&quot;, false)
+	.run()
+
+var homeLoans = getInstance(&quot;tests.resources.HomeLoanRateRuleBook&quot;)
+	.withDefaultResult(4.5)
+	.givenAll({
+		creditScore: 650,
+		cashOnHand: 20000,
+		firstTimeHomeBuyer: false,
+	})
+	.run()
+</code></pre>
+<p><code>When</code> methods accept a Predicate closure/lambda that evaluates a
+condition based on the Facts provided. Only one <code>when()</code> method can be
+specified per Rule and it must return boolean.</p>
+<pre><code class="language-js">.when( ( facts ) =&gt; {
+	// determine if we continue or not
+	return boolean
+} )
+</code></pre>
+<p><code>Except</code> methods negate the <code>when()</code> operation if it passes. Thus you can
+say, when the balance is greater than 100, except when your account is
+disabled, then dispense some money.</p>
+<pre><code class="language-js">except( ( facts ) =&gt; facts.accountDisabled )
+</code></pre>
+<p><code>Then</code> methods accept a Consumer closure/lambda that describe the action
+to be invoked if the condition in the <code>when()</code> method evaluates to
+<code>true</code>. There can be <strong>multiple</strong> <code>then()</code> methods specified in a Rule
+that will all be invoked in the order they are specified if the <code>when()</code>
+condition evaluates to <code>true</code>. If a <code>then()</code> returns a <code>true</code> then no
+more consumers left in the execution will execute, thus breaking the
+consumer chain. If you return void or <code>false</code> the chain continues.</p>
+<pre><code class="language-js">.then( ( facts, result ) =&gt; {
+	//  do stuff
+
+	// break the next then()
+	return true
+} )
+.then( ( facts, result ) =&gt; {
+	// This never fires
+} )
+</code></pre>
+<h3 id="the-using-method"><a href="#the-using-method" id="the-using-method" name="the-using-method" class="anchor"></a>The Using Method</h3>
+<p>Using methods reduce the set of facts available to a <code>then()</code> method.
+Multiple <code>using()</code> methods can also be chained together if so desired.
+The aggregate of the facts with the names specified in all <code>using()</code>
+methods immediately preceeding a <code>then()</code> method will be made available
+to that <code>then()</code> method. Please look above for the <code>using()</code> examples.</p>
+<h3 id="the-stop-method"><a href="#the-stop-method" id="the-stop-method" name="the-stop-method" class="anchor"></a>The Stop Method</h3>
+<p>Stop methods break the rule chain. If a <code>stop()</code> method is specified when
+defining a rule, it means that if the <code>when()</code> condition evaluates to
+<code>true</code>, following the completion of the <code>then()</code> action(s), the rule
+chain should be broken and no more rules in that chain should be
+evaluated.</p>
+<h3 id="working-with-facts"><a href="#working-with-facts" id="working-with-facts" name="working-with-facts" class="anchor"></a>Working With Facts</h3>
+<p>Facts can be provided to Rules using the <code>given() and givenAll()</code>
+methods. In RuleBooks, facts are provided to Rules when the RuleBook is
+run. The facts available to Rules and RuleBooks are contained in a
+struct, so this means that the facts are passed by referece. The reason
+why facts exist is so that there is always a reference to the objects
+that Rules work with - even if say, an immutable object is replaced, the
+perception is that the Fact still exists and provides a named reference
+to a representative object.</p>
+<h3 id="auditing-rules"><a href="#auditing-rules" id="auditing-rules" name="auditing-rules" class="anchor"></a>Auditing Rules</h3>
+<p>Rule auditing is also very handy in knowing which rules fired and which
+ones did not. The RuleBook is in charge of tracking its rules in a
+special struture called <code>RuleStatusMap</code>. It is imperative that you give
+rules a <code>name</code> in order for the auditing to present you meaningful data,
+if not you will see the intern ID of the rule. You can name rules in many
+ways:</p>
+<pre><code class="language-js">// Using the Builder
+builder.rule(&quot;ruleName&quot;)
+
+// Using the new Rule method
+addRule(newRule(&quot;ruleName&quot;))
+
+// Or using it's setter
+addRule(newRule().setName(&quot;ruleName&quot;))
+</code></pre>
+<p>Each Auditable Rule added to a RuleBook has its state recorded in the
+RuleBook. At the time when rules are registered in the RuleBook, their
+Rule Status is <code>REGISTERED</code>. After the RuleBook is run, their Rule Status
+is changed to <code>SKIPPED</code> for all rules whose conditions do not evaluate to
+true. For rules whose conditions do evaluate to true and whose <code>then()</code>
+action completes successfully, their Rule Status is changed to
+<code>EXECUTED</code>. If a <code>then()</code> action throws an exception, the Rule Status is
+changed to <code>FAILED</code> and the exception is re-thrown to the caller.</p>
+<p>Retrieving the status of a rule can be done as follows:</p>
+<pre><code class="language-js">status = ruleBook.getRuleStatus(&quot;rule1&quot;)
+status = ruleBook.getRuleStatus(&quot;rule2&quot;)
+</code></pre>
+<p>Or you can retrieve the entire struct of statuses:</p>
+<pre><code class="language-js">writeDump(ruleBook.getRuleStatusMap())
+</code></pre>
+
+
+	<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/versions/1.0.0/index.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/versions/1.0.0/index.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Sep 17, 2026, 7&#x3a;19&#x3a;12 PM</span></div>
+
+				</article>
+
+
+
+
+
+
+
+			</main>
+
+			<aside class="col-xl-2 toc-sidebar d-none d-xl-block">
+				<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#requirements">Requirements</a></li><li class="toc-level-2"><a href="#installation">Installation</a></li><li class="toc-level-2"><a href="#usage">Usage</a></li><li class="toc-level-3"><a href="#defining-rules">Defining Rules</a></li><li class="toc-level-3"><a href="#a-helloworld-example">A HelloWorld Example</a></li><li class="toc-level-3"><a href="#the-above-example-using-facts">The Above Example Using Facts</a></li><li class="toc-level-3"><a href="#a-more-complex-scenario">A More Complex Scenario</a></li><li class="toc-level-3"><a href="#thread-safety">Thread Safety</a></li><li class="toc-level-2"><a href="#the-rulebook-domain-specific-language-explained">The RuleBook Domain Specific Language Explained</a></li><li class="toc-level-3"><a href="#given-when-then-the-basis-of-the-rulebook-language">Given-When-Then&#x3a; The Basis of the RuleBook Language</a></li><li class="toc-level-3"><a href="#the-using-method">The Using Method</a></li><li class="toc-level-3"><a href="#the-stop-method">The Stop Method</a></li><li class="toc-level-3"><a href="#working-with-facts">Working With Facts</a></li><li class="toc-level-3"><a href="#auditing-rules">Auditing Rules</a></li></ul></nav>
+			</aside>
+
+		</div>
+	</div>
+
+	<footer class="bxsites-footer">
+		<div class="container-fluid bxsites-footer__inner">
+			<div class="bxsites-footer__copy">&copy; 2026 RuleBox</div>
+
+			<div class="bxsites-footer__social"><a class="social-link" href="https://github.com/coldbox-modules/rulebox" target="_blank" rel="noopener noreferrer" aria-label="RuleBox on GitHub" title="RuleBox on GitHub"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.333-1.754-1.333-1.754-1.089-.744.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.303-5.467-1.332-5.467-5.93 0-1.31.468-2.38 1.235-3.22-.123-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23A11.5 11.5 0 0 1 12 5.803c1.02.005 2.045.138 3.003.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.118 3.176.77.84 1.235 1.91 1.235 3.22 0 4.61-2.807 5.625-5.48 5.92.43.372.823 1.102.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .322.216.694.825.576C20.565 21.795 24 17.298 24 12c0-6.63-5.37-12-12-12"/></svg></a><a class="social-link" href="https://www.ortussolutions.com/community/slack" target="_blank" rel="noopener noreferrer" aria-label="Slack Community" title="Slack Community"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52ZM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313ZM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834ZM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312ZM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834ZM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312ZM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52ZM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313Z"/></svg></a><a class="social-link" href="https://community.ortussolutions.com/" target="_blank" rel="noopener noreferrer" aria-label="Community Forum" title="Community Forum"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg></a></div>
+
+			<div class="bxsites-footer__credit">Built with <a href="https://bxsites.io" target="_blank" rel="noopener noreferrer">BxSites</a></div>
+		</div>
+	</footer>
+
+	<script src="/versions/1.0.0/assets/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+	<script src="/versions/1.0.0/assets/vendor/highlight/highlight.min.js"></script>
+	<script src="/versions/1.0.0/assets/highlight-boxlang.js"></script>
+	<script>hljs.highlightAll();</script>
+	<script src="/versions/1.0.0/assets/code-lines.js"></script>
+	<script src="/versions/1.0.0/assets/copy-code.js" defer></script>
+	<script src="/versions/1.0.0/assets/admonition-collapse.js" defer></script>
+	<script src="/versions/1.0.0/assets/nav-toggle.js" defer></script>
+	<script src="/versions/1.0.0/assets/toc-collapse.js" defer></script>
+	<script src="/versions/1.0.0/assets/tabs.js" defer></script>
+	<script src="/versions/1.0.0/assets/conditional-content-init.js" defer></script>
+	<script src="/versions/1.0.0/assets/course-progress.js" defer></script>
+	<script src="/versions/1.0.0/assets/prompt-init.js" defer></script>
+	<script src="/versions/1.0.0/assets/contact-form-init.js" defer></script>
+
+
+	<script src="/versions/1.0.0/assets/vendor/mermaid/mermaid.min.js"></script>
+	<script src="/versions/1.0.0/assets/mermaid-init.js"></script>
+
+
+
+
+
+	
+</body>
+</html>
+
+
+

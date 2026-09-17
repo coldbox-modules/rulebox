@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+	<url><loc>https://rulebox.coldbox.org/guides/defining-rulebooks/index.html</loc></url>
+	<url><loc>https://rulebox.coldbox.org/index.html</loc></url>
+	<url><loc>https://rulebox.coldbox.org/getting-started/index.html</loc></url>
+	<url><loc>https://rulebox.coldbox.org/guides/the-dsl/index.html</loc></url>
+	<url><loc>https://rulebox.coldbox.org/guides/facts-and-results/index.html</loc></url>
+	<url><loc>https://rulebox.coldbox.org/releases/index.html</loc></url>
+	<url><loc>https://rulebox.coldbox.org/guides/index.html</loc></url>
+	<url><loc>https://rulebox.coldbox.org/guides/the-builder/index.html</loc></url>
+	<url><loc>https://rulebox.coldbox.org/guides/auditing/index.html</loc></url>
+	<url><loc>https://rulebox.coldbox.org/guides/thread-safety/index.html</loc></url>
+	<url><loc>https://rulebox.coldbox.org/guides/error-handling/index.html</loc></url>
+	<url><loc>https://rulebox.coldbox.org/guides/complex-example/index.html</loc></url>
+	<url><loc>https://rulebox.coldbox.org/versions/1.0.0/index.html</loc></url>
+</urlset>

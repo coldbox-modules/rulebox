@@ -1,0 +1,2990 @@
+/* Self-hosted Poppins (SIL Open Font License) - see resources/assets/fonts/. */
+@font-face {
+    font-family: "Poppins";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("../fonts/poppins-400.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Poppins";
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url("../fonts/poppins-600.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Poppins";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("../fonts/poppins-700.woff2") format("woff2");
+}
+
+:root {
+    --bxsites-gradient-start: #00FF78;
+    --bxsites-gradient-end: #00DBFF;
+    --bxsites-accent: #FFF500;
+    --bxsites-bg: #fff;
+    --bxsites-text: #212529;
+    --bxsites-muted: #6c757d;
+    --bxsites-sidebar-bg: #fff;
+    --bxsites-sidebar-text: #04121a;
+    --bxsites-border: rgba(0, 0, 0, 0.1);
+    --bxsites-link: #0d7a8f;
+    --bxsites-link-hover: #00a3bf;
+    --bxsites-code-bg: #f6f8fa;
+    /* Every header control (search box, version/language switchers, theme
+	   toggle, repo link) shares this one height so the toolbar reads as a
+	   single aligned row instead of a mix of Bootstrap's own form-control/
+	   form-select-sm defaults and this theme's own button padding. */
+    --bxsites-toolbar-h: 2.375rem;
+    --bxsites-step-marker-bg: var(--bxsites-accent);
+    --bxsites-step-marker-text: #04121a;
+    --bxsites-step-line: rgba(0, 0, 0, 0.12);
+    /* `::: step color="..."` (module spec's directive blocks) - a fixed
+	   bg/text contrast pair each, so they read the same regardless of
+	   light/dark mode (no [data-theme="dark"] override needed, unlike the
+	   theme-brand-driven marker/line tokens above). */
+    --bxsites-step-success-bg: #16a34a;
+    --bxsites-step-success-text: #ffffff;
+    --bxsites-step-warning-bg: #f59e0b;
+    --bxsites-step-warning-text: #1a1300;
+    --bxsites-step-danger-bg: #dc2626;
+    --bxsites-step-danger-text: #ffffff;
+    /* Tables - see the `.bxsites-table-wrap` rules further down. The
+       card/header surfaces are literal colors rather than the theme's
+       own surface token so a table always reads as its own panel, and
+       the stripe/hover tints are alpha-only so they work on top of
+       whichever surface the card ends up painting. */
+    --bxsites-table-bg: #ffffff;
+    --bxsites-table-head-bg: #f4f6f8;
+    --bxsites-table-head-text: var(--bxsites-text);
+    --bxsites-table-border: var(--bxsites-border);
+    --bxsites-table-stripe-bg: rgba(0, 0, 0, 0.022);
+    --bxsites-table-hover-bg: rgba(0, 0, 0, 0.045);
+}
+
+/* Near-black surface with a mint/teal accent, rather than the blue-gray
+   "just inverted" dark mode this used to be - see docs/guides/theming.md. */
+[data-theme="dark"] {
+    --bxsites-bg: #0a0d0f;
+    --bxsites-text: #e7ecee;
+    --bxsites-muted: #8b979c;
+    --bxsites-sidebar-bg: #12171a;
+    --bxsites-sidebar-text: #cfd8da;
+    --bxsites-border: rgba(255, 255, 255, 0.09);
+    --bxsites-link: #34d399;
+    --bxsites-link-hover: #6ee7b7;
+    --bxsites-code-bg: #0f1417;
+    --bxsites-step-line: rgba(255, 255, 255, 0.15);
+    --bxsites-table-bg: #101619;
+    --bxsites-table-head-bg: #192125;
+    --bxsites-table-head-text: var(--bxsites-text);
+    --bxsites-table-border: rgba(255, 255, 255, 0.11);
+    --bxsites-table-stripe-bg: rgba(255, 255, 255, 0.025);
+    --bxsites-table-hover-bg: rgba(255, 255, 255, 0.06);
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+body {
+    font-family: "Poppins", sans-serif;
+    background: var(--bxsites-bg);
+    color: var(--bxsites-text);
+}
+
+.theme-toggle,
+.repo-link {
+    background: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    font-size: 1.1rem;
+    line-height: 1;
+    height: var(--bxsites-toolbar-h);
+    width: var(--bxsites-toolbar-h);
+    padding: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+    color: #04121a;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+.theme-toggle:hover,
+.repo-link:hover {
+    background: rgba(0, 0, 0, 0.08);
+    color: #04121a;
+}
+
+[data-theme="dark"] .theme-toggle,
+[data-theme="dark"] .repo-link {
+    border-color: var(--bxsites-border);
+    color: var(--bxsites-text);
+}
+
+[data-theme="dark"] .theme-toggle:hover,
+[data-theme="dark"] .repo-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--bxsites-text);
+}
+
+.bxsites-search .form-control {
+    height: var(--bxsites-toolbar-h);
+    box-sizing: border-box;
+    padding-right: 2.75rem;
+}
+
+.bxsites-search-kbd {
+    position: absolute;
+    top: 50%;
+    right: 0.5rem;
+    transform: translateY(-50%);
+    pointer-events: none;
+    font-family: inherit;
+    font-size: 0.7rem;
+    line-height: 1.4;
+    padding: 0.05rem 0.35rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--bxsites-border);
+    background: var(--bxsites-code-bg);
+    color: var(--bxsites-muted);
+}
+
+.version-switcher {
+    flex-shrink: 0;
+    width: auto;
+    max-width: 6.5rem;
+    height: var(--bxsites-toolbar-h);
+    box-sizing: border-box;
+}
+
+.locale-dropdown {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.locale-dropdown__trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    height: var(--bxsites-toolbar-h);
+    padding: 0 0.55rem;
+    box-sizing: border-box;
+    background: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    cursor: pointer;
+    color: #04121a;
+}
+
+.locale-dropdown__trigger:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.locale-dropdown__flag {
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
+.locale-dropdown__caret {
+    font-size: 0.7rem;
+    opacity: 0.7;
+}
+
+.locale-dropdown__menu {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    right: 0;
+    z-index: 20;
+    margin: 0;
+    padding: 0.35rem;
+    list-style: none;
+    min-width: 11rem;
+    background: var(--bxsites-bg);
+    color: var(--bxsites-text);
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.locale-dropdown__item {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    color: var(--bxsites-text);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.locale-dropdown__item:hover {
+    background: rgba(0, 219, 255, 0.15);
+}
+
+.locale-dropdown__item--active {
+    font-weight: 600;
+    background: rgba(0, 219, 255, 0.1);
+}
+
+.locale-dropdown__item .locale-dropdown__flag {
+    font-size: 1.05rem;
+}
+
+.breadcrumb-nav .breadcrumb {
+    margin-bottom: 0;
+    font-size: 0.875rem;
+}
+
+.brand-navbar {
+    background: linear-gradient(90deg, var(--bxsites-gradient-start), var(--bxsites-gradient-end));
+}
+
+.brand-mark {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #04121a;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.brand-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.navbar-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 0.75rem;
+}
+
+.navbar-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-inline-start: auto;
+    min-width: 0;
+}
+
+.locale-switcher {
+    flex-shrink: 0;
+    width: auto;
+    max-width: 6.5rem;
+}
+
+.fallback-notice {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 1.25rem;
+    padding: 0.6rem 1rem;
+    border: 1px solid rgba(255, 145, 0, 0.35);
+    border-radius: 10px;
+    background: rgba(255, 145, 0, 0.08);
+    font-size: 0.9rem;
+}
+
+.fallback-notice svg {
+    flex: 0 0 auto;
+    color: #ff9100;
+}
+
+.sidebar {
+    padding-top: 1.5rem;
+    background: var(--bxsites-sidebar-bg);
+}
+
+/* The toggler is Alpine-driven (layout.bxm's own `navOpen`) at every
+   width now, not just below `lg` - overrides Bootstrap's own
+   `.navbar-expand-lg .navbar-toggler { display: none }` (same
+   specificity, this stylesheet loads after bootstrap.min.css) so a
+   tablet/desktop reader can collapse the sidebar too, not just toggle
+   it open on mobile. */
+.navbar-expand-lg .navbar-toggler {
+    display: inline-flex;
+}
+
+/* `.content`'s own width is a fixed Bootstrap column (`col-lg-9`/
+   `col-xl-8`/`col-xl-10`) - reclaiming the sidebar's freed width once
+   it's collapsed (`.bxsites-nav-collapsed`, set alongside `navOpen`)
+   needs an explicit override, since a hidden flex sibling doesn't
+   otherwise change a fixed-percentage column's own basis. `:has()`
+   keys the wider (12/12) case to when there's no `.toc-sidebar`
+   sibling still claiming its own 2 columns at `xl` - unsupported
+   `:has()` just leaves `.content` at its normal width, no breakage. */
+@media (min-width: 992px) {
+    .row.bxsites-nav-collapsed .content {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+}
+
+@media (min-width: 1200px) {
+    .row.bxsites-nav-collapsed:has(.toc-sidebar) .content {
+        flex: 0 0 83.33333%;
+        max-width: 83.33333%;
+    }
+}
+
+.sidebar .nav-link {
+    color: var(--bxsites-sidebar-text);
+}
+
+.sidebar .nav-link.disabled {
+    color: var(--bxsites-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+}
+
+.nav--nested {
+    padding-inline-start: 1rem;
+    font-size: 0.9rem;
+}
+
+.sidebar .nav-link.active {
+    color: var(--bxsites-link);
+    font-weight: 600;
+}
+
+.nav-group-header {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.nav-group-header:hover,
+.sidebar .nav-link:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .nav-group-header:hover,
+[data-theme="dark"] .sidebar .nav-link:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.nav-group-header .nav-link,
+.nav-group-header .nav-link.disabled {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.nav-toggle {
+    flex: 0 0 auto;
+    background: transparent;
+    border: 0;
+    padding: 0.25rem 0.5rem;
+    color: var(--bxsites-sidebar-text);
+    cursor: pointer;
+    line-height: 1;
+}
+
+.nav-toggle__icon {
+    display: inline-block;
+    transition: transform 0.15s ease;
+}
+
+.nav-toggle[aria-expanded="true"] .nav-toggle__icon {
+    transform: rotate(90deg);
+}
+
+/* nav-toggle.js measures each list's own real height and transitions
+   max-height between 0 and that value (then "none" once open, so it's never
+   clipped by a stale measurement) - this is what actually makes it slide. */
+.nav-toggle-body {
+    overflow: hidden;
+    transition: max-height 0.25s ease;
+    /* Bootstrap's own `.nav.flex-column` is `display: flex; flex-wrap: wrap`
+	   - with a column direction, wrap triggers on the CROSS axis, i.e. the
+	   container's height, so while max-height is small during this slide
+	   flex-wrap: wrap misreads that as "out of vertical room" and lays
+	   items out in side-by-side columns instead of stacking them (visible
+	   as a jarring flash of items on one row right as a section opens).
+	   Forcing nowrap keeps every item in its one true column throughout. */
+    flex-wrap: nowrap;
+}
+
+.brand-logo {
+    height: 28px;
+    width: 28px;
+    display: block;
+    object-fit: contain;
+    padding: 3px;
+    border-radius: 50%;
+    background: rgba(4, 18, 26, 0.4);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    flex-shrink: 0;
+}
+
+.content {
+    padding: 2rem;
+}
+
+/* A rendered table is a self-contained card: one rounded, bordered
+   wrapper, horizontal row dividers only (no vertical grid lines), a tinted
+   header strip, and zebra/hover tints that sit on top of the card's own
+   surface. Every color comes from a `--bxsites-table-*` token (declared in
+   this file's `:root`/`[data-theme="dark"]` blocks) with a literal
+   fallback, so the whole table flips with the theme toggle instead of
+   leaving a light-mode slab behind on a dark page, and an `extraCss`
+   override or a custom theme that never declares the tokens still renders
+   correctly - see docs/guides/tables.md#theming.
+
+   BuildPipeline's own TableWrapProcessor adds the `.bxsites-table-wrap`
+   div around every rendered table (and, past ten rows, the filter input
+   inside it), which is what makes the card and the sticky header below
+   possible at all - bx-markdown/Flexmark's `tableOptions` has no way to
+   emit wrapping markup of its own. */
+.content .bxsites-table-wrap {
+    /* Horizontal only - a tall table (e.g. from the filter feature) must
+       never be vertically clipped; sticky-header pinning (below) still
+       works fine against the page's own scroll. Vertical overflow is
+       hidden rather than left visible so the card's own rounded corners
+       actually clip the header strip and the last row's zebra/hover tint -
+       nothing is lost by it, since the wrapper has no height of its own to
+       overflow (`overflow-x: auto` alone would compute `overflow-y` to
+       `auto` and clip exactly the same, just with square corners). */
+    overflow-x: auto;
+    overflow-y: hidden;
+    margin: 0 0 1.5rem;
+    background: var(--bxsites-table-bg, #ffffff);
+    border: 1px solid var(--bxsites-table-border, rgba(0, 0, 0, 0.09));
+    border-radius: 10px;
+}
+
+/* The filter input sits inside the card, so it reads as the table's own
+   header strip rather than a stray form control floating above it. */
+.content .bxsites-table-filter {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0.55rem 1rem;
+    font-size: 0.85rem;
+    font-family: inherit;
+    border: 0;
+    border-bottom: 1px solid var(--bxsites-table-border, rgba(0, 0, 0, 0.09));
+    border-radius: 10px 10px 0 0;
+    background: var(--bxsites-table-head-bg, #f4f6f8);
+    color: var(--bxsites-table-head-text, var(--bxsites-text));
+    box-sizing: border-box;
+}
+
+.content .bxsites-table-filter::placeholder {
+    color: var(--bxsites-muted);
+    opacity: 1;
+}
+
+.content .bxsites-table-filter:focus {
+    /* Inset, so the ring doesn't spill outside the card's own rounded
+       corners the way a positive offset would. */
+    outline: 2px solid var(--bxsites-link);
+    outline-offset: -2px;
+}
+
+.content table {
+    width: 100%;
+    margin: 0;
+    border-collapse: collapse;
+    background: transparent;
+    font-size: 0.925rem;
+}
+
+.content table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    /* Opaque on purpose - a translucent tint would let the rows scrolling
+       underneath show through the pinned header. */
+    background-color: var(--bxsites-table-head-bg, #f4f6f8);
+}
+
+.content table th,
+.content table td {
+    padding: 0.7rem 1rem;
+    /* Row dividers only - vertical rules between cells are what made these
+       read as a grid of boxes rather than rows of content. */
+    border: 0;
+    border-bottom: 1px solid var(--bxsites-table-border, rgba(0, 0, 0, 0.09));
+    text-align: left;
+    vertical-align: top;
+}
+
+.content table th {
+    color: var(--bxsites-table-head-text, var(--bxsites-text));
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* The wrapper's own border closes the card, so the last row doesn't need
+   a divider of its own under it. */
+.content table tbody tr:last-child>* {
+    border-bottom: 0;
+}
+
+.content table tbody tr:nth-child(even) {
+    background: var(--bxsites-table-stripe-bg, rgba(0, 0, 0, 0.022));
+}
+
+.content table tbody tr:hover {
+    background: var(--bxsites-table-hover-bg, rgba(0, 0, 0, 0.045));
+}
+
+/* Bootstrap's own `.table` (the default `markdown.tableOptions.className`)
+   paints every cell from `--bs-table-bg`/`--bs-table-color`, and those
+   resolve to Bootstrap's *light* `--bs-body-bg`/`--bs-emphasis-color` -
+   the theme toggle only flips this file's own `[data-theme="dark"]`
+   tokens, never Bootstrap's, which is why a dark page used to render a
+   table as a white slab of light-mode cells. Re-point Bootstrap's own
+   table variables at the same `--bxsites-table-*` tokens the rules above
+   use (`.table>:not(caption)>*>*` paints each cell with an inset
+   `box-shadow` of `--bs-table-bg`, so `transparent` is what lets the
+   card/zebra/hover backgrounds behind it show through). */
+.content table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--bxsites-text);
+    --bs-table-border-color: var(--bxsites-table-border, rgba(0, 0, 0, 0.09));
+    --bs-table-striped-color: var(--bxsites-text);
+    --bs-table-striped-bg: var(--bxsites-table-stripe-bg, rgba(0, 0, 0, 0.022));
+    --bs-table-hover-color: var(--bxsites-text);
+    --bs-table-hover-bg: var(--bxsites-table-hover-bg, rgba(0, 0, 0, 0.045));
+    --bs-table-active-color: var(--bxsites-text);
+    --bs-table-active-bg: var(--bxsites-table-hover-bg, rgba(0, 0, 0, 0.045));
+    color: var(--bxsites-text);
+}
+
+a {
+    color: var(--bxsites-link);
+}
+
+a:hover {
+    color: var(--bxsites-link-hover);
+}
+
+.page-title {
+    border-bottom: 3px solid var(--bxsites-accent);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+/* Every h1/h2/h3 in the article gets a hover-reveal "#" permalink, for deep
+   links straight to a section - the h1's own `.anchor` is hand-rendered in
+   page.bxm (it's not part of the converted markdown body); h2/h3 get theirs
+   for free from bx-markdown's own `anchorLinks` setting (on by default),
+   which already emits an empty `<a class="anchor" id="...">` right before
+   each heading's text - this only adds the missing "#" glyph + hover. */
+/* blog-page.bxm's own reading-column hook - a blog post is long-form prose,
+   read comfortably narrower than docs' wider, sidebar-flanked layout. */
+.blog-post-article {
+    max-width: 46rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.page-content h1,
+.page-content h2,
+.page-content h3 {
+    position: relative;
+}
+
+/* Bootstrap's own reboot zeroes every heading's top margin and leaves only
+   `.5rem` below (`h1,h2,h3,h4,h5,h6{margin-top:0;margin-bottom:.5rem}`) -
+   fine for UI chrome, far too tight for long-form article content where a
+   heading needs real separation from the prose above it. Only h2+ - the
+   page's own h1 is `.page-title`, styled (and spaced) separately above, and
+   always the article's own first child (breadcrumbs/summary/tags are all
+   optional, `.page-title` never is), so there's no "first heading in the
+   article" case to zero back out here. */
+.page-content h2 {
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.page-content h3 {
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+}
+
+.page-content h4,
+.page-content h5,
+.page-content h6 {
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.page-content .anchor {
+    position: absolute;
+    left: -1.2em;
+    display: inline-flex;
+    align-items: center;
+    height: 1em;
+    color: var(--bxsites-muted);
+    text-decoration: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.page-content .anchor::before {
+    content: "#";
+}
+
+.page-content h1:hover .anchor,
+.page-content h2:hover .anchor,
+.page-content h3:hover .anchor,
+.page-content .anchor:focus {
+    opacity: 1;
+}
+
+.bxsites-search {
+    flex: 1 1 120px;
+    min-width: 70px;
+    max-width: 260px;
+}
+
+.bxsites-search-algolia,
+.bxsites-search-pagefind {
+    display: flex;
+    align-items: center;
+}
+
+.bxsites-search-results {
+    display: none;
+    list-style: none;
+    position: absolute;
+    z-index: 20;
+    background: var(--bxsites-bg);
+    border: 1px solid var(--bxsites-border);
+    border-radius: 10px;
+    margin-top: 0.25rem;
+    max-height: 380px;
+    overflow-y: auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 320px;
+    padding: 0.35rem 0;
+}
+
+.bxsites-search-results.bxsites-search-open {
+    display: block;
+}
+
+.bxsites-search-results a,
+.bxsites-search-results .bxsites-search-empty {
+    display: block;
+    padding: 0.5rem 0.75rem;
+    color: var(--bxsites-text);
+    text-decoration: none;
+}
+
+.bxsites-search-results a:hover,
+.bxsites-search-result--active .bxsites-search-result__link {
+    background: color-mix(in srgb, var(--bxsites-accent) 16%, transparent);
+}
+
+.bxsites-search-group-label {
+    padding: 0.5rem 0.75rem 0.2rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--bxsites-muted, #6b7280);
+}
+
+.bxsites-search-result__title {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.bxsites-search-result__mark {
+    background: none;
+    font-weight: 700;
+    color: color-mix(in srgb, var(--bxsites-accent) 65%, currentColor);
+}
+
+.bxsites-search-result__meta {
+    margin-top: 0.15rem;
+    font-size: 0.72rem;
+    color: var(--bxsites-muted, #6b7280);
+}
+
+.bxsites-search-result__snippet {
+    margin-top: 0.25rem;
+    font-size: 0.78rem;
+    line-height: 1.4;
+    color: var(--bxsites-muted, #6b7280);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.adm-hidden {
+    display: none;
+}
+
+.adm-block {
+    margin: 1.5rem 0;
+    border: 1px solid rgba(68, 138, 255, 0.25);
+    border-left: 4px solid #448aff;
+    border-radius: 10px;
+    background: rgba(68, 138, 255, 0.06);
+    overflow: hidden;
+}
+
+.adm-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0.6rem 1rem;
+    font-weight: 700;
+    background: rgba(68, 138, 255, 0.1);
+}
+
+.adm-icon {
+    flex: 0 0 auto;
+    width: 1.1rem;
+    height: 1.1rem;
+    fill: #448aff;
+}
+
+.adm-body {
+    padding: 0.75rem 1rem;
+}
+
+.adm-body> :last-child {
+    margin-bottom: 0;
+}
+
+.adm-block.adm-collapsed .adm-body {
+    display: none;
+}
+
+.adm-block.adm-collapsed .adm-heading,
+.adm-block.adm-open .adm-heading {
+    cursor: pointer;
+    user-select: none;
+}
+
+.adm-block.adm-collapsed .adm-heading::after,
+.adm-block.adm-open .adm-heading::after {
+    content: "";
+    margin-left: auto;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(-45deg);
+    transition: transform 0.15s ease;
+}
+
+.adm-block.adm-collapsed .adm-heading::after {
+    transform: rotate(45deg);
+}
+
+.adm-block.adm-abstract {
+    border-left-color: #00b0ff;
+    background: rgba(0, 176, 255, 0.06);
+}
+
+.adm-block.adm-abstract .adm-heading {
+    background: rgba(0, 176, 255, 0.1);
+}
+
+.adm-block.adm-abstract .adm-icon {
+    fill: #00b0ff;
+}
+
+.adm-block.adm-info {
+    border-left-color: #00b8d4;
+    background: rgba(0, 184, 212, 0.06);
+}
+
+.adm-block.adm-info .adm-heading {
+    background: rgba(0, 184, 212, 0.1);
+}
+
+.adm-block.adm-info .adm-icon {
+    fill: #00b8d4;
+}
+
+.adm-block.adm-tip {
+    border-left-color: #00bfa5;
+    background: rgba(0, 191, 165, 0.06);
+}
+
+.adm-block.adm-tip .adm-heading {
+    background: rgba(0, 191, 165, 0.1);
+}
+
+.adm-block.adm-tip .adm-icon {
+    fill: #00bfa5;
+}
+
+.adm-block.adm-success {
+    border-left-color: #00c853;
+    background: rgba(0, 200, 83, 0.06);
+}
+
+.adm-block.adm-success .adm-heading {
+    background: rgba(0, 200, 83, 0.1);
+}
+
+.adm-block.adm-success .adm-icon {
+    fill: #00c853;
+}
+
+.adm-block.adm-faq {
+    border-left-color: #64dd17;
+    background: rgba(100, 221, 23, 0.06);
+}
+
+.adm-block.adm-faq .adm-heading {
+    background: rgba(100, 221, 23, 0.1);
+}
+
+.adm-block.adm-faq .adm-icon {
+    fill: #64dd17;
+}
+
+.adm-block.adm-warning {
+    border-left-color: #ff9100;
+    background: rgba(255, 145, 0, 0.06);
+}
+
+.adm-block.adm-warning .adm-heading {
+    background: rgba(255, 145, 0, 0.1);
+}
+
+.adm-block.adm-warning .adm-icon {
+    fill: #ff9100;
+}
+
+.adm-block.adm-fail {
+    border-left-color: #ff5252;
+    background: rgba(255, 82, 82, 0.06);
+}
+
+.adm-block.adm-fail .adm-heading {
+    background: rgba(255, 82, 82, 0.1);
+}
+
+.adm-block.adm-fail .adm-icon {
+    fill: #ff5252;
+}
+
+.adm-block.adm-danger {
+    border-left-color: #ff1744;
+    background: rgba(255, 23, 68, 0.06);
+}
+
+.adm-block.adm-danger .adm-heading {
+    background: rgba(255, 23, 68, 0.1);
+}
+
+.adm-block.adm-danger .adm-icon {
+    fill: #ff1744;
+}
+
+.adm-block.adm-bug {
+    border-left-color: #f50057;
+    background: rgba(245, 0, 87, 0.06);
+}
+
+.adm-block.adm-bug .adm-heading {
+    background: rgba(245, 0, 87, 0.1);
+}
+
+.adm-block.adm-bug .adm-icon {
+    fill: #f50057;
+}
+
+.adm-block.adm-example {
+    border-left-color: #7c4dff;
+    background: rgba(124, 77, 255, 0.06);
+}
+
+.adm-block.adm-example .adm-heading {
+    background: rgba(124, 77, 255, 0.1);
+}
+
+.adm-block.adm-example .adm-icon {
+    fill: #7c4dff;
+}
+
+.adm-block.adm-quote {
+    border-left-color: #9e9e9e;
+    background: rgba(158, 158, 158, 0.06);
+}
+
+.adm-block.adm-quote .adm-heading {
+    background: rgba(158, 158, 158, 0.1);
+}
+
+.adm-block.adm-quote .adm-icon {
+    fill: #9e9e9e;
+}
+
+.footnotes {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--bxsites-border);
+    font-size: 0.9rem;
+    color: var(--bxsites-muted);
+}
+
+.footnotes hr {
+    display: none;
+}
+
+.footnotes ol {
+    padding-left: 1.25rem;
+}
+
+.footnotes li {
+    margin-bottom: 0.5rem;
+}
+
+.footnotes li p {
+    display: inline;
+}
+
+.footnote-ref {
+    font-weight: 600;
+    text-decoration: none;
+    padding: 0 0.15rem;
+}
+
+.footnote-backref {
+    margin-left: 0.35rem;
+    text-decoration: none;
+}
+
+dl {
+    margin: 1rem 0;
+}
+
+dt {
+    font-weight: 700;
+    margin-top: 0.75rem;
+}
+
+dt:first-child {
+    margin-top: 0;
+}
+
+dd {
+    margin: 0.25rem 0 0.25rem 1.5rem;
+}
+
+.mermaid {
+    margin: 1.5rem 0;
+    text-align: center;
+}
+
+.toc {
+    border: 1px solid var(--bxsites-border);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    background: rgba(0, 219, 255, 0.05);
+}
+
+[data-theme="dark"] .toc {
+    background: rgba(52, 211, 153, 0.05);
+}
+
+.toc-title {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    color: var(--bxsites-muted);
+    margin-bottom: 0.25rem;
+}
+
+.toc li,
+.toc-mobile li {
+    margin: 0.35rem 0;
+    line-height: 1.4;
+}
+
+.toc .toc-level-3,
+.toc-mobile .toc-level-3 {
+    padding-left: 1rem;
+    font-size: 0.9em;
+}
+
+/* `theme.options.tocPosition: "sticky"` renders the same TOC list in its
+   own right-hand column at xl+ instead of inline atop the article, stays
+   in view while the article scrolls underneath it, the same way GitBook
+   keeps its own "On this page" list pinned on long pages. .brand-navbar
+   isn't itself sticky, so `top` only needs to clear the sidebar's own top
+   padding, not a fixed header. */
+.toc-sidebar {
+    padding-top: 1.5rem;
+}
+
+.toc-sidebar .toc {
+    position: sticky;
+    top: 1.5rem;
+    max-height: calc(100vh - 3rem);
+    overflow-y: auto;
+}
+
+/* Below xl, the right-hand column above has no room, so this renders
+   instead - a collapsible bar pinned to the top of the viewport while
+   scrolling (VitePress/GitBook's own mobile "On this page" treatment),
+   rather than a static box that just scrolls away with the article. */
+.toc-mobile {
+    position: sticky;
+    top: 0;
+    z-index: 15;
+    margin: 0 0 1.5rem;
+    border: 1px solid var(--bxsites-border);
+    border-radius: 12px;
+    background: var(--bxsites-bg);
+}
+
+.toc-mobile[open] {
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+}
+
+.toc-mobile__summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--bxsites-muted);
+    list-style: none;
+}
+
+.toc-mobile__summary::-webkit-details-marker {
+    display: none;
+}
+
+.toc-mobile__summary::after {
+    content: "";
+    flex-shrink: 0;
+    width: 0.4em;
+    height: 0.4em;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+    transition: transform 0.2s ease;
+}
+
+.toc-mobile[open] .toc-mobile__summary::after {
+    transform: rotate(-135deg);
+}
+
+.toc-mobile ul {
+    margin: 0;
+    padding: 0 1rem 0.75rem;
+}
+
+.page-nav {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--bxsites-border);
+}
+
+.page-nav a {
+    font-weight: 600;
+}
+
+.page-nav--course {
+    margin-top: 1rem;
+    padding-top: 0;
+    border-top: none;
+}
+
+.bxsites-course-lesson-badge {
+    display: inline-block;
+    margin-top: 2rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.06);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.bxsites-course-mark-complete {
+    display: inline-block;
+    margin: 0.75rem 0.75rem 0 0;
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid var(--bxsites-border);
+    background: transparent;
+    color: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.bxsites-course-mark-complete--done {
+    background: var(--bxsites-link);
+    border-color: var(--bxsites-link);
+    color: #fff;
+}
+
+.bxsites-pre {
+    position: relative;
+    margin: 2rem 0;
+}
+
+.bxsites-pre+.bxsites-pre {
+    margin-top: 2.5rem;
+}
+
+.bxsites-pre code {
+    line-height: 1.6;
+}
+
+.bxsites-copy-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.1);
+    color: inherit;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease-in-out;
+}
+
+.bxsites-pre:hover .bxsites-copy-btn,
+.bxsites-copy-btn:focus {
+    opacity: 1;
+}
+
+/* Touch devices have no hover state to reveal the button on, so it needs to
+   just be visible outright there - opacity would otherwise make it
+   permanently unreachable on mobile. */
+@media (hover: none) {
+    .bxsites-copy-btn {
+        opacity: 1;
+    }
+}
+
+.repo-link svg,
+.social-link svg {
+    display: block;
+}
+
+.theme-toggle span {
+    display: inline-flex;
+}
+
+.bxsites-footer {
+    margin-top: 3rem;
+    border-top: 1px solid var(--bxsites-border);
+    padding: 1.5rem 0;
+    font-size: 0.875rem;
+    color: var(--bxsites-sidebar-text);
+}
+
+.bxsites-footer__inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.bxsites-footer__social {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.social-link {
+    color: inherit;
+    display: inline-flex;
+}
+
+.social-link:hover {
+    color: var(--bxsites-link-hover);
+}
+
+.bxsites-footer__credit a {
+    font-weight: 600;
+}
+
+.page-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--bxsites-muted);
+    margin-bottom: 1.5rem;
+}
+
+/* `theme.options.pageMetaPosition: "bottom"` (the default) places this same
+   .page-meta block right before </article> instead - give it a top border +
+   spacing there instead of the bottom-margin it uses sitting up near the
+   title, so it reads as a footer note rather than crowding the content
+   above it. */
+.page-content>.page-meta:last-child {
+    margin-top: 2rem;
+    margin-bottom: 0;
+    padding-top: 1rem;
+    border-top: 1px solid var(--bxsites-border);
+}
+
+.page-meta a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: inherit;
+}
+
+.page-meta a:hover {
+    color: var(--bxsites-link-hover);
+}
+
+.page-meta__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.page-icon {
+    display: inline-block;
+}
+
+/* A named icon (icon: rocket / lucide:rocket / tabler:rocket / custom:name)
+   resolves to an inline SVG using currentColor fill/stroke, so it already
+   tracks the surrounding text color in both themes/light-dark modes with
+   no extra rule needed - this only handles sizing/alignment. */
+.bxsites-icon {
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.15em;
+    flex-shrink: 0;
+}
+
+.page-icon .bxsites-icon {
+    width: 1.1em;
+    height: 1.1em;
+}
+
+.page-summary {
+    font-size: 1.15rem;
+    color: var(--bxsites-muted);
+    margin-top: -0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.page-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.page-tag {
+    display: inline-block;
+    padding: 0.2rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(0, 219, 255, 0.12);
+    color: var(--bxsites-link);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.page-tag:hover {
+    background: rgba(0, 219, 255, 0.22);
+    color: var(--bxsites-link-hover);
+}
+
+[data-theme="dark"] .page-tag {
+    background: rgba(52, 211, 153, 0.14);
+}
+
+[data-theme="dark"] .page-tag:hover {
+    background: rgba(52, 211, 153, 0.24);
+}
+
+/* Inline `code` (as opposed to fenced ```code blocks```, handled by
+   .bxsites-code above) renders as a small monospace label chip. */
+code:not(pre code) {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.875em;
+    padding: 0.15em 0.45em;
+    border-radius: 6px;
+    background: var(--bxsites-code-bg);
+    border: 1px solid var(--bxsites-border);
+}
+
+@media (max-width: 991.98px) {
+    .sidebar {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        padding: 1rem;
+    }
+}
+
+/* Content tabs (=== "Title" markdown syntax - see docs/guides/markdown.md) */
+.bxsites-tabs {
+    margin: 1.5rem 0;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.bxsites-tabs__nav {
+    display: flex;
+    flex-wrap: wrap;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.bxsites-tab-btn {
+    appearance: none;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.6rem 1rem;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.7;
+}
+
+.bxsites-tab-btn:hover {
+    opacity: 1;
+}
+
+.bxsites-tab-btn--active {
+    opacity: 1;
+    border-bottom-color: currentColor;
+}
+
+.bxsites-tabs__panels {
+    padding: 1rem;
+}
+
+.bxsites-tab-panel {
+    display: none;
+}
+
+.bxsites-tab-panel--active {
+    display: block;
+}
+
+.bxsites-tab-panel> :last-child {
+    margin-bottom: 0;
+}
+
+[data-theme="dark"] .bxsites-tabs {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .bxsites-tabs__nav {
+    border-bottom-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* Code fence annotations: hl_lines / linenums / title / frame / insert / delete (see CodeAnnotationProcessor.bx) */
+.bxsites-code-title {
+    background: rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-bottom: none;
+    border-radius: 0.75rem 0.75rem 0 0;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.8rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-weight: 600;
+    margin-top: 2rem;
+}
+
+/* frame="terminal" - macOS-style traffic-light chrome, title centered
+   instead of the plain bar's left-aligned text. */
+.bxsites-code-title.bxsites-frame-terminal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.bxsites-frame-dots {
+    position: absolute;
+    left: 0.9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    gap: 0.4rem;
+}
+
+.bxsites-frame-dots span {
+    display: block;
+    width: 0.62rem;
+    height: 0.62rem;
+    border-radius: 50%;
+}
+
+.bxsites-frame-dots span:nth-child(1) {
+    background: #ff5f56;
+}
+
+.bxsites-frame-dots span:nth-child(2) {
+    background: #ffbd2e;
+}
+
+.bxsites-frame-dots span:nth-child(3) {
+    background: #27c93f;
+}
+
+.bxsites-code-title+pre {
+    border-radius: 0 0 0.75rem 0.75rem;
+    margin-top: 0;
+}
+
+.bxsites-code {
+    display: block;
+}
+
+.bxsites-code-line {
+    display: block;
+}
+
+.bxsites-code--numbered .bxsites-code-line::before {
+    content: attr(data-line);
+    display: inline-block;
+    width: 2.25em;
+    margin-right: 1em;
+    padding-right: 0.5em;
+    text-align: right;
+    color: rgba(127, 127, 127, 0.75);
+    user-select: none;
+    border-right: 1px solid rgba(127, 127, 127, 0.25);
+}
+
+.bxsites-hl-line {
+    display: block;
+    background: rgba(255, 213, 0, 0.18);
+}
+
+/* insert="…" / delete="…" - a tinted row plus a gutter marker, independent
+   of the line-number gutter (data-line::before above) so both can be on at
+   once; the marker shifts right to clear the number column when they are. */
+.bxsites-insert-line,
+.bxsites-delete-line {
+    display: block;
+    position: relative;
+    padding-left: 1.6rem;
+}
+
+.bxsites-code--numbered .bxsites-insert-line,
+.bxsites-code--numbered .bxsites-delete-line {
+    padding-left: 0;
+}
+
+.bxsites-insert-line {
+    background: rgba(22, 163, 74, 0.16);
+}
+
+.bxsites-delete-line {
+    background: rgba(220, 38, 38, 0.12);
+}
+
+.bxsites-insert-line::after,
+.bxsites-delete-line::after {
+    position: absolute;
+    left: 0.35rem;
+    font-weight: 700;
+    user-select: none;
+}
+
+.bxsites-code--numbered .bxsites-insert-line::after,
+.bxsites-code--numbered .bxsites-delete-line::after {
+    left: 1.7rem;
+}
+
+.bxsites-insert-line::after {
+    content: "+";
+    color: #16a34a;
+}
+
+.bxsites-delete-line::after {
+    content: "\2013";
+    color: #dc2626;
+}
+
+[data-theme="dark"] .bxsites-code-title {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .bxsites-hl-line {
+    background: rgba(255, 213, 0, 0.12);
+}
+
+[data-theme="dark"] .bxsites-insert-line {
+    background: rgba(22, 163, 74, 0.22);
+}
+
+[data-theme="dark"] .bxsites-delete-line {
+    background: rgba(220, 38, 38, 0.18);
+}
+
+/* A real ```diff fence isn't bx-sites' own markup - highlight.js's vendored
+   `diff` grammar recognizes unified-diff syntax on its own and emits
+   .hljs-addition/.hljs-deletion, styled by the vendored github.min.css
+   (loaded before this stylesheet, so this wins). That stylesheet only ever
+   defines GitHub's *light*-mode pastel pair for both classes, with no dark
+   counterpart - reusing the exact insert/delete tokens above instead of a
+   third, unrelated diff palette. */
+[data-theme="dark"] .hljs-addition {
+    background-color: rgba(22, 163, 74, 0.22);
+    color: #4ade9c;
+}
+
+[data-theme="dark"] .hljs-deletion {
+    background-color: rgba(220, 38, 38, 0.18);
+    color: #f87171;
+}
+
+/* The rest of github.min.css's own token classes (keywords, strings,
+   comments, ...) have exactly the same light-only problem - every fenced
+   code block rendered white-on-dark-page in dark mode, since nothing
+   overrode the vendored stylesheet's own light palette. These values are
+   highlight.js's own bundled "GitHub Dark" theme (styles/github-dark.min.css
+   in @highlightjs/cdn-assets, the same package github.min.css itself is
+   vendored from - see vendorAssets.mjs), scoped under [data-theme="dark"]
+   rather than swapping the whole vendored stylesheet file, the same
+   convention every other dark-mode override in this file already follows. */
+[data-theme="dark"] .hljs {
+    color: #c9d1d9;
+    background: #0d1117;
+}
+
+[data-theme="dark"] .hljs-doctag,
+[data-theme="dark"] .hljs-keyword,
+[data-theme="dark"] .hljs-meta .hljs-keyword,
+[data-theme="dark"] .hljs-template-tag,
+[data-theme="dark"] .hljs-template-variable,
+[data-theme="dark"] .hljs-type,
+[data-theme="dark"] .hljs-variable.language_ {
+    color: #ff7b72;
+}
+
+[data-theme="dark"] .hljs-title,
+[data-theme="dark"] .hljs-title.class_,
+[data-theme="dark"] .hljs-title.class_.inherited__,
+[data-theme="dark"] .hljs-title.function_ {
+    color: #d2a8ff;
+}
+
+[data-theme="dark"] .hljs-attr,
+[data-theme="dark"] .hljs-attribute,
+[data-theme="dark"] .hljs-literal,
+[data-theme="dark"] .hljs-meta,
+[data-theme="dark"] .hljs-number,
+[data-theme="dark"] .hljs-operator,
+[data-theme="dark"] .hljs-selector-attr,
+[data-theme="dark"] .hljs-selector-class,
+[data-theme="dark"] .hljs-selector-id,
+[data-theme="dark"] .hljs-variable {
+    color: #79c0ff;
+}
+
+[data-theme="dark"] .hljs-meta .hljs-string,
+[data-theme="dark"] .hljs-regexp,
+[data-theme="dark"] .hljs-string {
+    color: #a5d6ff;
+}
+
+[data-theme="dark"] .hljs-built_in,
+[data-theme="dark"] .hljs-symbol {
+    color: #ffa657;
+}
+
+[data-theme="dark"] .hljs-code,
+[data-theme="dark"] .hljs-comment,
+[data-theme="dark"] .hljs-formula {
+    color: #8b949e;
+}
+
+[data-theme="dark"] .hljs-name,
+[data-theme="dark"] .hljs-quote,
+[data-theme="dark"] .hljs-selector-pseudo,
+[data-theme="dark"] .hljs-selector-tag {
+    color: #7ee787;
+}
+
+[data-theme="dark"] .hljs-subst {
+    color: #c9d1d9;
+}
+
+[data-theme="dark"] .hljs-section {
+    color: #1f6feb;
+    font-weight: 700;
+}
+
+[data-theme="dark"] .hljs-bullet {
+    color: #f2cc60;
+}
+
+[data-theme="dark"] .hljs-emphasis {
+    color: #c9d1d9;
+    font-style: italic;
+}
+
+[data-theme="dark"] .hljs-strong {
+    color: #c9d1d9;
+    font-weight: 700;
+}
+
+/* GitBook-style ::: directive blocks (see DirectiveBlockProcessor.bx) */
+.bxsites-expandable {
+    margin: 1rem 0;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+}
+
+.bxsites-expandable>summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.bxsites-expandable__body {
+    margin-top: 0.75rem;
+}
+
+.bxsites-expandable__body> :last-child {
+    margin-bottom: 0;
+}
+
+.bxsites-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.bxsites-card {
+    display: block;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 14px;
+    padding: 1.25rem;
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+a.bxsites-card:hover {
+    border-color: var(--bxsites-link);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.bxsites-card__image {
+    display: block;
+    width: 100%;
+    border-radius: 10px;
+    margin-bottom: 0.75rem;
+}
+
+.bxsites-card__icon {
+    font-size: 1.75rem;
+    margin-bottom: 0.5rem;
+    color: var(--bxsites-link);
+}
+
+.bxsites-card__title {
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+}
+
+.bxsites-card__body {
+    font-size: 0.9rem;
+    opacity: 0.85;
+}
+
+.bxsites-card__body> :last-child {
+    margin-bottom: 0;
+}
+
+/* The homepage's own hero banner (docs/index.md) - a full-width banner
+   image with CTA buttons underneath. A generic component like
+   `.bxsites-cards`, not homepage-specific markup, so any page can use raw
+   HTML like this for its own banner. */
+.bxsites-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    margin: 1.5rem 0 2.5rem;
+    /* A flex item's default min-width is "auto", which for a replaced
+	   element like <img> resolves to its own intrinsic width - overriding
+	   `width: 100%` below and refusing to shrink past it. Without this,
+	   Safari/iOS in particular renders the banner at its full 1800px
+	   intrinsic width on narrow viewports, overflowing off-screen instead
+	   of scaling down. */
+    min-width: 0;
+}
+
+.bxsites-hero__banner {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    border-radius: 16px;
+    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.22);
+}
+
+.bxsites-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.bxsites-hero__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.65rem 1.4rem;
+    border-radius: 999px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.bxsites-hero__btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+
+.bxsites-hero__btn--primary {
+    background: linear-gradient(90deg, var(--bxsites-gradient-start), var(--bxsites-gradient-end));
+    color: #04121a;
+}
+
+.bxsites-hero__btn--secondary {
+    border: 1px solid var(--bxsites-border);
+    color: var(--bxsites-text);
+}
+
+.bxsites-columns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin: 1.5rem 0;
+}
+
+.bxsites-column {
+    flex: 1 1 0;
+    min-width: 200px;
+    width: var(--bxsites-column-width, auto);
+}
+
+.bxsites-column> :last-child {
+    margin-bottom: 0;
+}
+
+/* Course index (::: course id="..." :::) - CourseBuilder.bx's own numbered
+   lesson list, plus the checkmark/progress bar/resume CTA course-progress.js
+   drives client-side. Reuses .bxsites-stepper's numbered-marker visual
+   language just below. */
+
+.bxsites-course-index {
+    margin: 1.5rem 0;
+}
+
+.bxsites-course-index__progress {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.bxsites-course-index__bar {
+    flex: 1 1 auto;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.bxsites-course-index__bar-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--bxsites-link, #0d7a8f);
+    transition: width 0.2s ease;
+}
+
+.bxsites-course-index__progress-label {
+    font-size: 0.85rem;
+    opacity: 0.75;
+    white-space: nowrap;
+}
+
+.bxsites-course-index__resume {
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--bxsites-border, rgba(0, 0, 0, 0.1));
+    border-radius: 10px;
+    font-size: 0.9rem;
+}
+
+.bxsites-course-index__list {
+    list-style: none;
+    counter-reset: bxsites-course-index;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.bxsites-course-index__item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid var(--bxsites-border, rgba(0, 0, 0, 0.1));
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+}
+
+.bxsites-course-index__check {
+    counter-increment: bxsites-course-index;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.06);
+    border: 2px solid var(--bxsites-border, rgba(0, 0, 0, 0.15));
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.bxsites-course-index__check::before {
+    content: counter(bxsites-course-index);
+}
+
+.bxsites-course-index__check--done {
+    background: var(--bxsites-link, #0d7a8f);
+    border-color: var(--bxsites-link, #0d7a8f);
+    color: #fff;
+}
+
+.bxsites-course-index__check--done::before {
+    content: "\2713";
+}
+
+.bxsites-course-index__icon {
+    flex-shrink: 0;
+    font-size: 1.25rem;
+}
+
+.bxsites-course-index__link {
+    font-weight: 600;
+    color: inherit;
+    text-decoration: none;
+}
+
+.bxsites-course-index__link:hover {
+    color: var(--bxsites-link, #0d7a8f);
+}
+
+.bxsites-course-index__summary {
+    margin-left: auto;
+    padding-left: 1rem;
+    font-size: 0.85rem;
+    opacity: 0.7;
+    text-align: right;
+}
+
+.bxsites-course-index--unavailable {
+    border: 1px dashed var(--bxsites-border, rgba(0, 0, 0, 0.2));
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.bxsites-stepper {
+    margin: 1.5rem 0;
+}
+
+.bxsites-step {
+    display: flex;
+    gap: 1rem;
+    padding-bottom: 1.5rem;
+    position: relative;
+}
+
+.bxsites-step:not( :last-child)::before {
+    content: "";
+    position: absolute;
+    left: 0.9rem;
+    top: 2rem;
+    bottom: 0;
+    width: 2px;
+    background: var(--bxsites-step-line);
+}
+
+.bxsites-step__marker {
+    flex-shrink: 0;
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 50%;
+    background: var(--bxsites-step-marker-bg);
+    color: var(--bxsites-step-marker-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    z-index: 1;
+}
+
+.bxsites-step__marker--success {
+    background: var(--bxsites-step-success-bg);
+    color: var(--bxsites-step-success-text);
+}
+
+.bxsites-step__marker--warning {
+    background: var(--bxsites-step-warning-bg);
+    color: var(--bxsites-step-warning-text);
+}
+
+.bxsites-step__marker--danger {
+    background: var(--bxsites-step-danger-bg);
+    color: var(--bxsites-step-danger-text);
+}
+
+.bxsites-step__content {
+    padding-top: 0.15rem;
+}
+
+.bxsites-step__title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.bxsites-step__content> :last-child {
+    margin-bottom: 0;
+}
+
+.bxsites-file {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 10px;
+    padding: 0.5rem 0.9rem;
+    margin: 0.5rem 0;
+    color: inherit;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.bxsites-file:hover {
+    border-color: var(--bxsites-link);
+}
+
+.bxsites-embed {
+    position: relative;
+    margin: 1.5rem 0;
+    padding-top: 56.25%;
+    border-radius: 14px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.bxsites-embed iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+.bxsites-embed__caption {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    opacity: 0.75;
+}
+
+.bxsites-embed-fallback {
+    display: inline-block;
+    margin: 0.5rem 0;
+}
+
+.bxsites-prompt {
+    position: relative;
+    margin: 1.5rem 0;
+    border: 1px solid rgba(124, 58, 237, 0.22);
+    border-radius: 14px;
+    overflow: hidden;
+    background: rgba(124, 58, 237, 0.03);
+}
+
+.bxsites-prompt::before {
+    content: "";
+    display: block;
+    height: 3px;
+    background: linear-gradient(90deg, #8B5CF6, #6366F1);
+}
+
+.bxsites-prompt__header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem 0.75rem;
+}
+
+.bxsites-prompt__icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 10px;
+    background: rgba(124, 58, 237, 0.12);
+    color: #7C3AED;
+    font-size: 1.1rem;
+}
+
+.bxsites-prompt__heading {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding-top: 0.15rem;
+}
+
+.bxsites-prompt__label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #7C3AED;
+}
+
+.bxsites-prompt__description {
+    font-size: 0.875rem;
+    opacity: 0.75;
+}
+
+.bxsites-prompt__copy {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid rgba(124, 58, 237, 0.3);
+    background: transparent;
+    color: #7C3AED;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.bxsites-prompt__copy:hover {
+    background: rgba(124, 58, 237, 0.12);
+}
+
+.bxsites-prompt__copy.is-copied {
+    background: #7C3AED;
+    border-color: #7C3AED;
+    color: #fff;
+}
+
+.bxsites-prompt__body-wrap {
+    padding: 0 1.25rem 1.1rem;
+}
+
+.bxsites-prompt__body {
+    font-size: 0.9rem;
+    line-height: 1.65;
+}
+
+.bxsites-prompt__body> :first-child {
+    margin-top: 0;
+}
+
+.bxsites-prompt__body> :last-child {
+    margin-bottom: 0;
+}
+
+.bxsites-prompt--hidden .bxsites-prompt__body-wrap {
+    display: none;
+}
+
+.bxsites-prompt--hidden.is-expanded .bxsites-prompt__body-wrap {
+    display: block;
+}
+
+.bxsites-prompt--preview .bxsites-prompt__body {
+    max-height: 11em;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, #000 65%, transparent);
+    mask-image: linear-gradient(to bottom, #000 65%, transparent);
+}
+
+.bxsites-prompt--preview.is-expanded .bxsites-prompt__body {
+    max-height: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+}
+
+.bxsites-prompt__toggle {
+    display: block;
+    width: 100%;
+    padding: 0.6rem 1.25rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+    color: #7C3AED;
+    background: rgba(124, 58, 237, 0.06);
+    border: 0;
+    border-top: 1px solid rgba(124, 58, 237, 0.15);
+    cursor: pointer;
+}
+
+.bxsites-prompt__toggle:hover {
+    background: rgba(124, 58, 237, 0.12);
+}
+
+[data-theme="dark"] .bxsites-prompt {
+    border-color: rgba(167, 139, 250, 0.3);
+    background: rgba(167, 139, 250, 0.06);
+}
+
+[data-theme="dark"] .bxsites-prompt__icon {
+    background: rgba(167, 139, 250, 0.18);
+    color: #C4B5FD;
+}
+
+[data-theme="dark"] .bxsites-prompt__label,
+[data-theme="dark"] .bxsites-prompt__copy,
+[data-theme="dark"] .bxsites-prompt__toggle {
+    color: #C4B5FD;
+}
+
+[data-theme="dark"] .bxsites-prompt__copy {
+    border-color: rgba(167, 139, 250, 0.35);
+}
+
+[data-theme="dark"] .bxsites-prompt__copy:hover {
+    background: rgba(167, 139, 250, 0.18);
+}
+
+[data-theme="dark"] .bxsites-prompt__copy.is-copied {
+    background: #A78BFA;
+    border-color: #A78BFA;
+    color: #1a0f2e;
+}
+
+[data-theme="dark"] .bxsites-prompt__toggle {
+    background: rgba(167, 139, 250, 0.1);
+    border-top-color: rgba(167, 139, 250, 0.2);
+}
+
+[data-theme="dark"] .bxsites-prompt__toggle:hover {
+    background: rgba(167, 139, 250, 0.18);
+}
+
+.bxsites-tryboxlang {
+    margin: 1.5rem 0;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.bxsites-tryboxlang__title {
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: rgba(0, 0, 0, 0.03);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.bxsites-tryboxlang__frame {
+    display: block;
+    width: 100%;
+    border: 0;
+}
+
+.bxsites-tryboxlang__footer {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    text-align: right;
+    background: rgba(0, 0, 0, 0.03);
+    border-top: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.bxsites-tryboxlang__footer a {
+    color: var(--bxsites-link);
+    text-decoration: none;
+}
+
+.bxsites-tryboxlang__footer a:hover {
+    text-decoration: underline;
+}
+
+.bxsites-openapi {
+    margin: 1.5rem 0;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 14px;
+    padding: 1rem;
+    background: #ffffff;
+    color: #3b4151;
+}
+
+.bxsites-openapi__title {
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    color: inherit;
+}
+
+.bxsites-openapi--invalid {
+    background: none;
+    border: 0;
+    padding: 0;
+    color: inherit;
+}
+
+.bxsites-page-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 14px;
+    padding: 0.9rem 1.1rem;
+    margin: 1rem 0;
+    color: inherit;
+    text-decoration: none;
+}
+
+.bxsites-page-link:hover {
+    border-color: var(--bxsites-link);
+}
+
+.bxsites-page-link__icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.bxsites-page-link__title {
+    font-weight: 600;
+    display: block;
+}
+
+.bxsites-page-link__summary {
+    display: block;
+    font-size: 0.85rem;
+    opacity: 0.75;
+    margin-top: 0.15rem;
+}
+
+.bxsites-link-preview {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 14px;
+    overflow: hidden;
+    margin: 1rem 0;
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.bxsites-link-preview:hover {
+    border-color: var(--bxsites-link);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.bxsites-link-preview__image {
+    flex-shrink: 0;
+    width: 33%;
+    max-width: 220px;
+}
+
+.bxsites-link-preview__image img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.bxsites-link-preview__text {
+    padding: 0.9rem 1.1rem;
+    min-width: 0;
+}
+
+.bxsites-link-preview__title {
+    font-weight: 600;
+}
+
+.bxsites-link-preview__description {
+    font-size: 0.85rem;
+    opacity: 0.75;
+    margin-top: 0.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.bxsites-link-preview__domain {
+    font-size: 0.75rem;
+    opacity: 0.6;
+    margin-top: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.bxsites-updates {
+    margin: 1.5rem 0;
+}
+
+.bxsites-update {
+    border-left: 2px solid rgba(0, 0, 0, 0.12);
+    padding: 0 0 1.5rem 1.25rem;
+    margin-left: 0.25rem;
+}
+
+.bxsites-update__meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.bxsites-update__date {
+    font-weight: 700;
+}
+
+.bxsites-update__tag {
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 999px;
+    padding: 0.1rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.bxsites-update__body> :last-child {
+    margin-bottom: 0;
+}
+
+[data-theme="dark"] .bxsites-expandable,
+[data-theme="dark"] .bxsites-card,
+[data-theme="dark"] .bxsites-file,
+[data-theme="dark"] .bxsites-page-link,
+[data-theme="dark"] .bxsites-link-preview,
+[data-theme="dark"] .bxsites-update {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .bxsites-embed {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .bxsites-tryboxlang {
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .bxsites-openapi {
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .bxsites-tryboxlang__title,
+[data-theme="dark"] .bxsites-tryboxlang__footer {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .bxsites-update__tag {
+    background: rgba(52, 211, 153, 0.12);
+    color: #6ee7b7;
+}
+
+/* Image captions/alignment/framing - GitBook-compatible raw HTML
+   (<figure>/<figcaption>, [data-with-frame]) that bx-markdown/Flexmark
+   already passes through untouched as a block-level HTML element - see
+   docs/guides/markdown.md#images. */
+.page-content figure,
+.md-card figure {
+    margin: 1.5rem 0;
+    text-align: center;
+}
+
+.page-content figure img,
+.md-card figure img {
+    max-width: 100%;
+    border-radius: 10px;
+}
+
+.page-content figcaption,
+.md-card figcaption {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    opacity: 0.75;
+}
+
+[data-with-frame] {
+    display: inline-block;
+    padding: 0.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 12px;
+}
+
+[data-theme="dark"] [data-with-frame] {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.bxsites-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.75rem;
+    margin: 1.5rem 0;
+}
+
+.bxsites-gallery img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+/* Blog: draft preview badge (bxSites serve only - see BuildPipeline.bx's
+   own includeDrafts), a "Browse by year"/"Browse by category" simple link
+   list on the main /blog/ list page, and the /blog/stats/ page's cards
+   (which reuse .bxsites-cards/.bxsites-card above - the ::: cards directive
+   block's own component - rather than a separate stats-card component). */
+.blog-draft-badge {
+    display: inline-block;
+    margin: 0 0 1rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    background: var(--bxsites-step-warning-bg);
+    color: var(--bxsites-step-warning-text);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.blog-post-card--draft {
+    border: 1px dashed var(--bxsites-step-warning-bg);
+    border-radius: 10px;
+    padding: 1rem;
+}
+
+.blog-post-card-image,
+.blog-post-featured-image {
+    border-radius: 10px;
+}
+
+.blog-archive-links,
+.blog-category-links {
+    margin: 2rem 0;
+}
+
+.blog-archive-links h2,
+.blog-category-links h2 {
+    margin-bottom: 0.5rem;
+}
+
+.blog-archive-links ul,
+.blog-category-links ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+}
+
+.blog-author-posts {
+    margin: 1rem 0 2rem;
+}
+
+.blog-author-search {
+    width: 100%;
+    max-width: 320px;
+    margin-bottom: 1rem;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--bxsites-border);
+    border-radius: 6px;
+    background: var(--bxsites-bg);
+    color: inherit;
+    font-size: 0.9rem;
+}
+
+.blog-author-posts-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.blog-author-posts-list li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--bxsites-border);
+}
+
+.blog-author-posts-list .blog-post-meta {
+    color: var(--bxsites-muted);
+    font-size: 0.85rem;
+}
+
+.bxsites-conditional--invalid,
+.bxsites-audience-switcher--invalid {
+    opacity: 0.7;
+    font-style: italic;
+}
+
+.bxsites-audience-switcher {
+    display: inline-flex;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    margin: 0.75rem 0;
+    border: 1px solid var(--bxsites-border);
+    border-radius: 999px;
+}
+
+.bxsites-audience-switcher__option {
+    appearance: none;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    font: inherit;
+    color: inherit;
+}
+
+.bxsites-audience-switcher__option--active {
+    background: var(--bxsites-accent);
+    color: #000;
+}
+
+.bxsites-button--invalid {
+    opacity: 0.7;
+    font-style: italic;
+}
+
+.bxsites-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 1rem 0;
+}
+
+.bxsites-button,
+a.button {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0.35rem 0.5rem 0.35rem 0;
+    padding: 0.55rem 1.1rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--bxsites-border);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: none;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.bxsites-buttons>.bxsites-button {
+    margin: 0;
+}
+
+a.bxsites-button:hover,
+button.bxsites-button:hover,
+a.button:hover {
+    opacity: 0.82;
+}
+
+.bxsites-button--primary,
+a.button.primary {
+    background: var(--bxsites-accent);
+    border-color: var(--bxsites-accent);
+    color: #000;
+}
+
+.bxsites-button--small {
+    padding: 0.3rem 0.75rem;
+    font-size: 0.85rem;
+}
+
+.bxsites-button--large {
+    padding: 0.8rem 1.5rem;
+    font-size: 1.05rem;
+}
+
+.bxsites-button--disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.bxsites-button__icon {
+    display: inline-flex;
+    align-items: center;
+}
+
+.bxsites-button__icon svg {
+    width: 1em;
+    height: 1em;
+}
+
+.bxsites-command-palette {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 10vh;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+/* CSS's own cascade quirk: an author rule (however plain) always beats the
+   UA stylesheet's `[hidden] { display: none }`, specificity or no - so the
+   base rule above alone leaves this backdrop visibly `display: flex` even
+   while `hidden` (search.js's own buildPalette() sets `backdrop.hidden =
+   true` right away, before ever appending it), showing a stuck-open, empty
+   overlay on every single page load. Needs its own explicit override. */
+.bxsites-command-palette[hidden] {
+    display: none;
+}
+
+.bxsites-command-palette__panel {
+    width: 100%;
+    max-width: 40rem;
+    margin: 0 1rem;
+    background: var(--bxsites-bg, #fff);
+    border: 1px solid var(--bxsites-border);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.bxsites-command-palette__input-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-bottom: 1px solid var(--bxsites-border, rgba(0, 0, 0, 0.12));
+    padding-right: 1.25rem;
+}
+
+.bxsites-command-palette__input {
+    flex: 1;
+    width: 100%;
+    box-sizing: border-box;
+    border: 0;
+    padding: 1rem 1.25rem;
+    font-size: 1.1rem;
+    background: transparent;
+    color: inherit;
+    outline: none;
+}
+
+.bxsites-command-palette__count {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    color: var(--bxsites-muted, #6b7280);
+    white-space: nowrap;
+}
+
+.bxsites-command-palette__results {
+    list-style: none;
+    margin: 0;
+    padding: 0.5rem;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.bxsites-command-palette__result--active .bxsites-search-result__link,
+.bxsites-command-palette__result:hover .bxsites-search-result__link {
+    background: color-mix(in srgb, var(--bxsites-accent) 16%, var(--bxsites-bg, #fff));
+}
+
+.bxsites-command-palette__empty {
+    padding: 0.75rem;
+    opacity: 0.7;
+    font-style: italic;
+}
+
+.bxsites-command-palette__hints {
+    display: flex;
+    gap: 1.25rem;
+    padding: 0.6rem 1.25rem;
+    border-top: 1px solid var(--bxsites-border, rgba(0, 0, 0, 0.12));
+    font-size: 0.75rem;
+    color: var(--bxsites-muted, #6b7280);
+}
+
+.bxsites-command-palette__hints kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    margin-right: 3px;
+    border: 1px solid var(--bxsites-border, rgba(0, 0, 0, 0.12));
+    border-radius: 4px;
+    font-size: 0.7rem;
+    background: var(--bxsites-bg, #fff);
+}
+
+
+/* ::: pagebreak (see DirectiveBlockProcessor.bx) - a plain divider on
+   screen, a forced page break only when printed/exported to PDF. */
+.bxsites-pagebreak {
+    margin: 2rem 0;
+    border: 0;
+    border-top: 1px dashed var(--bxsites-border);
+}
+
+.bxsites-powered-by {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 1.5rem 0 0.5rem;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid currentColor;
+    border-radius: 0.75rem;
+    color: inherit;
+    opacity: 0.72;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.bxsites-powered-by:hover {
+    opacity: 1;
+}
+
+.bxsites-powered-by .bxsites-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: 0 0 auto;
+}
+
+@media print {
+    .bxsites-pagebreak {
+        margin: 0;
+        border: 0;
+        break-after: page;
+        page-break-after: always;
+    }
+}
+
+/* Page-actions dropdown (bxsites.json's pageActions: true - see page.bxm's
+   own renderPageActions()/page-actions-init.js). A plain <details>/
+   <summary> disclosure, styled after GitBook's own "Copy" menu. */
+.bxsites-page-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 0.75rem;
+}
+
+.bxsites-page-actions__disclosure {
+    position: relative;
+}
+
+.bxsites-page-actions__button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--bxsites-border);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    list-style: none;
+}
+
+.bxsites-page-actions__kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.1rem;
+    padding: 0.05rem 0.3rem;
+    margin-left: 0.15rem;
+    border: 1px solid var(--bxsites-border);
+    border-radius: 0.25rem;
+    font-family: inherit;
+    font-size: 0.7rem;
+    font-weight: 600;
+    opacity: 0.7;
+}
+
+.bxsites-page-actions__button::-webkit-details-marker {
+    display: none;
+}
+
+.bxsites-page-actions__panel {
+    position: absolute;
+    right: 0;
+    z-index: 20;
+    margin-top: 0.35rem;
+    min-width: 12rem;
+    padding: 0.35rem;
+    background: var(--bxsites-bg, #fff);
+    border: 1px solid var(--bxsites-border);
+    border-radius: 0.6rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.bxsites-page-actions__item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    border: 0;
+    border-radius: 0.4rem;
+    background: none;
+    color: inherit;
+    text-decoration: none;
+    font: inherit;
+    font-size: 0.85rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.bxsites-page-actions__item:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.bxsites-page-actions__divider {
+    height: 1px;
+    margin: 0.3rem 0.25rem;
+    background: var(--bxsites-border);
+}
+
+@media print {
+    .bxsites-page-actions {
+        display: none !important;
+    }
+}
+.bxsites-contact-form {
+	display: flex;
+	flex-direction: column;
+	gap: 1.1rem;
+	max-width: 32rem;
+	margin: 1.5rem 0;
+}
+
+.bxsites-contact-form--invalid {
+	opacity: 0.7;
+	font-style: italic;
+}
+
+.bxsites-contact-form__field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+
+.bxsites-contact-form__label {
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--bxsites-text);
+}
+
+.bxsites-contact-form__required {
+	color: #dc2626;
+}
+
+.bxsites-contact-form__input {
+	font: inherit;
+	color: var(--bxsites-text);
+	background: var(--bxsites-bg);
+	border: 1px solid var(--bxsites-border);
+	border-radius: 8px;
+	padding: 0.6rem 0.75rem;
+}
+
+.bxsites-contact-form__input:focus-visible {
+	outline: 2px solid var(--bxsites-accent);
+	outline-offset: 1px;
+}
+
+.bxsites-contact-form__textarea {
+	min-height: 6.5rem;
+	resize: vertical;
+}
+
+.bxsites-contact-form__field-error {
+	font-size: 0.8rem;
+	color: #dc2626;
+}
+
+.bxsites-contact-form__status {
+	font-size: 0.9rem;
+}
+
+.bxsites-contact-form__status--success {
+	color: #15803d;
+}
+
+.bxsites-contact-form__status--error {
+	color: #dc2626;
+}
+
+.bxsites-contact-form__status--upgrade {
+	color: var(--bxsites-accent);
+	font-weight: 600;
+}
