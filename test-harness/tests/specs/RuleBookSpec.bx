@@ -54,6 +54,57 @@ class extends="tests.resources.BaseSpec"{
 			});
 
 
+			it( "executes rules in priority order regardless of insertion order", function(){
+				var executionOrder = [];
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+
+				var ruleA = ruleBook.newRule( "A" ).withPriority( 1 ).then( ( facts ) => { executionOrder.append( "A" ); } );
+				var ruleB = ruleBook.newRule( "B" ).withPriority( 10 ).then( ( facts ) => { executionOrder.append( "B" ); } );
+				var ruleC = ruleBook.newRule( "C" ).withPriority( 5 ).then( ( facts ) => { executionOrder.append( "C" ); } );
+
+				// Added low-to-high insertion order, but priority should drive execution order
+				ruleBook.addRule( ruleA ).addRule( ruleB ).addRule( ruleC );
+
+				ruleBook.run();
+
+				expect( executionOrder.len() ).toBe( 3 );
+				expect( executionOrder[ 1 ] ).toBe( "B" );
+				expect( executionOrder[ 2 ] ).toBe( "C" );
+				expect( executionOrder[ 3 ] ).toBe( "A" );
+			});
+
+			it( "executes same-priority rules in the order they were added", function(){
+				var executionOrder = [];
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+
+				ruleBook.addRule( ruleBook.newRule( "A" ).then( ( facts ) => { executionOrder.append( "A" ); } ) );
+				ruleBook.addRule( ruleBook.newRule( "B" ).then( ( facts ) => { executionOrder.append( "B" ); } ) );
+				ruleBook.addRule( ruleBook.newRule( "C" ).then( ( facts ) => { executionOrder.append( "C" ); } ) );
+
+				ruleBook.run();
+
+				expect( executionOrder.len() ).toBe( 3 );
+				expect( executionOrder[ 1 ] ).toBe( "A" );
+				expect( executionOrder[ 2 ] ).toBe( "B" );
+				expect( executionOrder[ 3 ] ).toBe( "C" );
+			});
+
+			it( "correctly reorders the chain when a higher priority rule is added after lower priority rules", function(){
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+				var ruleA = ruleBook.newRule( "A" );
+				var ruleB = ruleBook.newRule( "B" );
+				var ruleC = ruleBook.newRule( "C" ).withPriority( 100 );
+
+				// A -> B is already linked before the higher priority C is added
+				ruleBook.addRule( ruleA ).addRule( ruleB );
+				ruleBook.addRule( ruleC );
+
+				expect( ruleBook.getHeadRule() ).toBe( ruleC );
+				expect( ruleC.getNextRule() ).toBe( ruleA );
+				expect( ruleA.getNextRule() ).toBe( ruleB );
+				expect( ruleBook.getTailRule() ).toBe( ruleB );
+			});
+
 			it( "can detect set rules", function(){
 				var ruleBook = getInstance( "RuleBook@rulebox" );
 				expect( ruleBook.hasRules() ).toBeFalse();
