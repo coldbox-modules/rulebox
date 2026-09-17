@@ -232,6 +232,31 @@ class{
 	}
 
 	/**
+	 * Evaluate this rule's `when()`/`except()` conditions against the given facts without invoking
+	 * any `then()` consumers or mutating any state: no facts are merged into this rule's sticky fact
+	 * store, no result is touched, and no audit trail entry is written. Useful for previewing what a
+	 * real `run()` would do.
+	 *
+	 * @facts A structure of name-value pairs representing the facts to evaluate against
+	 *
+	 * @return A struct: { name, wouldExecute, wouldStop }
+	 */
+	struct function dryRun( struct facts={} ){
+		// Build an evaluation-only fact set: this rule's sticky facts + the facts passed here, without
+		// mutating variables.facts
+		var evaluationFacts = variables.facts.copy()
+		structAppend( evaluationFacts, arguments.facts, true )
+
+		var wouldExecute = variables.predicate( evaluationFacts ) && !variables.except( evaluationFacts )
+
+		return {
+			"name"         : variables.name,
+			"wouldExecute" : wouldExecute,
+			"wouldStop"    : ( wouldExecute && variables.currentState == static.STATES.STOP )
+		}
+	}
+
+	/**
 	 * When methods accept a Predicate closure/lambda that evaluates a condition based on the Facts provided. Only one when() method can be specified per Rule.
 	 *
 	 * The predicate is a closure that takes in one argument and MUST return boolean
