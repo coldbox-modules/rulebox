@@ -2,8 +2,8 @@
 title: Auditing Rules
 order: 5
 icon: phosphor-duotone:list-magnifying-glass
-summary: Track which rules fired, skipped, stopped, or failed.
-tags: [guides, auditing]
+summary: Track which rules fired, skipped, stopped, or failed - or preview it with dryRun().
+tags: [guides, auditing, dry-run]
 ---
 
 # Auditing Rules
@@ -54,4 +54,44 @@ Or retrieve the entire map:
 
 ```js
 writeDump( ruleBook.getRuleStatusMap() )
+```
+
+## Dry-run / explain mode
+
+Sometimes you want to know which rules a given set of facts *would*
+trigger, without actually triggering them - no `then()` consumers run, no
+facts are merged into the sticky fact store, no `Result` is touched, and
+the real audit trail (`getRuleStatusMap()`) is left exactly as it was.
+`dryRun()` gives you that preview, on both `RuleBook` and `Rule`:
+
+```js
+report = ruleBook.dryRun( { "creditScore" : 550 } )
+writeDump( report )
+```
+
+`RuleBook.dryRun()` returns an array of structs, one per rule reached, in
+execution order:
+
+```js
+[
+	{ "name" : "checkBlocklist",         "wouldExecute" : false, "wouldStop" : false },
+	{ "name" : "creditScoreAdjustment",  "wouldExecute" : true,  "wouldStop" : false }
+]
+```
+
+The walk stops exactly where a real `run()` would stop - the first rule
+whose condition passes and has `stop()` set. Rules after that point are
+never reached, so (just like a real run) they simply don't appear in the
+report.
+
+A single `Rule` can also be dry-run on its own - and unlike `run()`, it
+doesn't require being attached to a `RuleBook` first:
+
+```js
+report = newRule()
+	.when( ( facts ) => facts.creditScore < 600 )
+	.stop()
+	.dryRun( { "creditScore" : 550 } )
+
+// { "name" : "...", "wouldExecute" : true, "wouldStop" : true }
 ```
