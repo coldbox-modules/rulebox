@@ -20,6 +20,9 @@ and additions:
 
 - **BoxLang only** - the module now targets BoxLang exclusively.
 - **ColdBox 8+ integrations**.
+- **Rule priority** - `Rule.withPriority()` lets a rule run earlier than
+  others in the same chain, regardless of `addRule()` order. See
+  [The RuleBook DSL](guides/the-dsl.md#withpriority).
 - **`RULE_STATES.FAILED`** - a `then()` consumer that throws is now
   recorded as `FAILED` in the audit trail *before* the exception is
   re-thrown to the caller, instead of leaving a stale status behind. See

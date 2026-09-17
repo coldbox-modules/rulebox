@@ -114,6 +114,36 @@ addRule(
 )
 ```
 
+## withPriority()
+
+By default, rules execute strictly in the order they're added via
+`addRule()`. `withPriority()` lets a rule jump the queue - a **higher**
+priority runs **earlier**. Rules that share the same priority (the
+default is `0`) keep insertion order relative to each other:
+
+```js
+addRule(
+	newRule( "checkBlocklist" )
+		.withPriority( 10 )
+		.when( ( facts ) => facts.applicant.isBlocklisted() )
+		.then( ( facts, result ) => result.setValue( 0 ) )
+		.stop()
+)
+
+addRule(
+	newRule( "creditScoreAdjustment" )
+		// no withPriority() - defaults to 0, runs after the rule above
+		.when( ( facts ) => facts.applicant.getCreditScore() < 600 )
+		.then( ( facts, result ) => result.setValue( result.getValue() * 4 ) )
+)
+```
+
+`withPriority()` can be called before or after a rule is added to a
+`RuleBook` - the `RuleBook` re-derives its entire execution chain, sorted
+by priority (ties broken by insertion order), every time `addRule()` is
+called, so a later, higher-priority rule correctly slots ahead of rules
+already registered.
+
 ## stop()
 
 `stop()` breaks the rule chain. If specified on a rule whose `when()`
