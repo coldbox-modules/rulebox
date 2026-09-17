@@ -56,6 +56,12 @@ class{
 	 */
 	property name="ruleStatusMap" type="struct";
 
+	/**
+	 * The rules registered in this rulebook, in the order they were added via addRule(). This is the
+	 * source of truth used to rebuild the head/tail execution chain whenever a rule's priority matters.
+	 */
+	property name="rules" type="array";
+
 	// Static lookup map for rule states
 	static{
 		RULE_STATES = {
@@ -78,6 +84,7 @@ class{
 		variables.name 			= arguments.name
 		variables.result 		= new Result()
 		variables.ruleStatusMap = {}
+		variables.rules 		= []
 
 		// Expose the static rule states enum on the instance for external access
 		this.RULE_STATES = static.RULE_STATES
@@ -148,7 +155,11 @@ class{
 	}
 
 	/**
-	 * Add a rule to the rule book. You can pass in a closure/lambda that represents the rule or an actual Rule object
+	 * Add a rule to the rule book. You can pass in a closure/lambda that represents the rule or an actual Rule object.
+	 *
+	 * Rules execute in priority order (highest `withPriority()` value first); rules sharing the same
+	 * priority execute in the order they were added here. Adding a rule re-derives the entire
+	 * execution chain, so priorities can be set on rules in any order before or after they are added.
 	 *
 	 * @rule A rule object or a closure/lambda that will represent the rule.
 	 *
@@ -164,24 +175,45 @@ class{
 			arguments.rule = targetRule
 		}
 
-		// Chain of Responsiblity Rules, are we starting with the head?
-		if( isNull( variables.headRule ) ){
-			// Store rules and initial result
-			variables.headRule = arguments.rule
-			variables.tailRule = arguments.rule
-		} else {
-			// Set the next rule chain
-			variables.tailRule.setNextRule( arguments.rule )
-			// Change the pointer in the chain
-			variables.tailRule = arguments.rule
-		}
-
 		// Link the rule book
 		arguments.rule.setRuleBook( this )
 		// Track it's status
 		variables.ruleStatusMap[ arguments.rule.getName() ] = static.RULE_STATES.REGISTERED
 
+		// Track insertion order and re-derive the priority-ordered execution chain
+		variables.rules.append( arguments.rule )
+		linkRuleChain()
+
 		return this
+	}
+
+	/**
+	 * Rebuilds the head/tail rule execution chain from `variables.rules`, ordering rules by priority
+	 * (highest first) and, for rules sharing the same priority, by the order they were added.
+	 */
+	private void function linkRuleChain(){
+		// Pair each rule with its insertion index so priority ties keep insertion order
+		var indexed = []
+		variables.rules.each( ( rule, index ) => {
+			indexed.append( { rule: rule, index: index } )
+		} )
+
+		indexed.sort( ( a, b ) => {
+			if( a.rule.getPriority() != b.rule.getPriority() ){
+				return b.rule.getPriority() - a.rule.getPriority()
+			}
+			return a.index - b.index
+		} )
+
+		// Relink every rule's nextRule pointer to reflect the new order. The final rule in the new
+		// order needs no explicit update: it is either brand new (nextRule already null) or was
+		// already the tail before this call (nextRule already null), since the relative order between
+		// any two previously-added rules never changes once they've both been added.
+		variables.headRule = indexed[ 1 ].rule
+		variables.tailRule = indexed[ indexed.len() ].rule
+		for( var i = 1; i < indexed.len(); i++ ){
+			indexed[ i ].rule.setNextRule( indexed[ i + 1 ].rule )
+		}
 	}
 
 	/**

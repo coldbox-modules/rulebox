@@ -17,7 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ColdBox 8+ Integrations
 - `RULE_STATES.FAILED` status: a `then()` consumer that throws now records the rule as `FAILED` in the audit trail before the exception is re-thrown to the caller
 - `Rule.run()` now throws a `RuleBox.RuleNotAttachedException` if called on a `Rule` that was never attached to a `RuleBook` via `addRule()`, instead of a cryptic null-reference error
-- Test coverage for: re-running a `RuleBook`/`Rule` with the same facts, the `overwrite=false` behavior of `givenAll()`, a `then()` consumer throwing mid-chain, and running a detached `Rule`
+- `Rule.withPriority( priority )`: rules now execute in priority order (highest first) instead of strictly insertion order. Rules sharing the same priority (default `0`) execute in the order they were added
+- Test coverage for: re-running a `RuleBook`/`Rule` with the same facts, the `overwrite=false` behavior of `givenAll()`, a `then()` consumer throwing mid-chain, running a detached `Rule`, and rule priority ordering
 
 ### Fixed
 
