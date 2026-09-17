@@ -39,10 +39,7 @@ jobs:
       - name: Setup BoxLang
         uses: ortus-boxlang/setup-boxlang@main
         with:
-          with-commandbox: true
-
-      - name: Install bx-sites
-        run: box install bx-sites
+          modules: bx-sites
 
       - name: Build the docs site
         run: boxlang bxSites build
