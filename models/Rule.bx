@@ -69,6 +69,12 @@ class{
 	 */
 	property name="result" type="any";
 
+	/**
+	 * The priority of this rule, used by the owning RuleBook to order execution. Higher runs first.
+	 * Rules with the same priority execute in the order they were added.
+	 */
+	property name="priority" type="numeric";
+
 	// Static enum for valid states for rules
 	static{
 		STATES = {
@@ -88,6 +94,7 @@ class{
 		variables.facts 		= {}
 		variables.factsNameMap 	= {}
 		variables.currentState 	= static.STATES.NEXT
+		variables.priority 		= 0
 
 		// Expose the static rule states enum on the instance for external access
 		this.STATES = static.STATES
@@ -289,6 +296,20 @@ class{
 	 */
 	Rule function stop(){
 		variables.currentState = static.STATES.STOP
+		return this
+	}
+
+	/**
+	 * The withPriority() method sets the priority of this rule used by the owning RuleBook to order
+	 * execution. Rules with a higher priority execute earlier. Rules with the same priority execute
+	 * in the order they were added to the RuleBook via addRule(). Defaults to 0.
+	 *
+	 * @priority The priority to give this rule; higher runs first
+	 *
+	 * @return The rule instance
+	 */
+	Rule function withPriority( required numeric priority ){
+		variables.priority = arguments.priority
 		return this
 	}
 

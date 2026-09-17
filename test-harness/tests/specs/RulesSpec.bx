@@ -67,6 +67,14 @@ class extends="tests.resources.BaseSpec"{
 					expect( rule.getCurrentState() ).toBe( rule.STATES.STOP );
 				});
 
+				it( "defaults to priority 0 and can have its priority set", () =>{
+					var rule = getInstance( "rule@rulebox" );
+					expect( rule.getPriority() ).toBe( 0 );
+
+					rule.withPriority( 10 );
+					expect( rule.getPriority() ).toBe( 10 );
+				});
+
 				it( "can store using fact names when none are defined", () =>{
 					var rule = getInstance( "rule@rulebox" )
 						.using( "name" )
