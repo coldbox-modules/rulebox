@@ -1,0 +1,24 @@
+[
+	"index.md",
+	{
+		"title": "Introduction",
+		"children": [
+			"getting-started.md",
+			"releases.md"
+		]
+	},
+	{
+		"title": "Guides",
+		"children": [
+			"guides/index.md",
+			"guides/defining-rulebooks.md",
+			"guides/the-dsl.md",
+			"guides/facts-and-results.md",
+			"guides/the-builder.md",
+			"guides/auditing.md",
+			"guides/thread-safety.md",
+			"guides/error-handling.md",
+			"guides/complex-example.md"
+		]
+	}
+]

@@ -1,0 +1,65 @@
+name: Publish Docs
+
+# Builds this repository's docs/ + bxsites.yaml with bx-sites and
+# publishes the result to GitHub Pages (gh-pages branch), served at the
+# custom domain rulebox.coldbox.org.
+#
+# Deliberately no `paths:` filter - every push to `development` rebuilds
+# and redeploys, so a fix landing in a commit that doesn't touch docs/
+# itself (e.g. a box.json-only change) can't leave the published site
+# silently stale.
+#
+# Requires GitHub Pages enabled for this repository with its source set
+# to "Deploy from a branch" -> gh-pages -> / (root), and the custom
+# domain rulebox.coldbox.org configured under Settings -> Pages (plus the
+# matching DNS CNAME record pointing at <owner>.github.io). gh-pages is
+# created automatically by the first successful run below.
+
+on:
+  push:
+    branches:
+      - development
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "pages-${{ github.ref_name }}"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy Docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Setup BoxLang
+        uses: ortus-boxlang/setup-boxlang@main
+        with:
+          with-commandbox: true
+
+      - name: Install bx-sites
+        run: box install bx-sites
+
+      - name: Build the docs site
+        run: boxlang bxSites build
+
+      - name: Verify the build actually produced output
+        run: |
+          if [[ ! -d site ]] || [[ -z "$(ls -A site 2>/dev/null)" ]]; then
+            echo "::error::bxSites build produced no site/ output"
+            exit 1
+          fi
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          # Writes CNAME at the gh-pages root on every deploy, so the
+          # custom domain survives a gh-pages wipe rather than depending
+          # solely on the one-time Settings -> Pages -> Custom domain click.
+          cname: rulebox.coldbox.org
