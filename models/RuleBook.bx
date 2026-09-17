@@ -73,6 +73,12 @@ class{
 	 */
 	property name="predicateRegistry" type="struct";
 
+	/**
+	 * Per-rule execution metrics, keyed by rule name. Unlike ruleStatusMap, this accumulates across
+	 * every run() call on this instance rather than resetting - see getRuleMetrics()/resetMetrics()
+	 */
+	property name="ruleMetricsMap" type="struct";
+
 	// Static lookup map for rule states
 	static{
 		RULE_STATES = {
@@ -98,6 +104,7 @@ class{
 		variables.rules 			= []
 		variables.actionRegistry 	= {}
 		variables.predicateRegistry = {}
+		variables.ruleMetricsMap 	= {}
 		variables.conditionEvaluator = new ConditionEvaluator()
 
 		// Expose the static rule states enum on the instance for external access
@@ -202,6 +209,35 @@ class{
 	}
 
 	/**
+	 * Remove every rule from this RuleBook, resetting it to a rule-less state - as if freshly
+	 * constructed. Registries (registerAction()/registerPredicate()) and rule metrics are untouched.
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function clearRules(){
+		variables.rules 		= []
+		variables.ruleStatusMap = {}
+		structDelete( variables, "headRule" )
+		structDelete( variables, "tailRule" )
+		return this
+	}
+
+	/**
+	 * Manually reload this RuleBook's rules from a source: clearRules() followed by loadRules( source ).
+	 * Use this to pick up rule changes from a JSON/YAML file or a database table without restarting -
+	 * call it whenever you decide it's time, e.g. from a scheduled task or an admin action. RuleBox does
+	 * not watch a rule source for changes on its own.
+	 *
+	 * @source An object exposing array function load()
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function reloadRules( required any source ){
+		clearRules()
+		return loadRules( arguments.source )
+	}
+
+	/**
 	 * Rebuilds the head/tail rule execution chain from `variables.rules`, ordering rules by priority
 	 * (highest first) and, for rules sharing the same priority, by the order they were added.
 	 */
@@ -286,8 +322,8 @@ class{
 	 * structs) and addRule() each one. Register any named actions/predicates the definitions reference
 	 * via registerAction()/registerPredicate() before calling this.
 	 *
-	 * Each definition struct may contain: name, priority, when, except, then, stop, using. See the
-	 * "Externalized Rules" guide for the full schema.
+	 * Each definition struct may contain: name, priority, activeFrom, activeUntil, when, except, then,
+	 * stop, using. See the "Externalized Rules" guide for the full schema.
 	 *
 	 * @source An object exposing array function load()
 	 *
@@ -299,6 +335,13 @@ class{
 
 			if( def.keyExists( "priority" ) ){
 				rule.withPriority( def.priority )
+			}
+
+			if( def.keyExists( "activeFrom" ) || def.keyExists( "activeUntil" ) ){
+				rule.active(
+					def.keyExists( "activeFrom" ) ? def.activeFrom : null,
+					def.keyExists( "activeUntil" ) ? def.activeUntil : null
+				)
 			}
 
 			rule.when( resolveCondition( def.keyExists( "when" ) ? def.when : null ) )
@@ -485,6 +528,75 @@ class{
 	 */
 	string function getRuleStatus( required name ){
 		return variables.ruleStatusMap[ arguments.name ] ?: static.RULE_STATES.NOT_AVAILABLE
+	}
+
+	/**
+	 * Get the execution metrics for a single rule, meant to be dashboard-ready: plain, JSON-serializable
+	 * structs. If the rule has never been evaluated (or doesn't exist), an empty-but-shaped metrics
+	 * struct is returned rather than throwing - `totalEvaluations` will be `0`.
+	 *
+	 * Unlike the status map, metrics accumulate across every run() call on this instance - call
+	 * resetMetrics() to clear them.
+	 *
+	 * @name The name of the rule
+	 *
+	 * @return { name, totalEvaluations, countsByState, totalDurationMs, minDurationMs, maxDurationMs, lastDurationMs, firstRunAt?, lastRunAt? }
+	 */
+	struct function getRuleMetrics( required string name ){
+		return variables.ruleMetricsMap.keyExists( arguments.name ) ? variables.ruleMetricsMap[ arguments.name ] : newMetricsEntry( arguments.name )
+	}
+
+	/**
+	 * Clear all accumulated rule metrics on this instance back to empty - e.g. from a dashboard's
+	 * "reset stats" action. Does not touch rules, registries, or the status map.
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function resetMetrics(){
+		variables.ruleMetricsMap = {}
+		return this
+	}
+
+	/**
+	 * Record one rule evaluation's outcome into its accumulated metrics. Called once per rule per run()
+	 * from Rule.run(), with the same final state written to the status map.
+	 *
+	 * @name The name of the rule that was evaluated
+	 * @state The final RULE_STATES this evaluation ended in (EXECUTED, SKIPPED, STOPPED, or FAILED)
+	 * @durationMs How long the evaluation took, in milliseconds
+	 */
+	void function recordRuleMetric( required string name, required string state, required numeric durationMs ){
+		if( !variables.ruleMetricsMap.keyExists( arguments.name ) ){
+			variables.ruleMetricsMap[ arguments.name ] = newMetricsEntry( arguments.name )
+		}
+
+		var metric = variables.ruleMetricsMap[ arguments.name ]
+
+		metric.countsByState[ arguments.state ] = ( metric.countsByState.keyExists( arguments.state ) ? metric.countsByState[ arguments.state ] : 0 ) + 1
+		metric.minDurationMs  = ( metric.totalEvaluations == 0 ) ? arguments.durationMs : min( metric.minDurationMs, arguments.durationMs )
+		metric.maxDurationMs  = ( metric.totalEvaluations == 0 ) ? arguments.durationMs : max( metric.maxDurationMs, arguments.durationMs )
+		metric.totalDurationMs += arguments.durationMs
+		metric.lastDurationMs = arguments.durationMs
+		metric.lastRunAt      = now()
+		if( !metric.keyExists( "firstRunAt" ) ){
+			metric.firstRunAt = metric.lastRunAt
+		}
+		metric.totalEvaluations++
+	}
+
+	/**
+	 * Build an empty, zero-valued metrics struct for a rule that hasn't been evaluated yet
+	 */
+	private struct function newMetricsEntry( required string name ){
+		return {
+			"name"             : arguments.name,
+			"totalEvaluations" : 0,
+			"countsByState"    : {},
+			"totalDurationMs"  : 0,
+			"minDurationMs"    : 0,
+			"maxDurationMs"    : 0,
+			"lastDurationMs"   : 0
+		}
 	}
 
 }

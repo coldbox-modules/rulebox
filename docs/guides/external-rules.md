@@ -25,6 +25,8 @@ of rule-definition structs. Each struct can contain:
 |---|---|---|
 | `name` | No | The rule's name, used for [auditing](auditing.md). Defaults like any other rule if omitted |
 | `priority` | No | See [Rule Priority](the-dsl.md). Defaults to `0` |
+| `activeFrom` | No | See [active()](the-dsl.md#active). Left open-ended if omitted |
+| `activeUntil` | No | See [active()](the-dsl.md#active). Left open-ended if omitted |
 | `when` | No | A [condition node](#the-condition-tree-grammar) or a [predicate reference](#the-predicate-and-action-registries). Defaults to always-true |
 | `except` | No | Same shape as `when`, negated |
 | `then` | No | An array of [action references](#the-predicate-and-action-registries). Defaults to none |
@@ -177,16 +179,18 @@ test code that uses `DBRuleSource`:
 ruleBook.loadRules( new rulebox.models.DBRuleSource( query = myQuery ) )
 ```
 
-Expected columns: `name`, `priority`, `when_json`, `except_json`
-(optional), `then_json`, `stop`, `using_facts` (optional, a
-comma-delimited list of fact names). `when_json`/`except_json`/`then_json`
-hold the same condition-tree/action JSON used by `JSONRuleSource`, stored
-as text:
+Expected columns: `name`, `priority`, `active_from` (optional),
+`active_until` (optional), `when_json`, `except_json` (optional),
+`then_json`, `stop`, `using_facts` (optional, a comma-delimited list of
+fact names). `when_json`/`except_json`/`then_json` hold the same
+condition-tree/action JSON used by `JSONRuleSource`, stored as text:
 
 | Column | Maps to |
 |---|---|
 | `name` | `name` |
 | `priority` | `priority` |
+| `active_from` | `activeFrom` (optional) |
+| `active_until` | `activeUntil` (optional) |
 | `when_json` | `when` (deserialized) |
 | `except_json` | `except` (deserialized, optional) |
 | `then_json` | `then` (deserialized) |
@@ -198,3 +202,19 @@ as text:
 Any object with a `load()` method returning an array of rule-definition
 structs works with `loadRules()` - a REST call, a config service, a cache,
 whatever fits. There's no interface to implement.
+
+## Reloading rules manually
+
+`loadRules()` is a one-shot call you make explicitly - RuleBox never
+watches a file or table for changes on its own. To pick up edits, call
+`reloadRules()` whenever you decide it's time (a scheduled task, an admin
+action, whatever fits your app):
+
+```js
+ruleBook.reloadRules( new rulebox.models.JSONRuleSource( "/path/to/rules.json" ) )
+```
+
+`reloadRules()` is `clearRules()` (wipe the current rule chain and audit
+trail) followed by `loadRules( source )`. Registries
+(`registerAction()`/`registerPredicate()`) and [rule metrics](auditing.md#rule-metrics)
+are untouched - `clearRules()` only touches rules.

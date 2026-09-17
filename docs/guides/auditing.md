@@ -3,7 +3,7 @@ title: Auditing Rules
 order: 5
 icon: phosphor-duotone:list-magnifying-glass
 summary: Track which rules fired, skipped, stopped, or failed - or preview it with dryRun().
-tags: [guides, auditing, dry-run]
+tags: [guides, auditing, dry-run, metrics]
 ---
 
 # Auditing Rules
@@ -94,4 +94,50 @@ report = newRule()
 	.dryRun( { "creditScore" : 550 } )
 
 // { "name" : "...", "wouldExecute" : true, "wouldStop" : true }
+```
+
+## Rule metrics
+
+While the audit trail tells you what happened on the *last* `run()`,
+`RuleBook` also keeps running execution metrics per rule, accumulated
+across every `run()` call on the instance - meant to be fed straight into
+a dashboard:
+
+```js
+metrics = ruleBook.getRuleMetrics( "creditScoreAdjustment" )
+writeDump( metrics )
+```
+
+```js
+{
+	"name"             : "creditScoreAdjustment",
+	"totalEvaluations" : 42,
+	"countsByState"    : { "EXECUTED" : 30, "SKIPPED" : 10, "STOPPED" : 1, "FAILED" : 1 },
+	"totalDurationMs"  : 1234,
+	"minDurationMs"    : 2,
+	"maxDurationMs"    : 55,
+	"lastDurationMs"   : 8,
+	"firstRunAt"       : {ts '...'},
+	"lastRunAt"        : {ts '...'}
+}
+```
+
+- `countsByState` uses the same `RULE_STATES` values as the audit trail
+- Duration covers the whole evaluation - `when()`/`except()` plus any
+  `then()` consumers that ran - so a rule that's slow to *check* shows up
+  even when it never fires
+- A rule that's never been evaluated (or doesn't exist) returns the same
+  shape with `totalEvaluations: 0` and no `firstRunAt`/`lastRunAt`, rather
+  than throwing
+- `dryRun()` never records metrics, same as it never touches the audit trail
+
+Get every rule's metrics in one call with `ruleBook.getRuleMetricsMap()` -
+a struct of `name → metrics`, plain enough to serialize straight to JSON
+for a dashboard endpoint.
+
+Unlike the status map, metrics are **not** reset by `run()` - they're a
+running history for the instance's lifetime. Clear them explicitly with:
+
+```js
+ruleBook.resetMetrics()
 ```

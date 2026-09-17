@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RuleBook.registerAction()`/`registerPredicate()`: register named actions/predicates a loaded rule definition can reference by name, accepting a closure/lambda, an object instance (duck-typed `execute()`/`test()`), or a WireBox mapping ID string resolved eagerly at registration
 - A safe, declarative condition-tree grammar (`eq`/`neq`/`lt`/`lte`/`gt`/`gte`/`in`/`and`/`or`/`not` over dot-path facts) for a rule definition's `when`/`except`, with no `eval` - untrusted rule sources can't execute arbitrary code
 - `RuleAction`/`RulePredicate`: optional documented interfaces for a class-based action/predicate registered via `registerAction()`/`registerPredicate()`
+- `RuleBook.clearRules()`/`reloadRules( source )`: manually re-read an external rule source (a JSON/YAML file, a DB table) without restarting. RuleBox never watches a source for changes on its own - you decide when to reload. Registries and rule metrics are untouched
+- `Rule.active( from, until )`: restrict a rule to a time window; outside of it the rule is skipped exactly like a failed `when()`. Either bound is optional. Externalized rule definitions can set this via `activeFrom`/`activeUntil` (or `active_from`/`active_until` columns for `DBRuleSource`)
+- `RuleBook.getRuleMetrics( name )`/`getRuleMetricsMap()`: dashboard-ready, JSON-serializable per-rule execution metrics (evaluation counts by state, min/max/total/last duration, first/last run timestamps), accumulated across every `run()` call on the instance rather than resetting each run. `resetMetrics()` clears them
 
 ### Fixed
 

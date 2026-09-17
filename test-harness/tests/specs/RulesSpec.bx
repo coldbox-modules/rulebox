@@ -75,6 +75,45 @@ class extends="tests.resources.BaseSpec"{
 					expect( rule.getPriority() ).toBe( 10 );
 				});
 
+				it( "is always active when active() is never called", () =>{
+					var rule = getInstance( "rule@rulebox" );
+					expect( rule.dryRun().wouldExecute ).toBeTrue();
+				});
+
+				it( "is skipped before its activeFrom date", () =>{
+					var rule = getInstance( "rule@rulebox" )
+						.active( from = dateAdd( "d", 1, now() ) );
+
+					expect( rule.dryRun().wouldExecute ).toBeFalse();
+				});
+
+				it( "is skipped after its activeUntil date", () =>{
+					var rule = getInstance( "rule@rulebox" )
+						.active( until = dateAdd( "d", -1, now() ) );
+
+					expect( rule.dryRun().wouldExecute ).toBeFalse();
+				});
+
+				it( "is active within an activeFrom/activeUntil window", () =>{
+					var rule = getInstance( "rule@rulebox" )
+						.active( dateAdd( "d", -1, now() ), dateAdd( "d", 1, now() ) );
+
+					expect( rule.dryRun().wouldExecute ).toBeTrue();
+				});
+
+				it( "is reported as SKIPPED, not EXECUTED, when run() outside its active window", () =>{
+					var consumerRan = false;
+					var rule = getInstance( "rule@rulebox" )
+						.setRuleBook( rulebook )
+						.active( from = dateAdd( "d", 1, now() ) )
+						.then( ( facts ) => { consumerRan = true; } );
+
+					rule.run();
+
+					expect( consumerRan ).toBeFalse();
+					expect( rulebook.getRuleStatus( rule.getName() ) ).toBe( rulebook.RULE_STATES.SKIPPED );
+				});
+
 				it( "can store using fact names when none are defined", () =>{
 					var rule = getInstance( "rule@rulebox" )
 						.using( "name" )

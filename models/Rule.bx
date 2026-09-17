@@ -75,6 +75,16 @@ class{
 	 */
 	property name="priority" type="numeric";
 
+	/**
+	 * If set, this rule is treated as not-yet-active (skipped, same as a failed when()) before this date
+	 */
+	property name="activeFrom";
+
+	/**
+	 * If set, this rule is treated as expired (skipped, same as a failed when()) after this date
+	 */
+	property name="activeUntil";
+
 	// Static enum for valid states for rules
 	static{
 		STATES = {
@@ -168,9 +178,15 @@ class{
 		// Do assignment of facts if passed
 		this.givenAll( argumentCollection=arguments )
 
+		var startTicks = getTickCount()
+		var finalState = variables.ruleBook.RULE_STATES.SKIPPED
+
 		try{
 
 			if(
+				// Check we're inside this rule's active window, if one was set
+				isWithinActiveWindow()
+				&&
 				// Check the predicate is TRUE
 				variables.predicate( variables.facts )
 				&&
@@ -203,24 +219,30 @@ class{
 
 				} ) // End iteration of consumer actions
 
-				// Register in the status Map
-				variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.EXECUTED )
+				finalState = variables.ruleBook.RULE_STATES.EXECUTED
 
 				// if stop() was invoked, stop the rule chain after then is finished executing
 				if( variables.currentState == static.STATES.STOP ){
-					variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.STOPPED )
-					return
+					finalState = variables.ruleBook.RULE_STATES.STOPPED
 				}
 
 			} // end if predicate was true
 			else {
 				logger.debug( "Predicate was false, skipping rule (#variables.name#)" );
-				variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.SKIPPED );
+			}
+
+			// Register in the status map and metrics - once per run(), with the final state
+			variables.ruleBook.getRuleStatusMap().put( variables.name, finalState )
+			variables.ruleBook.recordRuleMetric( variables.name, finalState, getTickCount() - startTicks )
+
+			if( finalState == variables.ruleBook.RULE_STATES.STOPPED ){
+				return
 			}
 
 		} catch( any e ){
 			// Record the failure in the audit trail and let the caller decide what to do with it
 			variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.FAILED )
+			variables.ruleBook.recordRuleMetric( variables.name, variables.ruleBook.RULE_STATES.FAILED, getTickCount() - startTicks )
 			rethrow;
 		}
 
@@ -247,7 +269,7 @@ class{
 		var evaluationFacts = variables.facts.copy()
 		structAppend( evaluationFacts, arguments.facts, true )
 
-		var wouldExecute = variables.predicate( evaluationFacts ) && !variables.except( evaluationFacts )
+		var wouldExecute = isWithinActiveWindow() && variables.predicate( evaluationFacts ) && !variables.except( evaluationFacts )
 
 		return {
 			"name"         : variables.name,
@@ -336,6 +358,40 @@ class{
 	Rule function withPriority( required numeric priority ){
 		variables.priority = arguments.priority
 		return this
+	}
+
+	/**
+	 * Restrict this rule to a time window. Outside of it, the rule is skipped exactly like a failed
+	 * when() - no consumers run, and it's reported as SKIPPED in the audit trail. Either bound can be
+	 * omitted to leave that side open-ended.
+	 *
+	 * @from The date/time this rule becomes active, else always active on this side
+	 * @until The date/time this rule stops being active, else never expires on this side
+	 *
+	 * @return The rule instance
+	 */
+	Rule function active( from, until ){
+		if( !isNull( arguments.from ) ){
+			variables.activeFrom = arguments.from
+		}
+		if( !isNull( arguments.until ) ){
+			variables.activeUntil = arguments.until
+		}
+		return this
+	}
+
+	/**
+	 * Whether this rule is currently inside its active window (always true if active() was never called)
+	 */
+	private boolean function isWithinActiveWindow(){
+		var currentTime = now()
+		if( !isNull( variables.activeFrom ) && dateCompare( currentTime, variables.activeFrom ) < 0 ){
+			return false
+		}
+		if( !isNull( variables.activeUntil ) && dateCompare( currentTime, variables.activeUntil ) > 0 ){
+			return false
+		}
+		return true
 	}
 
 	/**
