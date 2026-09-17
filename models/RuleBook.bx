@@ -62,8 +62,9 @@ class{
 			NOT_AVAILABLE 	= "NOT_AVAILABLE",
 			EXECUTED      	= "EXECUTED",
 			SKIPPED       	= "SKIPPED",
-			REGISTERED 	  	= "NONE",
-			STOPPED 		= "STOPPED"
+			REGISTERED 	  	= "REGISTERED",
+			STOPPED 		= "STOPPED",
+			FAILED 			= "FAILED"
 		}
 	}
 
@@ -131,7 +132,7 @@ class{
 	 * @return This RuleBook instance, to allow for chaining of calls
 	 */
 	RuleBook function givenAll( required struct facts, boolean overwrite=true ){
-		structAppend( variables.facts, arguments.facts, true )
+		structAppend( variables.facts, arguments.facts, arguments.overwrite )
 		return this
 	}
 
@@ -187,14 +188,14 @@ class{
 	 * Run the rules in this rule book against the registered facts or passed facts
 	 *
 	 * @facts A structure of name-value pairs representing the facts in this rulebook
-	 * @overwrite Overwrite the facts if they exist or not, defauls to true
+	 * @overwrite Overwrite the facts if they exist or not, defaults to true
 	 *
 	 * @return This RuleBook instance, to allow for chaining of calls
 	 */
 	RuleBook function run( struct facts={}, boolean overwrite=true ){
 		// Process Facts
 		this.givenAll( argumentCollection=arguments )
-		// Result Result just in case
+		// Reset the result for this run, just in case it was left over from a prior run
 		variables.result.ifPresent( variables.result.reset )
 
 		// Verify if rules are loaded? If not, load them via the `defineRules()` call.
@@ -207,6 +208,11 @@ class{
 				return this
 			}
 		}
+
+		// Reset the audit trail so it reflects only this invocation, not a prior one
+		variables.ruleStatusMap.keyArray().each( ( name ) => {
+			variables.ruleStatusMap[ name ] = static.RULE_STATES.REGISTERED
+		} )
 
 		// run the chain with the given facts and passed result object
 		variables.headRule
@@ -224,7 +230,7 @@ class{
 	}
 
 	/**
-	 * Get the status of a ranned rule, if the rule doesn't exist it will return a NOT_AVAILABLE status
+	 * Get the status of a run rule, if the rule doesn't exist it will return a NOT_AVAILABLE status
 	 *
 	 * @name The name of the rule
 	 */

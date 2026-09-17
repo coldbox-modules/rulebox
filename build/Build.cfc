@@ -56,7 +56,7 @@ component {
 	 *
 	 * @projectName The project name used for resources and slugs
 	 * @version The version you are building
-	 * @buldID The build identifier
+	 * @buildID The build identifier
 	 * @branch The branch you are building
 	 */
 	function run(
@@ -117,7 +117,7 @@ component {
 	 *
 	 * @projectName The project name used for resources and slugs
 	 * @version The version you are building
-	 * @buldID The build identifier
+	 * @buildID The build identifier
 	 * @branch The branch you are building
 	 */
 	function buildSource(
@@ -257,7 +257,7 @@ component {
 	}
 
 	/**
-	 * DirectoryCopy is broken in lucee
+	 * DirectoryCopy is broken in the CommandBox task runner engine
 	 */
 	private function copy( src, target, recurse = true ){
 		// process paths with excludes
