@@ -153,6 +153,55 @@ class extends="tests.resources.BaseSpec"{
 					} ).toThrow( "RuleBox.RuleNotAttachedException" );
 				});
 
+				it( "can dry-run without invoking then() or requiring a RuleBook", () =>{
+					var consumerRan = false;
+					var rule = getInstance( "rule@rulebox" )
+						.given( "name", "luis" )
+						.when( ( facts ) => facts.name == "luis" )
+						.then( ( facts ) => {
+							consumerRan = true;
+						} );
+
+					var report = rule.dryRun();
+
+					expect( report.name ).toBe( rule.getName() );
+					expect( report.wouldExecute ).toBeTrue();
+					expect( report.wouldStop ).toBeFalse();
+					expect( consumerRan ).toBeFalse();
+				});
+
+				it( "dry-run reports wouldExecute=false when the predicate fails", () =>{
+					var rule = getInstance( "rule@rulebox" )
+						.when( ( facts ) => facts.keyExists( "missing" ) );
+
+					var report = rule.dryRun();
+
+					expect( report.wouldExecute ).toBeFalse();
+					expect( report.wouldStop ).toBeFalse();
+				});
+
+				it( "dry-run reports wouldStop=true only when the condition passes and stop() is set", () =>{
+					var rule = getInstance( "rule@rulebox" )
+						.stop();
+
+					expect( rule.dryRun().wouldStop ).toBeTrue();
+
+					var neverStops = getInstance( "rule@rulebox" )
+						.when( ( facts ) => false )
+						.stop();
+
+					expect( neverStops.dryRun().wouldStop ).toBeFalse();
+				});
+
+				it( "dry-run does not merge facts into the sticky fact store", () =>{
+					var rule = getInstance( "rule@rulebox" )
+						.given( "name", "luis" );
+
+					rule.dryRun( { "age" : 40 } );
+
+					expect( rule.getFacts() ).notToHaveKey( "age" );
+				});
+
 			});
 		}
 

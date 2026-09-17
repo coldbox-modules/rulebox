@@ -173,6 +173,61 @@ class extends="tests.resources.BaseSpec"{
 				expect( ruleBook.getRuleStatus( "second" ) ).toBe( ruleBook.RULE_STATES.REGISTERED );
 			});
 
+			it( "can dry-run and preview which rules would fire without invoking then()", function(){
+				var consumerRan = false;
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+
+				ruleBook.addRule(
+					ruleBook.newRule( "matches" )
+						.when( ( facts ) => facts.name == "luis" )
+						.then( ( facts ) => { consumerRan = true; } )
+				);
+				ruleBook.addRule(
+					ruleBook.newRule( "doesNotMatch" )
+						.when( ( facts ) => facts.name == "someone-else" )
+						.then( ( facts ) => { consumerRan = true; } )
+				);
+
+				var report = ruleBook.dryRun( { "name" : "luis" } );
+
+				expect( report.len() ).toBe( 2 );
+				expect( report[ 1 ].name ).toBe( "matches" );
+				expect( report[ 1 ].wouldExecute ).toBeTrue();
+				expect( report[ 2 ].name ).toBe( "doesNotMatch" );
+				expect( report[ 2 ].wouldExecute ).toBeFalse();
+				expect( consumerRan ).toBeFalse();
+			});
+
+			it( "dry-run stops walking at the first rule that would stop the chain", function(){
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+
+				ruleBook.addRule( ruleBook.newRule( "first" ).stop() );
+				ruleBook.addRule( ruleBook.newRule( "neverReached" ) );
+
+				var report = ruleBook.dryRun();
+
+				expect( report.len() ).toBe( 1 );
+				expect( report[ 1 ].name ).toBe( "first" );
+				expect( report[ 1 ].wouldStop ).toBeTrue();
+			});
+
+			it( "dry-run does not mutate facts, result, or the real audit trail", function(){
+				var ruleBook = getInstance( "RuleBook@rulebox" )
+					.given( "name", "luis" );
+				ruleBook.addRule( ruleBook.newRule( "someRule" ) );
+
+				ruleBook.dryRun( { "age" : 40 } );
+
+				expect( ruleBook.getFacts() ).notToHaveKey( "age" );
+				expect( ruleBook.getResult().isPresent() ).toBeFalse();
+				expect( ruleBook.getRuleStatus( "someRule" ) ).toBe( ruleBook.RULE_STATES.REGISTERED );
+			});
+
+			it( "dry-run returns an empty report when there are no rules", function(){
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+				expect( ruleBook.dryRun() ).toBeEmpty();
+			});
+
 			it( "records a FAILED status and rethrows when a then() consumer throws", function(){
 				var downstreamRan = false;
 				var ruleBook = getInstance( "RuleBook@rulebox" );

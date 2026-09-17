@@ -255,6 +255,50 @@ class{
 	}
 
 	/**
+	 * Walk the rule chain evaluating each rule's `when()`/`except()` conditions against the given
+	 * facts, without invoking any `then()` consumers or mutating any state: no facts are merged into
+	 * the sticky fact store, no result is touched, and the real audit trail (`getRuleStatusMap()`) is
+	 * left untouched. Useful for previewing what a real `run()` would do.
+	 *
+	 * The walk stops at the same point a real `run()` would stop: the first rule whose condition
+	 * passes and has `stop()` set. Rules after that point are never reached, so they aren't reported
+	 * either - identical to how they'd never appear in the audit trail as anything but `REGISTERED`.
+	 *
+	 * @facts A structure of name-value pairs representing the facts to evaluate against
+	 *
+	 * @return An array of structs, one per rule reached in execution order: { name, wouldExecute, wouldStop }
+	 */
+	array function dryRun( struct facts={} ){
+		var report = []
+
+		// Verify if rules are loaded? If not, load them via the `defineRules()` call.
+		if( !hasRules() ){
+			defineRules()
+			if( !hasRules() ){
+				return report
+			}
+		}
+
+		// Build an evaluation-only fact set: sticky facts + the facts passed here, without mutating either
+		var evaluationFacts = variables.facts.copy()
+		structAppend( evaluationFacts, arguments.facts, true )
+
+		var currentRule = variables.headRule
+		while( !isNull( currentRule ) ){
+			var ruleReport = currentRule.dryRun( evaluationFacts )
+			report.append( ruleReport )
+
+			if( ruleReport.wouldStop ){
+				break
+			}
+
+			currentRule = currentRule.getNextRule()
+		}
+
+		return report
+	}
+
+	/**
 	 * Verify if we have any rules in this rulebook
 	 */
 	boolean function hasRules(){
