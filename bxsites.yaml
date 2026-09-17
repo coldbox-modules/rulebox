@@ -1,0 +1,35 @@
+name: "RuleBox"
+description: "A modern, intuitive, natural-language rules engine for BoxLang and ColdBox applications."
+baseURL: "https://rulebox.coldbox.org/"
+theme:
+    name: bootstrap
+    options:
+        {
+            navCollapsible: true,
+            navExpandAll: false,
+            tocPosition: sticky,
+            accentColor: "#CC3300",
+        }
+search: true
+nav: []
+markdown:
+    enableFootnotes: true
+    enableDefinitionLists: true
+repo:
+    url: "https://github.com/coldbox-modules/rulebox"
+    editUri: "edit/development/docs/"
+social:
+    - url: "https://github.com/coldbox-modules/rulebox"
+      icon: github
+      label: "RuleBox on GitHub"
+    - url: "https://www.ortussolutions.com/community/slack"
+      icon: slack
+      label: "Slack Community"
+    - url: "https://community.ortussolutions.com/"
+      icon: discourse
+      label: "Community Forum"
+footer: true
+lastUpdated: true
+mermaid: true
+versions:
+    default: ""

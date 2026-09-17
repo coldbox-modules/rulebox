@@ -15,6 +15,9 @@ test-harness/.env
 # log files
 logs/**
 
+## Built docs site (bxSites)
+site/**
+
 ### ENGINE ###
 .engine/**
 

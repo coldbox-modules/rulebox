@@ -4,7 +4,7 @@
     "location":"https://downloads.ortussolutions.com/ortussolutions/coldbox-modules/rulebox/@build.version@/rulebox-@build.version@.zip",
     "author":"Ortus Solutions <info@ortussolutions.com",
     "homepage":"https://github.com/coldbox-modules/rulebox",
-    "documentation":"https://github.com/coldbox-modules/rulebox/wiki",
+    "documentation":"https://rulebox.coldbox.org",
     "repository":{
         "type":"git",
         "url":"https://github.com/coldbox-modules/rulebox"
@@ -24,16 +24,23 @@
     "dependencies":{},
 	"devDependencies" 	:{
 		"commandbox-boxlang":"*",
-        "commandbox-docbox":"*"
+        "commandbox-docbox":"*",
+        "bx-sites":"*"
 	},
     "ignore":[
         "**/.*",
         "test-harness",
-        "*/.md"
+        "*/.md",
+        "docs",
+        "bxsites.yaml",
+        "site"
     ],
     "scripts":{
 		"build:module":"task run taskFile=build/Build.cfc :projectName=`package show slug` :version=`package show version`",
 		"build:docs":"task run taskFile=build/Build.cfc target=docs :projectName=`package show slug` :version=`package show version`",
+		"docs:build":"bxSites build",
+		"docs:serve":"bxSites serve",
+		"docs:deploy":"bxSites gh-deploy",
         "install:dependencies":"install && cd test-harness && install",
 		"format:check": "boxlang format --source models/,test-harness/tests/,ModuleConfig.bx --check",
 		"format": "boxlang format --source models/,test-harness/tests/,ModuleConfig.bx",
