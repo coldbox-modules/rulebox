@@ -17,7 +17,8 @@ class{
 	 * @return A ( facts ) => boolean closure
 	 */
 	function compile( any node ){
-		return ( facts ) => evaluate( arguments.node, facts )
+		var compiledNode = arguments.node
+		return ( facts ) => evaluate( compiledNode, facts )
 	}
 
 	/**
@@ -41,35 +42,46 @@ class{
 
 		var operator = arguments.node.keyArray()[ 1 ]
 		var operand  = arguments.node[ operator ]
+		// Captured into a local var: a nested `=>` closure below gets its own `arguments` scope, so
+		// `arguments.facts` inside one would refer to the closure's own args, not this method's
+		var facts    = arguments.facts
 
-		switch( operator ){
-			case "and":
-				return operand.every( ( child ) => evaluate( child, arguments.facts ) )
-			case "or":
-				return operand.some( ( child ) => evaluate( child, arguments.facts ) )
-			case "not":
-				return !evaluate( operand, arguments.facts )
-			case "eq":
-				return resolvePath( operand[ 1 ], arguments.facts ) == operand[ 2 ]
-			case "neq":
-				return resolvePath( operand[ 1 ], arguments.facts ) != operand[ 2 ]
-			case "lt":
-				return resolvePath( operand[ 1 ], arguments.facts ) < operand[ 2 ]
-			case "lte":
-				return resolvePath( operand[ 1 ], arguments.facts ) <= operand[ 2 ]
-			case "gt":
-				return resolvePath( operand[ 1 ], arguments.facts ) > operand[ 2 ]
-			case "gte":
-				return resolvePath( operand[ 1 ], arguments.facts ) >= operand[ 2 ]
-			case "in":
-				return operand[ 2 ].contains( resolvePath( operand[ 1 ], arguments.facts ) )
-			default:
-				throw(
-					type    = "RuleBox.UnknownConditionOperatorException",
-					message = "Unknown condition operator: '#operator#'",
-					detail  = "Supported operators: eq, neq, lt, lte, gt, gte, in, and, or, not"
-				)
+		if( operator == "and" ){
+			return operand.every( ( child ) => evaluate( child, facts ) )
 		}
+		if( operator == "or" ){
+			return operand.some( ( child ) => evaluate( child, facts ) )
+		}
+		if( operator == "not" ){
+			return !evaluate( operand, facts )
+		}
+		if( operator == "eq" ){
+			return resolvePath( operand[ 1 ], facts ) == operand[ 2 ]
+		}
+		if( operator == "neq" ){
+			return resolvePath( operand[ 1 ], facts ) != operand[ 2 ]
+		}
+		if( operator == "lt" ){
+			return resolvePath( operand[ 1 ], facts ) < operand[ 2 ]
+		}
+		if( operator == "lte" ){
+			return resolvePath( operand[ 1 ], facts ) <= operand[ 2 ]
+		}
+		if( operator == "gt" ){
+			return resolvePath( operand[ 1 ], facts ) > operand[ 2 ]
+		}
+		if( operator == "gte" ){
+			return resolvePath( operand[ 1 ], facts ) >= operand[ 2 ]
+		}
+		if( operator == "in" ){
+			return operand[ 2 ].contains( resolvePath( operand[ 1 ], facts ) )
+		}
+
+		throw(
+			type    = "RuleBox.UnknownConditionOperatorException",
+			message = "Unknown condition operator: '#operator#'",
+			detail  = "Supported operators: eq, neq, lt, lte, gt, gte, in, and, or, not"
+		)
 	}
 
 	/**
