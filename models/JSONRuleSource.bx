@@ -1,0 +1,28 @@
+/**
+ * Loads rule definitions from a JSON file.
+ */
+class{
+
+	/**
+	 * Path to the JSON file containing an array of rule definitions
+	 */
+	property name="filePath" type="string";
+
+	/**
+	 * Constructor
+	 *
+	 * @filePath Absolute or resolvable path to a JSON file containing an array of rule definitions
+	 */
+	JSONRuleSource function init( required string filePath ){
+		variables.filePath = arguments.filePath
+		return this
+	}
+
+	/**
+	 * @return An array of rule-definition structs
+	 */
+	array function load(){
+		return jsonDeserialize( fileRead( variables.filePath ) )
+	}
+
+}

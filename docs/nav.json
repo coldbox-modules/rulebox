@@ -16,6 +16,7 @@
 			"guides/facts-and-results.md",
 			"guides/the-builder.md",
 			"guides/auditing.md",
+			"guides/external-rules.md",
 			"guides/thread-safety.md",
 			"guides/error-handling.md",
 			"guides/complex-example.md"

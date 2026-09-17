@@ -1,0 +1,32 @@
+/**
+ * Loads rule definitions from a YAML file.
+ *
+ * Requires the official BoxLang YAML module to be installed in the consuming application:
+ * `box install boxlang-yaml`. This is deliberately not a hard dependency of RuleBox itself - only
+ * install it if you actually use YAMLRuleSource.
+ */
+class{
+
+	/**
+	 * Path to the YAML file containing an array of rule definitions
+	 */
+	property name="filePath" type="string";
+
+	/**
+	 * Constructor
+	 *
+	 * @filePath Absolute or resolvable path to a YAML file containing an array of rule definitions
+	 */
+	YAMLRuleSource function init( required string filePath ){
+		variables.filePath = arguments.filePath
+		return this
+	}
+
+	/**
+	 * @return An array of rule-definition structs
+	 */
+	array function load(){
+		return yamlDeserializeFile( variables.filePath )
+	}
+
+}

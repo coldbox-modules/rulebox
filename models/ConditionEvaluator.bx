@@ -1,0 +1,102 @@
+/**
+ * Compiles a small, safe JSON-serializable condition tree into a facts -> boolean closure.
+ *
+ * Supported operators: eq, neq, lt, lte, gt, gte, in, and, or, not. Fact references are
+ * dot-notation paths resolved against the facts struct, e.g. "applicant.creditScore".
+ *
+ * This is deliberately not a general expression language: there is no eval(), so a condition
+ * tree from an external JSON/YAML/DB source can never execute arbitrary code.
+ */
+class{
+
+	/**
+	 * Compile a condition node into a closure that can be handed directly to Rule.when()/except().
+	 *
+	 * @node A condition tree struct (e.g. { "lt": [ "creditScore", 600 ] }), or null for "always true"
+	 *
+	 * @return A ( facts ) => boolean closure
+	 */
+	function compile( any node ){
+		var compiledNode = arguments.node
+		return ( facts ) => evaluate( compiledNode, facts )
+	}
+
+	/**
+	 * Evaluate a condition node against a facts struct.
+	 *
+	 * @node A condition tree struct, or null for "always true"
+	 * @facts The facts struct to evaluate against
+	 */
+	boolean function evaluate( any node, required struct facts ){
+		if( isNull( arguments.node ) ){
+			return true
+		}
+
+		if( !isStruct( arguments.node ) || arguments.node.isEmpty() ){
+			throw(
+				type    = "RuleBox.InvalidConditionException",
+				message = "A condition node must be a struct with exactly one operator key.",
+				detail  = "Received: #jsonSerialize( arguments.node )#"
+			)
+		}
+
+		var operator = arguments.node.keyArray()[ 1 ]
+		var operand  = arguments.node[ operator ]
+		// Captured into a local var: a nested `=>` closure below gets its own `arguments` scope, so
+		// `arguments.facts` inside one would refer to the closure's own args, not this method's
+		var facts    = arguments.facts
+
+		if( operator == "and" ){
+			return operand.every( ( child ) => evaluate( child, facts ) )
+		}
+		if( operator == "or" ){
+			return operand.some( ( child ) => evaluate( child, facts ) )
+		}
+		if( operator == "not" ){
+			return !evaluate( operand, facts )
+		}
+		if( operator == "eq" ){
+			return resolvePath( operand[ 1 ], facts ) == operand[ 2 ]
+		}
+		if( operator == "neq" ){
+			return resolvePath( operand[ 1 ], facts ) != operand[ 2 ]
+		}
+		if( operator == "lt" ){
+			return resolvePath( operand[ 1 ], facts ) < operand[ 2 ]
+		}
+		if( operator == "lte" ){
+			return resolvePath( operand[ 1 ], facts ) <= operand[ 2 ]
+		}
+		if( operator == "gt" ){
+			return resolvePath( operand[ 1 ], facts ) > operand[ 2 ]
+		}
+		if( operator == "gte" ){
+			return resolvePath( operand[ 1 ], facts ) >= operand[ 2 ]
+		}
+		if( operator == "in" ){
+			return operand[ 2 ].contains( resolvePath( operand[ 1 ], facts ) )
+		}
+
+		throw(
+			type    = "RuleBox.UnknownConditionOperatorException",
+			message = "Unknown condition operator: '#operator#'",
+			detail  = "Supported operators: eq, neq, lt, lte, gt, gte, in, and, or, not"
+		)
+	}
+
+	/**
+	 * Resolve a dot-notation path (e.g. "applicant.creditScore") against a facts struct.
+	 * Returns null if any segment along the path is missing.
+	 */
+	private any function resolvePath( required string path, required struct facts ){
+		var current = arguments.facts
+		for( var segment in arguments.path.listToArray( "." ) ){
+			if( !isStruct( current ) || !current.keyExists( segment ) ){
+				return
+			}
+			current = current[ segment ]
+		}
+		return current
+	}
+
+}
