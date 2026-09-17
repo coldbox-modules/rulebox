@@ -22,7 +22,7 @@ class{
 	 * @return An array of rule-definition structs
 	 */
 	array function load(){
-		return deserializeJSON( fileRead( variables.filePath ) )
+		return jsonDeserialize( fileRead( variables.filePath ) )
 	}
 
 }

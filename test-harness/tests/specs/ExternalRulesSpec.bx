@@ -200,15 +200,15 @@ class extends="tests.resources.BaseSpec"{
 						{
 							"name"      : "highRisk",
 							"priority"  : 10,
-							"when_json" : serializeJSON( { "lt" : [ "creditScore", 600 ] } ),
-							"then_json" : serializeJSON( [ { "action" : "flagHighRisk" } ] ),
+							"when_json" : jsonSerialize( { "lt" : [ "creditScore", 600 ] } ),
+							"then_json" : jsonSerialize( [ { "action" : "flagHighRisk" } ] ),
 							"stop"      : true
 						},
 						{
 							"name"      : "approve",
 							"priority"  : 0,
-							"when_json" : serializeJSON( { "gte" : [ "creditScore", 600 ] } ),
-							"then_json" : serializeJSON( [ { "action" : "approveApplicant", "params" : { "reason" : "good credit" } } ] ),
+							"when_json" : jsonSerialize( { "gte" : [ "creditScore", 600 ] } ),
+							"then_json" : jsonSerialize( [ { "action" : "approveApplicant", "params" : { "reason" : "good credit" } } ] ),
 							"stop"      : false
 						}
 					] );

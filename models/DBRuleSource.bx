@@ -42,13 +42,13 @@ class{
 			var def = {
 				"name"     : row.name,
 				"priority" : ( row.keyExists( "priority" ) && len( row.priority ) ) ? row.priority : 0,
-				"when"     : ( row.keyExists( "when_json" ) && len( row.when_json ) ) ? deserializeJSON( row.when_json ) : null,
-				"then"     : ( row.keyExists( "then_json" ) && len( row.then_json ) ) ? deserializeJSON( row.then_json ) : [],
+				"when"     : ( row.keyExists( "when_json" ) && len( row.when_json ) ) ? jsonDeserialize( row.when_json ) : null,
+				"then"     : ( row.keyExists( "then_json" ) && len( row.then_json ) ) ? jsonDeserialize( row.then_json ) : [],
 				"stop"     : row.keyExists( "stop" ) && row.stop
 			}
 
 			if( row.keyExists( "except_json" ) && len( row.except_json ) ){
-				def[ "except" ] = deserializeJSON( row.except_json )
+				def[ "except" ] = jsonDeserialize( row.except_json )
 			}
 
 			if( row.keyExists( "using_facts" ) && len( row.using_facts ) ){

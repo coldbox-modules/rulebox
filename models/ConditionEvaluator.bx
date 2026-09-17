@@ -35,7 +35,7 @@ class{
 			throw(
 				type    = "RuleBox.InvalidConditionException",
 				message = "A condition node must be a struct with exactly one operator key.",
-				detail  = "Received: #serializeJSON( arguments.node )#"
+				detail  = "Received: #jsonSerialize( arguments.node )#"
 			)
 		}
 

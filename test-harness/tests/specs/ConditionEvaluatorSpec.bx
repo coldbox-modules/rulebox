@@ -7,7 +7,7 @@ class extends="tests.resources.BaseSpec"{
 		describe( "A ConditionEvaluator", function(){
 
 			beforeEach( function(){
-				evaluator = getInstance( "ConditionEvaluator@rulebox" );
+				variables.evaluator = getInstance( "ConditionEvaluator@rulebox" );
 			} );
 
 			describe( "comparison operators", function(){
