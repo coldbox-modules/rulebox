@@ -1,0 +1,138 @@
+/**
+* Tests for the safe, declarative condition-tree grammar used by RuleBook.loadRules()
+*/
+class extends="tests.resources.BaseSpec"{
+
+	function run( testResults, testBox ){
+		describe( "A ConditionEvaluator", function(){
+
+			beforeEach( function(){
+				evaluator = getInstance( "ConditionEvaluator@rulebox" );
+			} );
+
+			describe( "comparison operators", function(){
+
+				it( "evaluates eq", function(){
+					expect( evaluator.evaluate( { "eq" : [ "status", "active" ] }, { "status" : "active" } ) ).toBeTrue();
+					expect( evaluator.evaluate( { "eq" : [ "status", "active" ] }, { "status" : "inactive" } ) ).toBeFalse();
+				} );
+
+				it( "evaluates neq", function(){
+					expect( evaluator.evaluate( { "neq" : [ "status", "active" ] }, { "status" : "inactive" } ) ).toBeTrue();
+					expect( evaluator.evaluate( { "neq" : [ "status", "active" ] }, { "status" : "active" } ) ).toBeFalse();
+				} );
+
+				it( "evaluates lt", function(){
+					expect( evaluator.evaluate( { "lt" : [ "creditScore", 600 ] }, { "creditScore" : 550 } ) ).toBeTrue();
+					expect( evaluator.evaluate( { "lt" : [ "creditScore", 600 ] }, { "creditScore" : 600 } ) ).toBeFalse();
+				} );
+
+				it( "evaluates lte", function(){
+					expect( evaluator.evaluate( { "lte" : [ "creditScore", 600 ] }, { "creditScore" : 600 } ) ).toBeTrue();
+					expect( evaluator.evaluate( { "lte" : [ "creditScore", 600 ] }, { "creditScore" : 601 } ) ).toBeFalse();
+				} );
+
+				it( "evaluates gt", function(){
+					expect( evaluator.evaluate( { "gt" : [ "creditScore", 600 ] }, { "creditScore" : 601 } ) ).toBeTrue();
+					expect( evaluator.evaluate( { "gt" : [ "creditScore", 600 ] }, { "creditScore" : 600 } ) ).toBeFalse();
+				} );
+
+				it( "evaluates gte", function(){
+					expect( evaluator.evaluate( { "gte" : [ "creditScore", 600 ] }, { "creditScore" : 600 } ) ).toBeTrue();
+					expect( evaluator.evaluate( { "gte" : [ "creditScore", 600 ] }, { "creditScore" : 599 } ) ).toBeFalse();
+				} );
+
+				it( "evaluates in", function(){
+					expect( evaluator.evaluate( { "in" : [ "state", [ "NY", "CA" ] ] }, { "state" : "CA" } ) ).toBeTrue();
+					expect( evaluator.evaluate( { "in" : [ "state", [ "NY", "CA" ] ] }, { "state" : "TX" } ) ).toBeFalse();
+				} );
+
+			} );
+
+			describe( "boolean composition", function(){
+
+				it( "evaluates and", function(){
+					var node = { "and" : [ { "eq" : [ "state", "CA" ] }, { "lt" : [ "creditScore", 600 ] } ] };
+					expect( evaluator.evaluate( node, { "state" : "CA", "creditScore" : 550 } ) ).toBeTrue();
+					expect( evaluator.evaluate( node, { "state" : "CA", "creditScore" : 700 } ) ).toBeFalse();
+				} );
+
+				it( "evaluates or", function(){
+					var node = { "or" : [ { "eq" : [ "state", "CA" ] }, { "lt" : [ "creditScore", 600 ] } ] };
+					expect( evaluator.evaluate( node, { "state" : "NY", "creditScore" : 550 } ) ).toBeTrue();
+					expect( evaluator.evaluate( node, { "state" : "NY", "creditScore" : 700 } ) ).toBeFalse();
+				} );
+
+				it( "evaluates not", function(){
+					var node = { "not" : { "eq" : [ "state", "CA" ] } };
+					expect( evaluator.evaluate( node, { "state" : "NY" } ) ).toBeTrue();
+					expect( evaluator.evaluate( node, { "state" : "CA" } ) ).toBeFalse();
+				} );
+
+				it( "evaluates arbitrarily nested combinations", function(){
+					var node = {
+						"and" : [
+							{ "eq" : [ "state", "CA" ] },
+							{ "or" : [
+								{ "lt" : [ "creditScore", 600 ] },
+								{ "not" : { "eq" : [ "flagged", true ] } }
+							] }
+						]
+					};
+					expect( evaluator.evaluate( node, { "state" : "CA", "creditScore" : 700, "flagged" : false } ) ).toBeTrue();
+					expect( evaluator.evaluate( node, { "state" : "CA", "creditScore" : 700, "flagged" : true } ) ).toBeFalse();
+				} );
+
+			} );
+
+			describe( "fact path resolution", function(){
+
+				it( "resolves a dotted path into nested facts", function(){
+					var node = { "eq" : [ "applicant.address.state", "CA" ] };
+					var facts = { "applicant" : { "address" : { "state" : "CA" } } };
+					expect( evaluator.evaluate( node, facts ) ).toBeTrue();
+				} );
+
+				it( "treats a missing path as null rather than throwing", function(){
+					var node = { "eq" : [ "does.not.exist", "CA" ] };
+					expect( evaluator.evaluate( node, {} ) ).toBeFalse();
+				} );
+
+			} );
+
+			describe( "compile()", function(){
+
+				it( "returns a closure over the compiled condition", function(){
+					var condition = evaluator.compile( { "lt" : [ "creditScore", 600 ] } );
+					expect( isClosure( condition ) || isCustomFunction( condition ) ).toBeTrue();
+					expect( condition( { "creditScore" : 500 } ) ).toBeTrue();
+					expect( condition( { "creditScore" : 700 } ) ).toBeFalse();
+				} );
+
+				it( "compiles a null node into an always-true condition", function(){
+					var condition = evaluator.compile();
+					expect( condition( {} ) ).toBeTrue();
+				} );
+
+			} );
+
+			describe( "error handling", function(){
+
+				it( "throws on an unknown operator", function(){
+					expect( function(){
+						evaluator.evaluate( { "bogus" : [ "a", "b" ] }, {} );
+					} ).toThrow( "RuleBox.UnknownConditionOperatorException" );
+				} );
+
+				it( "throws on a malformed (empty) condition node", function(){
+					expect( function(){
+						evaluator.evaluate( {}, {} );
+					} ).toThrow( "RuleBox.InvalidConditionException" );
+				} );
+
+			} );
+
+		} );
+	}
+
+}

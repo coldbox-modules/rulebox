@@ -62,6 +62,17 @@ class{
 	 */
 	property name="rules" type="array";
 
+	/**
+	 * Named actions registered via registerAction(), used to resolve `then` entries loaded via loadRules()
+	 */
+	property name="actionRegistry" type="struct";
+
+	/**
+	 * Named predicates registered via registerPredicate(), used to resolve `when`/`except` references
+	 * loaded via loadRules()
+	 */
+	property name="predicateRegistry" type="struct";
+
 	// Static lookup map for rule states
 	static{
 		RULE_STATES = {
@@ -80,11 +91,14 @@ class{
 	 * @name A name to give this rulebook, else defaults to empty
 	 */
 	RuleBook function init( name="" ){
-		variables.facts 		= {}
-		variables.name 			= arguments.name
-		variables.result 		= new Result()
-		variables.ruleStatusMap = {}
-		variables.rules 		= []
+		variables.facts 			= {}
+		variables.name 				= arguments.name
+		variables.result 			= new Result()
+		variables.ruleStatusMap 	= {}
+		variables.rules 			= []
+		variables.actionRegistry 	= {}
+		variables.predicateRegistry = {}
+		variables.conditionEvaluator = new ConditionEvaluator()
 
 		// Expose the static rule states enum on the instance for external access
 		this.RULE_STATES = static.RULE_STATES
@@ -214,6 +228,165 @@ class{
 		for( var i = 1; i < indexed.len(); i++ ){
 			indexed[ i ].rule.setNextRule( indexed[ i + 1 ].rule )
 		}
+	}
+
+	/**
+	 * Register a named action that a rule definition loaded via loadRules() can reference from its
+	 * `then` entries (`{ "action": "name", "params": {...} }`).
+	 *
+	 * Accepts three forms:
+	 * - A closure/lambda: `( facts, result, params ) => { ... }`
+	 * - An object instance with an `execute( facts, result, params )` method
+	 * - A WireBox mapping ID string (e.g. "MyActionService@myModule"), resolved via getInstance() now
+	 *
+	 * @name The name rule definitions will reference this action by
+	 * @action A closure/lambda, an object with execute(), or a WireBox mapping ID string
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function registerAction( required string name, required any action ){
+		variables.actionRegistry[ arguments.name ] = resolveRegistryValue( arguments.action )
+		return this
+	}
+
+	/**
+	 * Register a named predicate that a rule definition loaded via loadRules() can reference from its
+	 * `when`/`except` (`{ "predicate": "name", "params": {...} }`), for logic too complex for the
+	 * condition-tree grammar.
+	 *
+	 * Accepts three forms:
+	 * - A closure/lambda: `( facts, params ) => boolean`
+	 * - An object instance with a `test( facts, params )` method
+	 * - A WireBox mapping ID string (e.g. "MyPredicateService@myModule"), resolved via getInstance() now
+	 *
+	 * @name The name rule definitions will reference this predicate by
+	 * @predicate A closure/lambda, an object with test(), or a WireBox mapping ID string
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function registerPredicate( required string name, required any predicate ){
+		variables.predicateRegistry[ arguments.name ] = resolveRegistryValue( arguments.predicate )
+		return this
+	}
+
+	/**
+	 * If `value` is a plain string, treat it as a WireBox mapping ID and resolve it now. Otherwise
+	 * (a closure, lambda, or object instance) return it untouched.
+	 */
+	private any function resolveRegistryValue( required any value ){
+		if( isSimpleValue( arguments.value ) ){
+			return wirebox.getInstance( arguments.value )
+		}
+		return arguments.value
+	}
+
+	/**
+	 * Load externally-defined rules from a rule source (e.g. JSONRuleSource, YAMLRuleSource,
+	 * DBRuleSource, or any object exposing a `load()` method that returns an array of rule-definition
+	 * structs) and addRule() each one. Register any named actions/predicates the definitions reference
+	 * via registerAction()/registerPredicate() before calling this.
+	 *
+	 * Each definition struct may contain: name, priority, when, except, then, stop, using. See the
+	 * "Externalized Rules" guide for the full schema.
+	 *
+	 * @source An object exposing array function load()
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function loadRules( required any source ){
+		for( var def in arguments.source.load() ){
+			var rule = def.keyExists( "name" ) ? newRule( def.name ) : newRule()
+
+			if( def.keyExists( "priority" ) ){
+				rule.withPriority( def.priority )
+			}
+
+			rule.when( resolveCondition( def.keyExists( "when" ) ? def.when : null ) )
+
+			if( def.keyExists( "except" ) ){
+				rule.except( resolveCondition( def.except ) )
+			}
+
+			var factNames = def.keyExists( "using" ) ? def.using : []
+
+			for( var actionClosure in resolveActions( def.keyExists( "then" ) ? def.then : [] ) ){
+				// using() pegs to the *next* then() call only, so re-apply it before each one
+				if( !factNames.isEmpty() ){
+					rule.using( factNames )
+				}
+				rule.then( actionClosure )
+			}
+
+			if( def.keyExists( "stop" ) && def.stop ){
+				rule.stop()
+			}
+
+			addRule( rule )
+		}
+
+		return this
+	}
+
+	/**
+	 * Resolve a `when`/`except` node into a ( facts ) => boolean closure: either a compiled
+	 * condition-tree (a struct without a "predicate" key), a registered predicate reference
+	 * (`{ "predicate": "name", "params": {...} }`), or "always true" if the node is null.
+	 */
+	private any function resolveCondition( any node ){
+		if( isNull( arguments.node ) ){
+			return () => true
+		}
+
+		if( isStruct( arguments.node ) && arguments.node.keyExists( "predicate" ) ){
+			var name   = arguments.node.predicate
+			var params = arguments.node.keyExists( "params" ) ? arguments.node.params : {}
+
+			if( !variables.predicateRegistry.keyExists( name ) ){
+				throw(
+					type    = "RuleBox.UnregisteredPredicateException",
+					message = "No predicate registered under the name '#name#'.",
+					detail  = "Register it first via registerPredicate() before calling loadRules()."
+				)
+			}
+
+			var registered = variables.predicateRegistry[ name ]
+			return ( facts ) => {
+				if( isClosure( registered ) || isCustomFunction( registered ) ){
+					return registered( facts, params )
+				}
+				return registered.test( facts, params )
+			}
+		}
+
+		return variables.conditionEvaluator.compile( arguments.node )
+	}
+
+	/**
+	 * Resolve an array of `then` entries (`{ "action": "name", "params": {...} }`) into an array of
+	 * ( facts, result ) => void closures, ready to be handed to Rule.then().
+	 */
+	private array function resolveActions( required array actions ){
+		return arguments.actions.map( ( actionDef ) => {
+			var name   = actionDef.action
+			var params = actionDef.keyExists( "params" ) ? actionDef.params : {}
+
+			if( !variables.actionRegistry.keyExists( name ) ){
+				throw(
+					type    = "RuleBox.UnregisteredActionException",
+					message = "No action registered under the name '#name#'.",
+					detail  = "Register it first via registerAction() before calling loadRules()."
+				)
+			}
+
+			var registered = variables.actionRegistry[ name ]
+			return ( facts, result ) => {
+				if( isClosure( registered ) || isCustomFunction( registered ) ){
+					registered( facts, result, params )
+				} else {
+					registered.execute( facts, result, params )
+				}
+			}
+		} )
 	}
 
 	/**

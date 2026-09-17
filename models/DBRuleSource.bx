@@ -1,0 +1,64 @@
+/**
+ * Loads rule definitions from a database query.
+ *
+ * Expected columns: `name`, `priority`, `when_json`, `except_json` (optional), `then_json`,
+ * `stop`, `using_facts` (optional, a comma-delimited list). `when_json`/`except_json`/`then_json`
+ * hold the exact same condition-tree/action JSON grammar used by JSONRuleSource, just stored as text.
+ *
+ * You can either point this source at a datasource + SQL to run, or hand it an already-fetched
+ * query object directly (handy for testing, or when you've already queried the rows yourself).
+ */
+class{
+
+	property name="datasource" type="string";
+	property name="sql" type="string";
+	property name="query" type="query";
+
+	/**
+	 * Constructor
+	 *
+	 * @datasource The datasource name to query against. When provided, `sql` is executed against it.
+	 * @sql The SQL to run against `datasource` to fetch rule rows.
+	 * @query An already-fetched query of rule rows. Used as-is when `datasource` is not provided.
+	 */
+	DBRuleSource function init( string datasource = "", string sql = "", query query = queryNew( "" ) ){
+		variables.datasource = arguments.datasource
+		variables.sql        = arguments.sql
+		variables.query      = arguments.query
+		return this
+	}
+
+	/**
+	 * @return An array of rule-definition structs
+	 */
+	array function load(){
+		var rows = len( variables.datasource )
+			? queryExecute( variables.sql, {}, { datasource : variables.datasource } )
+			: variables.query
+
+		var definitions = []
+
+		for( row in rows ){
+			var def = {
+				"name"     : row.name,
+				"priority" : ( row.keyExists( "priority" ) && len( row.priority ) ) ? row.priority : 0,
+				"when"     : ( row.keyExists( "when_json" ) && len( row.when_json ) ) ? deserializeJSON( row.when_json ) : null,
+				"then"     : ( row.keyExists( "then_json" ) && len( row.then_json ) ) ? deserializeJSON( row.then_json ) : [],
+				"stop"     : row.keyExists( "stop" ) && row.stop
+			}
+
+			if( row.keyExists( "except_json" ) && len( row.except_json ) ){
+				def[ "except" ] = deserializeJSON( row.except_json )
+			}
+
+			if( row.keyExists( "using_facts" ) && len( row.using_facts ) ){
+				def[ "using" ] = listToArray( row.using_facts )
+			}
+
+			definitions.append( def )
+		}
+
+		return definitions
+	}
+
+}

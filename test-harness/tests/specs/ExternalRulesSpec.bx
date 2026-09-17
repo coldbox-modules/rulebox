@@ -1,0 +1,231 @@
+/**
+* Tests for externalized rule definitions: registerAction()/registerPredicate() and loadRules()
+* against JSONRuleSource, YAMLRuleSource, and DBRuleSource.
+*/
+class extends="tests.resources.BaseSpec"{
+
+	function run( testResults, testBox ){
+		describe( "Externalized Rule Definitions", function(){
+
+			describe( "registerAction()", function(){
+
+				it( "accepts a closure", function(){
+					var ran = false;
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+						.registerAction( "flag", ( facts, result, params ) => { ran = true; } );
+
+					ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+						{ "name" : "r1", "then" : [ { "action" : "flag" } ] }
+					] ) );
+					ruleBook.run();
+
+					expect( ran ).toBeTrue();
+				} );
+
+				it( "accepts an object instance with an execute() method", function(){
+					var action = new tests.resources.StubRuleAction();
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+						.registerAction( "flag", action );
+
+					ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+						{ "name" : "r1", "then" : [ { "action" : "flag", "params" : { "x" : 1 } } ] }
+					] ) );
+					ruleBook.run();
+
+					expect( action.getCallCount() ).toBe( 1 );
+					expect( action.getLastParams() ).toBe( { "x" : 1 } );
+				} );
+
+				it( "accepts a WireBox mapping ID string, resolved eagerly at registration", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+						.registerAction( "flag", "StubWireboxAction" );
+
+					ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+						{ "name" : "r1", "then" : [ { "action" : "flag" } ] }
+					] ) );
+					ruleBook.run();
+
+					// It was truly resolved via WireBox into a real StubWireboxAction whose execute() ran
+					expect( ruleBook.getActionRegistry()[ "flag" ].getCallCount() ).toBe( 1 );
+				} );
+
+			} );
+
+			describe( "registerPredicate()", function(){
+
+				it( "accepts a closure", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+						.registerPredicate( "isEligible", ( facts, params ) => facts.creditScore >= params.threshold );
+
+					ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+						{
+							"name" : "r1",
+							"when" : { "predicate" : "isEligible", "params" : { "threshold" : 600 } },
+							"then" : []
+						}
+					] ) );
+
+					var report = ruleBook.dryRun( { "creditScore" : 650 } );
+					expect( report[ 1 ].wouldExecute ).toBeTrue();
+				} );
+
+				it( "accepts an object instance with a test() method", function(){
+					var predicate = new tests.resources.StubRulePredicate();
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+						.registerPredicate( "isEligible", predicate );
+
+					ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+						{
+							"name" : "r1",
+							"when" : { "predicate" : "isEligible", "params" : { "threshold" : 600 } },
+							"then" : []
+						}
+					] ) );
+
+					ruleBook.dryRun( { "creditScore" : 650 } );
+					expect( predicate.getCallCount() ).toBe( 1 );
+				} );
+
+				it( "accepts a WireBox mapping ID string, resolved eagerly at registration", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+						.registerPredicate( "isEligible", "StubWireboxAction" );
+
+					ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+						{
+							"name" : "r1",
+							"when" : { "predicate" : "isEligible", "params" : { "threshold" : 600 } },
+							"then" : []
+						}
+					] ) );
+					ruleBook.dryRun( { "creditScore" : 650 } );
+
+					// It was truly resolved via WireBox into a real StubWireboxAction whose test() ran
+					expect( ruleBook.getPredicateRegistry()[ "isEligible" ].getCallCount() ).toBe( 1 );
+				} );
+
+			} );
+
+			describe( "loadRules()", function(){
+
+				it( "throws when a `then` action references an unregistered name", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+
+					expect( function(){
+						ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+							{ "name" : "r1", "then" : [ { "action" : "doesNotExist" } ] }
+						] ) );
+					} ).toThrow( "RuleBox.UnregisteredActionException" );
+				} );
+
+				it( "throws when a `when` predicate references an unregistered name", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+
+					expect( function(){
+						ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+							{ "name" : "r1", "when" : { "predicate" : "doesNotExist" }, "then" : [] }
+						] ) );
+					} ).toThrow( "RuleBox.UnregisteredPredicateException" );
+				} );
+
+				it( "re-applies `using` before every then() action in the same rule", function(){
+					var seenFacts = [];
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+						.registerAction( "capture", ( facts, result, params ) => { seenFacts.append( facts ); } )
+						.given( "name", "luis" )
+						.given( "age", 40 );
+
+					ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+						{
+							"name" : "r1",
+							"using" : [ "name" ],
+							"then" : [ { "action" : "capture" }, { "action" : "capture" } ]
+						}
+					] ) );
+					ruleBook.run();
+
+					expect( seenFacts.len() ).toBe( 2 );
+					expect( seenFacts[ 1 ] ).toHaveKey( "name" );
+					expect( seenFacts[ 1 ] ).notToHaveKey( "age" );
+					expect( seenFacts[ 2 ] ).toHaveKey( "name" );
+					expect( seenFacts[ 2 ] ).notToHaveKey( "age" );
+				} );
+
+				it( "applies priority, stop, and the condition-tree grammar end-to-end from JSONRuleSource", function(){
+					var results = [];
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+						.registerAction( "flagHighRisk", ( facts, result, params ) => { results.append( "highRisk" ); } )
+						.registerAction( "approveApplicant", ( facts, result, params ) => { results.append( "approved:" & params.reason ); } );
+
+					ruleBook.loadRules( getInstance(
+						"JSONRuleSource@rulebox",
+						{ filePath : expandPath( "/tests/resources/rules/credit-rules.json" ) }
+					) );
+
+					ruleBook.run( { "creditScore" : 550 } );
+					expect( results ).toBe( [ "highRisk" ] );
+
+					results = [];
+					ruleBook.run( { "creditScore" : 700 } );
+					expect( results ).toBe( [ "approved:good credit" ] );
+				} );
+
+				it( "applies the same grammar end-to-end from YAMLRuleSource, when the optional YAML module is installed", function(){
+					var results = [];
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+						.registerAction( "flagHighRisk", ( facts, result, params ) => { results.append( "highRisk" ); } )
+						.registerAction( "approveApplicant", ( facts, result, params ) => { results.append( "approved:" & params.reason ); } );
+
+					try{
+						ruleBook.loadRules( getInstance(
+							"YAMLRuleSource@rulebox",
+							{ filePath : expandPath( "/tests/resources/rules/credit-rules.yaml" ) }
+						) );
+					} catch( any e ){
+						skip( "boxlang-yaml module is not installed: #e.message#" );
+						return;
+					}
+
+					ruleBook.run( { "creditScore" : 550 } );
+					expect( results ).toBe( [ "highRisk" ] );
+				} );
+
+				it( "applies the same grammar end-to-end from DBRuleSource given a pre-built query", function(){
+					var results = [];
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+						.registerAction( "flagHighRisk", ( facts, result, params ) => { results.append( "highRisk" ); } )
+						.registerAction( "approveApplicant", ( facts, result, params ) => { results.append( "approved:" & params.reason ); } );
+
+					var rows = queryNew( "name,priority,when_json,then_json,stop", "varchar,integer,varchar,varchar,bit" );
+					queryAddRow( rows, [
+						{
+							"name"      : "highRisk",
+							"priority"  : 10,
+							"when_json" : serializeJSON( { "lt" : [ "creditScore", 600 ] } ),
+							"then_json" : serializeJSON( [ { "action" : "flagHighRisk" } ] ),
+							"stop"      : true
+						},
+						{
+							"name"      : "approve",
+							"priority"  : 0,
+							"when_json" : serializeJSON( { "gte" : [ "creditScore", 600 ] } ),
+							"then_json" : serializeJSON( [ { "action" : "approveApplicant", "params" : { "reason" : "good credit" } } ] ),
+							"stop"      : false
+						}
+					] );
+
+					ruleBook.loadRules( getInstance( "DBRuleSource@rulebox", { query : rows } ) );
+
+					ruleBook.run( { "creditScore" : 550 } );
+					expect( results ).toBe( [ "highRisk" ] );
+
+					results = [];
+					ruleBook.run( { "creditScore" : 700 } );
+					expect( results ).toBe( [ "approved:good credit" ] );
+				} );
+
+			} );
+
+		} );
+	}
+
+}

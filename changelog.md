@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Rule.withPriority( priority )`: rules now execute in priority order (highest first) instead of strictly insertion order. Rules sharing the same priority (default `0`) execute in the order they were added
 - `dryRun()` on both `Rule` and `RuleBook`: preview which rules would fire for a given set of facts without invoking any `then()` consumers or mutating any state (facts, result, or the real audit trail). Unlike `run()`, `Rule.dryRun()` does not require the rule to be attached to a `RuleBook`
 - Test coverage for: re-running a `RuleBook`/`Rule` with the same facts, the `overwrite=false` behavior of `givenAll()`, a `then()` consumer throwing mid-chain, running a detached `Rule`, rule priority ordering, and dry-run/explain mode
+- Externalized Rule Definitions: `RuleBook.loadRules( source )` loads rule definitions from `JSONRuleSource`, `YAMLRuleSource`, `DBRuleSource`, or any object exposing `load()`, and turns each one into a real `Rule` - priority, `dryRun()`, and the audit trail all keep working unmodified. See the "Externalized Rule Definitions" guide
+- `RuleBook.registerAction()`/`registerPredicate()`: register named actions/predicates a loaded rule definition can reference by name, accepting a closure/lambda, an object instance (duck-typed `execute()`/`test()`), or a WireBox mapping ID string resolved eagerly at registration
+- A safe, declarative condition-tree grammar (`eq`/`neq`/`lt`/`lte`/`gt`/`gte`/`in`/`and`/`or`/`not` over dot-path facts) for a rule definition's `when`/`except`, with no `eval` - untrusted rule sources can't execute arbitrary code
+- `RuleAction`/`RulePredicate`: optional documented interfaces for a class-based action/predicate registered via `registerAction()`/`registerPredicate()`
 
 ### Fixed
 

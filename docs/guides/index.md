@@ -13,6 +13,7 @@ toc: false
 - [Facts & Results](facts-and-results.md) - working with facts and the `Result` object
 - [The Builder](the-builder.md) - à la carte rules and rule books
 - [Auditing Rules](auditing.md) - `RuleStatusMap` and rule states
+- [Externalized Rule Definitions](external-rules.md) - load rules from JSON, YAML, or a database
 - [Thread Safety](thread-safety.md) - why RuleBooks and Rules are transient
 - [Error Handling](error-handling.md) - exceptions and failure states
 - [A Complex Example](complex-example.md) - a full, real-world walkthrough

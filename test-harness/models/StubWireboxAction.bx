@@ -1,0 +1,24 @@
+/**
+ * A WireBox-mapped stub action, used to test RuleBook.registerAction()/registerPredicate() resolving a
+ * plain string as a WireBox mapping ID.
+ */
+class{
+
+	property name="callCount";
+
+	function init(){
+		variables.callCount = 0
+		return this
+	}
+
+	void function execute( struct facts, any result, struct params ){
+		variables.callCount++
+		arguments.result.setValue( "approved-by-wirebox" )
+	}
+
+	boolean function test( struct facts, struct params ){
+		variables.callCount++
+		return arguments.facts.creditScore >= arguments.params.threshold
+	}
+
+}
