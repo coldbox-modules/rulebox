@@ -185,25 +185,16 @@ class{
 	}
 
 	/**
-	 * Run the rules in this rule book against the registered facts or passed facts.
+	 * Run the rules in this rule book against the registered facts or passed facts
 	 *
-	 * The facts you pass here are merged, for this invocation only, on top of any sticky facts
-	 * previously set via `given()`/`givenAll()`. They are never written back into this RuleBook's
-	 * sticky fact store, so a RuleBook (and its rules) can safely be `run()` again and again with
-	 * different facts without leaking state from a prior run.
-	 *
-	 * @facts A structure of name-value pairs representing the facts for this run
-	 * @overwrite Overwrite sticky facts with same-named keys passed here, defaults to true
+	 * @facts A structure of name-value pairs representing the facts in this rulebook
+	 * @overwrite Overwrite the facts if they exist or not, defaults to true
 	 *
 	 * @return This RuleBook instance, to allow for chaining of calls
 	 */
 	RuleBook function run( struct facts={}, boolean overwrite=true ){
-		// Build an ephemeral working fact set for this invocation only: sticky facts + this call's facts.
-		// A shallow copy() is used on purpose: facts commonly hold arbitrary domain objects, and a deep
-		// duplicate() would recursively clone entire object graphs instead of just isolating the top-level map.
-		var workingFacts = variables.facts.copy()
-		structAppend( workingFacts, arguments.facts, arguments.overwrite )
-
+		// Process Facts
+		this.givenAll( argumentCollection=arguments )
 		// Reset the result for this run, just in case it was left over from a prior run
 		variables.result.ifPresent( variables.result.reset )
 
@@ -223,10 +214,10 @@ class{
 			variables.ruleStatusMap[ name ] = static.RULE_STATES.REGISTERED
 		} )
 
-		// run the chain with the working facts and passed result object
+		// run the chain with the given facts and passed result object
 		variables.headRule
 			.setResult( variables.result )
-			.run( workingFacts, arguments.overwrite )
+			.run( variables.facts )
 
 		return this
 	}

@@ -1,8 +1,8 @@
 # RuleBox: A Rule Engine For ColdBox Applications
 
-**RuleBox** is a modern intuitive and natural language rule engine based upon the great work of **RuleBook**: https://github.com/rulebook-rules/rulebook ported over to ColdFusion (CFML).
+**RuleBox** is a modern intuitive and natural language rule engine based upon the great work of **RuleBook**: https://github.com/rulebook-rules/rulebook ported over to BoxLang.
 
-Tired of classes filled with if/then/else statements? Need a nice abstraction that allows rules to be easily specified in a way that decouples them from each other? Want to write rules the same way that you write the rest of your code [in ColdFusion]? RuleBox is right for you!
+Tired of classes filled with if/then/else statements? Need a nice abstraction that allows rules to be easily specified in a way that decouples them from each other? Want to write rules the same way that you write the rest of your code in BoxLang? RuleBox is right for you!
 
 RuleBox allows you to write rules in an expressive and dynamic Domain Specific Language modeled closely after the Given-When-Then (https://martinfowler.com/bliki/GivenWhenThen.html) methodology.
 
@@ -32,7 +32,7 @@ The preferred approach is for you to create your own RuleBook that extends: `rul
 ### A HelloWorld Example
 
 ```js
-component extends="rulebox.models.RuleBook"{
+class extends="rulebox.models.RuleBook"{
 
 function defineRules(){
 		// Add a new rule to this rulebook
@@ -49,7 +49,7 @@ function defineRules(){
 As you can see from above, new rules are created by calling the `newRule()` method with an optional `name` that you can use to identify the rule you register. You can also define rules as a closure/lambda with slightly different syntax:
 
 ```js
-component extends="rulebox.models.RuleBook"{
+class extends="rulebox.models.RuleBook"{
 
 // Lambdas
 function defineRules(){
@@ -70,7 +70,7 @@ function defineRules(){
 ...or use 2 rules
 
 ```js
-component extends="rulebox.models.RuleBook"{
+class extends="rulebox.models.RuleBook"{
 
 	function defineRules(){
 		.addRule(
@@ -89,18 +89,6 @@ now, run it!
 
 ```js
 getInstance("HelloWorld").run()
-```
-
-If you are in Lucee 5+, you can also leverage lambdas, which can provide a nicer syntax for declaring rules:
-
-```js
-component extends="rulebox.models.RuleBook"{
-
-	function defineRules(){
-		.addRule( ( rule ) => rule.then( () => println( "Hello " ) ) )
-		.addRule( ( rule ) => rule.then( () => println( "World " ) ) )
-	}
-}
 ```
 
 Like mentioned before, I can also create a-la-carte rules and a rulebook by leveraging the `Builder`:
@@ -124,7 +112,7 @@ builder
 ### The Above Example Using Facts
 
 ```js
-component extends="rulebox.models.RuleBook"{
+class extends="rulebox.models.RuleBook"{
 
 	function defineRules(){
 		addRule(
@@ -144,7 +132,7 @@ component extends="rulebox.models.RuleBook"{
 ..or it could be a single rule
 
 ```js
-component extends="rulebox.models.RuleBook"{
+class extends="rulebox.models.RuleBook"{
 
 	function defineRules(){
 		addRule(
@@ -189,10 +177,10 @@ Basic `Result` methods are:
 -   `getValue()` - Get the value
 -   `isPresent()` - Has the value been set or is it `null`
 
-**Applicant.cfc**
+**Applicant.bx**
 
 ```js
-component accessors="true"{
+class{
 
 	property creditScore
 	property cashOnHand
@@ -208,15 +196,15 @@ component accessors="true"{
 }
 ```
 
-This `Applicant.cfc` tracks our home loan applicants, now let's build the rules for this home loan.
+This `Applicant.bx` tracks our home loan applicants, now let's build the rules for this home loan.
 
-**HomeLoanRateRules.cfc**
+**HomeLoanRateRuleBook.bx**
 
 ```js
 /**
  * This rule book determines rules for a home loan rate
  */
-component extends="rulebox.models.RuleBook"{
+class extends="rulebox.models.RuleBook"{
 
 	function defineRules(){
 		//credit score under 600 gets a 4x rate increase
@@ -286,13 +274,13 @@ describe("Home Loan Rate Rules", () => {
 })
 ```
 
-Let's even take this further and just use facts instead of the `Applicant.cfc`
+Let's even take this further and just use facts instead of the `Applicant.bx`
 
 ```js
 /**
  * This rule book determines rules for a home loan rate using facts
  */
-component extends="rulebox.models.RuleBook"{
+class extends="rulebox.models.RuleBook"{
 
 	function defineRules(){
 		//credit score under 600 gets a 4x rate increase
@@ -376,11 +364,11 @@ rulebook.getResult().ifPresent( ( value ) => println("The vaue produced is #valu
 
 ### Thread Safety
 
-RuleBooks are threadsafe since they hold state and are transient. This means that a single instance of a RuleBook can be run in different threads with different Facts without unexpected results. However, using the same exact fact structures across different threads may cause unexpected results. Facts represent data for individual invocations of a RuleBook, whereas RuleBooks represent reusable sets of Rules.
+`RuleBook` and `Rule` are transient (non-singleton) objects, and `given()`/`givenAll()` write facts directly onto the instance's own state. That means a single `RuleBook` instance is **not** safe to `run()` concurrently from multiple threads, or with different facts across separate calls - the facts and rule status audit trail accumulate on that instance across every `run()` call. Always request a fresh transient instance (e.g. `getInstance( "MyRuleBook" )`) per invocation, whether that invocation happens on a separate thread or simply at a separate point in time with different facts. A `RuleBook` instance is only safe to `run()` again with the exact same facts it already holds.
 
 ## The RuleBook Domain Specific Language Explained
 
-The RuleBox CFML Domain Specific Language (DSL) uses the `Given-When-Then` format, popularized by Behavior Driven Development (BDD) and associated testing frameworks (e.g. TestBox, Cucumber and Spock) and highly inspired by our Java Counterpart: **RuleBook** (https://github.com/rulebook-rules/rulebook). Many of the ideas that went into creating the RuleBox CFML DSL are also borrowed from BDD, including: **Sentences should be used to describe rules and Rules should be defined using a ubiquitous language that translates into the codebase.**
+The RuleBox BoxLang Domain Specific Language (DSL) uses the `Given-When-Then` format, popularized by Behavior Driven Development (BDD) and associated testing frameworks (e.g. TestBox, Cucumber and Spock) and highly inspired by our Java Counterpart: **RuleBook** (https://github.com/rulebook-rules/rulebook). Many of the ideas that went into creating the RuleBox BoxLang DSL are also borrowed from BDD, including: **Sentences should be used to describe rules and Rules should be defined using a ubiquitous language that translates into the codebase.**
 
 ### Given-When-Then: The Basis of the RuleBook Language
 

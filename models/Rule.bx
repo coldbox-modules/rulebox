@@ -145,13 +145,8 @@ class{
 	/**
 	 * This method evaluates the rule against the predicate set in the rule via the `when()` method.
 	 *
-	 * The facts you pass here are merged, for this invocation only, on top of any sticky facts
-	 * previously set via `given()`/`givenAll()` on this Rule. They are never written back into this
-	 * Rule's sticky fact store, so a Rule can safely be `run()` again and again with different facts
-	 * without leaking state from a prior run.
-	 *
-	 * @facts A structure of name-value pairs representing the facts for this run
-	 * @overwrite Overwrite sticky facts with same-named keys passed here, defaults to true
+	 * @facts A structure of name-value pairs representing the facts in this rulebook
+	 * @overwrite Overwrite the facts if they exist or not, defaults to true
 	 */
 	void function run( struct facts={}, boolean overwrite=true ){
 
@@ -163,20 +158,17 @@ class{
 			);
 		}
 
-		// Build an ephemeral working fact set for this invocation only: sticky facts + this call's facts.
-		// A shallow copy() is used on purpose: facts commonly hold arbitrary domain objects, and a deep
-		// duplicate() would recursively clone entire object graphs instead of just isolating the top-level map.
-		var workingFacts = variables.facts.copy()
-		structAppend( workingFacts, arguments.facts, arguments.overwrite )
+		// Do assignment of facts if passed
+		this.givenAll( argumentCollection=arguments )
 
 		try{
 
 			if(
 				// Check the predicate is TRUE
-				variables.predicate( workingFacts )
+				variables.predicate( variables.facts )
 				&&
 				// Check the except is FALSE
-				!variables.except( workingFacts )
+				!variables.except( variables.facts )
 			){
 
 				// iterate through the then() actions specified since our predicate passed
@@ -185,12 +177,12 @@ class{
 					if( stopConsumerChain ){ return }
 
 					// default to use all facts
-					var targetFacts = workingFacts
+					var targetFacts = variables.facts
 
 					// Check if we filtered the facts using the `using()` methods
 					if( variables.factsNameMap.keyExists( index ) ){
 						// filter out only the names we need
-						targetFacts = workingFacts.filter( function( key, value ){
+						targetFacts = variables.facts.filter( function( key, value ){
 							return( variables.factsNameMap[ index ].findNoCase( key ) )
 						} )
 					}
@@ -228,7 +220,7 @@ class{
 		// Continue down the rule rabbit hole and pass the facts along
 		variables.nextRule
 			?.setResult( variables.result )
-			?.run( workingFacts, arguments.overwrite );
+			?.run( argumentCollection=arguments );
 
 	}
 

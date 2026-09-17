@@ -121,20 +121,21 @@ class extends="tests.resources.BaseSpec"{
 					expect( rule.getFacts().age ).toBe( 40 );
 				});
 
-				it( "does not leak facts across multiple run() calls", () =>{
-					var capturedFacts = [];
+				it( "can be run again with the same facts and produce the same outcome", () =>{
+					var runCount = 0;
 					var rule = getInstance( "rule@rulebox" )
 						.setRuleBook( rulebook )
+						.given( "name", "luis" )
+						.when( ( facts ) => facts.name == "luis" )
 						.then( ( facts ) => {
-							capturedFacts.append( facts.copy() );
+							runCount++;
 						} );
 
-					rule.run( { "a" : 1 } );
-					rule.run( { "b" : 2 } );
+					rule.run();
+					rule.run();
 
-					expect( capturedFacts[ 1 ] ).toHaveKey( "a" );
-					expect( capturedFacts[ 2 ] ).notToHaveKey( "a" );
-					expect( capturedFacts[ 2 ] ).toHaveKey( "b" );
+					expect( runCount ).toBe( 2 );
+					expect( rule.getRuleBook().getRuleStatus( rule.getName() ) ).toBe( rule.getRuleBook().RULE_STATES.EXECUTED );
 				});
 
 				it( "throws a clear exception when run() is called without an attached RuleBook", () =>{

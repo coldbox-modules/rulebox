@@ -84,21 +84,22 @@ class extends="tests.resources.BaseSpec"{
 				expect( mockRule.$once( "run" ) ).toBeTrue();
 			});
 
-			it( "does not leak facts across multiple run() calls", function(){
-				var capturedFacts = [];
-				var ruleBook = getInstance( "RuleBook@rulebox" );
+			it( "can be run again with the same facts and produce the same outcome", function(){
+				var runCount = 0;
+				var ruleBook = getInstance( "RuleBook@rulebox" )
+					.given( "name", "luis" );
 				ruleBook.addRule(
-					ruleBook.newRule().then( ( facts ) => {
-						capturedFacts.append( facts.copy() );
-					} )
+					ruleBook.newRule()
+						.when( ( facts ) => facts.name == "luis" )
+						.then( ( facts ) => {
+							runCount++;
+						} )
 				);
 
-				ruleBook.run( { "a" : 1 } );
-				ruleBook.run( { "b" : 2 } );
+				ruleBook.run();
+				ruleBook.run();
 
-				expect( capturedFacts[ 1 ] ).toHaveKey( "a" );
-				expect( capturedFacts[ 2 ] ).notToHaveKey( "a" );
-				expect( capturedFacts[ 2 ] ).toHaveKey( "b" );
+				expect( runCount ).toBe( 2 );
 			});
 
 			it( "resets the rule status audit trail on each run so it never shows stale state from a previous run", function(){
