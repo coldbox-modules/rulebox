@@ -438,6 +438,25 @@ Using methods reduce the set of facts available to a `then()` method. Multiple `
 
 Stop methods break the rule chain. If a `stop()` method is specified when defining a rule, it means that if the `when()` condition evaluates to `true`, following the completion of the `then()` action(s), the rule chain should be broken and no more rules in that chain should be evaluated.
 
+### Rule Priority
+
+By default, rules execute in the order you `addRule()` them into a `RuleBook`. You can override that with `withPriority()`: rules with a higher priority execute earlier, regardless of when they were added. Rules that share the same priority (the default is `0`) fall back to the order they were added.
+
+```js
+addRule(
+	newRule( "must run first" )
+		.withPriority( 10 )
+		.then( ( facts ) => println( "I run first" ) )
+)
+
+addRule(
+	newRule( "runs after" )
+		.then( ( facts ) => println( "I run after, since my priority is the default 0" ) )
+)
+```
+
+The priority-ordered chain is re-derived every time you `addRule()`, so it doesn't matter whether you set a rule's priority before or after adding it, or whether you add a high-priority rule before or after lower-priority ones already in the `RuleBook`.
+
 ### Working With Facts
 
 Facts can be provided to Rules using the `given() and givenAll()` methods. In RuleBooks, facts are provided to Rules when the RuleBook is run. The facts available to Rules and RuleBooks are contained in a struct, so this means that the facts are passed by referece. The reason why facts exist is so that there is always a reference to the objects that Rules work with - even if say, an immutable object is replaced, the perception is that the Fact still exists and provides a named reference to a representative object.
