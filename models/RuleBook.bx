@@ -62,8 +62,9 @@ class{
 			NOT_AVAILABLE 	= "NOT_AVAILABLE",
 			EXECUTED      	= "EXECUTED",
 			SKIPPED       	= "SKIPPED",
-			REGISTERED 	  	= "NONE",
-			STOPPED 		= "STOPPED"
+			REGISTERED 	  	= "REGISTERED",
+			STOPPED 		= "STOPPED",
+			FAILED 			= "FAILED"
 		}
 	}
 
@@ -131,7 +132,7 @@ class{
 	 * @return This RuleBook instance, to allow for chaining of calls
 	 */
 	RuleBook function givenAll( required struct facts, boolean overwrite=true ){
-		structAppend( variables.facts, arguments.facts, true )
+		structAppend( variables.facts, arguments.facts, arguments.overwrite )
 		return this
 	}
 
@@ -184,17 +185,24 @@ class{
 	}
 
 	/**
-	 * Run the rules in this rule book against the registered facts or passed facts
+	 * Run the rules in this rule book against the registered facts or passed facts.
 	 *
-	 * @facts A structure of name-value pairs representing the facts in this rulebook
-	 * @overwrite Overwrite the facts if they exist or not, defauls to true
+	 * The facts you pass here are merged, for this invocation only, on top of any sticky facts
+	 * previously set via `given()`/`givenAll()`. They are never written back into this RuleBook's
+	 * sticky fact store, so a RuleBook (and its rules) can safely be `run()` again and again with
+	 * different facts without leaking state from a prior run.
+	 *
+	 * @facts A structure of name-value pairs representing the facts for this run
+	 * @overwrite Overwrite sticky facts with same-named keys passed here, defaults to true
 	 *
 	 * @return This RuleBook instance, to allow for chaining of calls
 	 */
 	RuleBook function run( struct facts={}, boolean overwrite=true ){
-		// Process Facts
-		this.givenAll( argumentCollection=arguments )
-		// Result Result just in case
+		// Build an ephemeral working fact set for this invocation only: sticky facts + this call's facts
+		var workingFacts = duplicate( variables.facts )
+		structAppend( workingFacts, arguments.facts, arguments.overwrite )
+
+		// Reset the result for this run, just in case it was left over from a prior run
 		variables.result.ifPresent( variables.result.reset )
 
 		// Verify if rules are loaded? If not, load them via the `defineRules()` call.
@@ -208,10 +216,15 @@ class{
 			}
 		}
 
-		// run the chain with the given facts and passed result object
+		// Reset the audit trail so it reflects only this invocation, not a prior one
+		variables.ruleStatusMap.keyArray().each( ( name ) => {
+			variables.ruleStatusMap[ name ] = static.RULE_STATES.REGISTERED
+		} )
+
+		// run the chain with the working facts and passed result object
 		variables.headRule
 			.setResult( variables.result )
-			.run( variables.facts )
+			.run( workingFacts, arguments.overwrite )
 
 		return this
 	}
@@ -224,7 +237,7 @@ class{
 	}
 
 	/**
-	 * Get the status of a ranned rule, if the rule doesn't exist it will return a NOT_AVAILABLE status
+	 * Get the status of a run rule, if the rule doesn't exist it will return a NOT_AVAILABLE status
 	 *
 	 * @name The name of the rule
 	 */

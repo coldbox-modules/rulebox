@@ -84,6 +84,65 @@ class extends="tests.resources.BaseSpec"{
 				expect( mockRule.$once( "run" ) ).toBeTrue();
 			});
 
+			it( "does not leak facts across multiple run() calls", function(){
+				var capturedFacts = [];
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+				ruleBook.addRule(
+					ruleBook.newRule().then( ( facts ) => {
+						capturedFacts.append( duplicate( facts ) );
+					} )
+				);
+
+				ruleBook.run( { "a" : 1 } );
+				ruleBook.run( { "b" : 2 } );
+
+				expect( capturedFacts[ 1 ] ).toHaveKey( "a" );
+				expect( capturedFacts[ 2 ] ).notToHaveKey( "a" );
+				expect( capturedFacts[ 2 ] ).toHaveKey( "b" );
+			});
+
+			it( "resets the rule status audit trail on each run so it never shows stale state from a previous run", function(){
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+				var rule1 = ruleBook.newRule( "maybeStop" )
+					.when( ( facts ) => facts.stop )
+					.then( ( facts ) => {} )
+					.stop();
+				var rule2 = ruleBook.newRule( "second" )
+					.then( ( facts ) => {} );
+
+				ruleBook.addRule( rule1 ).addRule( rule2 );
+
+				// First run: rule1's condition is false, so it does not stop the chain and rule2 executes
+				ruleBook.run( { "stop" : false } );
+				expect( ruleBook.getRuleStatus( "second" ) ).toBe( ruleBook.RULE_STATES.EXECUTED );
+
+				// Second run: rule1's condition is true, so it stops the chain and rule2 is never reached
+				ruleBook.run( { "stop" : true } );
+				expect( ruleBook.getRuleStatus( "second" ) ).toBe( ruleBook.RULE_STATES.REGISTERED );
+			});
+
+			it( "records a FAILED status and rethrows when a then() consumer throws", function(){
+				var downstreamRan = false;
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+				var badRule = ruleBook.newRule( "boom" )
+					.then( ( facts ) => {
+						throw( type = "TestBoom", message = "Kaboom" );
+					} );
+				var nextRule = ruleBook.newRule( "afterBoom" )
+					.then( ( facts ) => {
+						downstreamRan = true;
+					} );
+
+				ruleBook.addRule( badRule ).addRule( nextRule );
+
+				expect( function(){
+					ruleBook.run();
+				} ).toThrow();
+
+				expect( ruleBook.getRuleStatus( "boom" ) ).toBe( ruleBook.RULE_STATES.FAILED );
+				expect( downstreamRan ).toBeFalse();
+			});
+
 		});
 	}
 

@@ -360,7 +360,7 @@ describe("Home Loan Rate Rules", () => {
 
 #### `Result` Object
 
-From the code above you might have noticed some nice conveniene methods in the `Result` object. Here are some more:
+From the code above you might have noticed some nice convenience methods in the `Result` object. Here are some more:
 
 -   `ifPresent( closure )` - You pass a closure that receives the value and it is only called if the value is **NOT** null
 -   `orElse( value )` - You can get a value or a default value if the value is not set.
@@ -388,7 +388,7 @@ Much like the Given-When-Then language for defining tests that was popularized b
 
 -   **Given** - some Fact(s)
 -   **When** - a condition evaluates to true
--   **Except** - a condition that evalutes to false
+-   **Except** - a condition that evaluates to false
 -   **Then** - an action is triggered
 
 This is great, but we have determined that the `when()` operations can also get out of hand, so we introduced another rule to the language: `except()`. So you can say: `when().except().then()`. This can be a handy exception function that even though the when condition evaulates to `true`, if you chain an `except()` to it that must evaluate to `false`.
@@ -469,7 +469,7 @@ addRule(newRule("ruleName"))
 addRule(newRule().setName("ruleName"))
 ```
 
-Each Auditable Rule added to a RuleBook has its state recorded in the RuleBook. At the time when rules are registered in the RuleBook, their Rule Status is `NONE`. After the RuleBook is run, their Rule Status is changed to `SKIPPED` for all rules that fail or whose conditions do not evaluate to true. For rules whose conditions do evaluate to true and whose `then()` action completes successfully, their RuleStatus is changed to `EXECUTED`.
+Each Auditable Rule added to a RuleBook has its state recorded in the RuleBook. At the time when rules are registered in the RuleBook, their Rule Status is `REGISTERED`. After the RuleBook is run, their Rule Status is changed to `SKIPPED` for all rules whose conditions do not evaluate to true. For rules whose conditions do evaluate to true and whose `then()` action completes successfully, their Rule Status is changed to `EXECUTED`. If a `then()` action throws an exception, the Rule Status is changed to `FAILED` and the exception is re-thrown to the caller.
 
 Retrieving the status of a rule can be done as follows:
 

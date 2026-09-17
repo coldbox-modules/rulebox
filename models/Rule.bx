@@ -138,75 +138,95 @@ class{
 	 * @return The rule instance
 	 */
 	Rule function givenAll( required struct facts, boolean overwrite=true ){
-		structAppend( variables.facts, arguments.facts, true )
+		structAppend( variables.facts, arguments.facts, arguments.overwrite )
 		return this
 	}
 
 	/**
 	 * This method evaluates the rule against the predicate set in the rule via the `when()` method.
 	 *
-	 * @facts A structure of name-value pairs representing the facts in this rulebook
-	 * @overwrite Overwrite the facts if they exist or not, defauls to true
+	 * The facts you pass here are merged, for this invocation only, on top of any sticky facts
+	 * previously set via `given()`/`givenAll()` on this Rule. They are never written back into this
+	 * Rule's sticky fact store, so a Rule can safely be `run()` again and again with different facts
+	 * without leaking state from a prior run.
+	 *
+	 * @facts A structure of name-value pairs representing the facts for this run
+	 * @overwrite Overwrite sticky facts with same-named keys passed here, defaults to true
 	 */
 	void function run( struct facts={}, boolean overwrite=true ){
 
-		// Do assignment of facts if passed
-		this.givenAll( argumentCollection=arguments )
+		if( isNull( variables.ruleBook ) ){
+			throw(
+				type    = "RuleBox.RuleNotAttachedException",
+				message = "Cannot run a Rule (#variables.name#) that has not been attached to a RuleBook.",
+				detail  = "Add this Rule to a RuleBook via addRule() before calling run() on it directly."
+			);
+		}
 
-		if(
-			// Check the predicate is TRUE
-			variables.predicate( variables.facts )
-			&&
-			// Check the except is FALSE
-			!variables.except( variables.facts )
-		){
+		// Build an ephemeral working fact set for this invocation only: sticky facts + this call's facts
+		var workingFacts = duplicate( variables.facts )
+		structAppend( workingFacts, arguments.facts, arguments.overwrite )
 
-			// iterate through the then() actions specified since our predicate passed
-			var stopConsumerChain = false
-			variables.consumers.each( function( action, index ){
-				if( stopConsumerChain ){ return }
+		try{
 
-				// default to use all facts
-				var targetFacts = variables.facts
+			if(
+				// Check the predicate is TRUE
+				variables.predicate( workingFacts )
+				&&
+				// Check the except is FALSE
+				!variables.except( workingFacts )
+			){
 
-				// Check if we filtered the facts using the `using()` methods
-				if( variables.factsNameMap.keyExists( index ) ){
-					// filter out only the names we need
-					targetFacts = variables.facts.filter( function( key, value ){
-						return( variables.factsNameMap[ index ].findNoCase( key ) )
-					} )
+				// iterate through the then() actions specified since our predicate passed
+				var stopConsumerChain = false
+				variables.consumers.each( function( action, index ){
+					if( stopConsumerChain ){ return }
+
+					// default to use all facts
+					var targetFacts = workingFacts
+
+					// Check if we filtered the facts using the `using()` methods
+					if( variables.factsNameMap.keyExists( index ) ){
+						// filter out only the names we need
+						targetFacts = workingFacts.filter( function( key, value ){
+							return( variables.factsNameMap[ index ].findNoCase( key ) )
+						} )
+					}
+
+					// Invoke the consumer action with facts and result object
+					var stopConsumers = action( targetFacts, variables.result )
+
+					if( !isNull( stopConsumers ) && stopConsumers ){
+						stopConsumerChain = true
+					}
+
+				} ) // End iteration of consumer actions
+
+				// Register in the status Map
+				variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.EXECUTED )
+
+				// if stop() was invoked, stop the rule chain after then is finished executing
+				if( variables.currentState == static.STATES.STOP ){
+					variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.STOPPED )
+					return
 				}
 
-				// Invoke the consumer action with facts and result object
-				var stopConsumers = action( targetFacts, variables.result )
-
-				if( !isNull( stopConsumers ) && stopConsumers ){
-					stopConsumerChain = true
-				}
-
-			} ) // End iteration of consumer actions
-
-			// Register in the status Map
-			variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.EXECUTED )
-
-			// if stop() was invoked, stop the rule chain after then is finished executing
-			if( variables.currentState == static.STATES.STOP ){
-				variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.STOPPED )
-				return
+			} // end if predicate was true
+			else {
+				logger.debug( "Predicate was false, skipping rule (#variables.name#)" );
+				variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.SKIPPED );
 			}
 
-		} // end if predicate was true
-		else {
-			logger.debug( "Predicate was false, skipping rule (#variables.name#)" );
-			variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.SKIPPED );
+		} catch( any e ){
+			// Record the failure in the audit trail and let the caller decide what to do with it
+			variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.FAILED )
+			rethrow;
 		}
 
 		// Continue down the rule rabbit hole and pass the facts along
-		if( !isNull( variables.nextRule ) ){
-			variables.nextRule
-				.setResult( variables.result )
-				.run( argumentCollection=arguments );
-		}
+		variables.nextRule
+			?.setResult( variables.result )
+			?.run( workingFacts, arguments.overwrite );
 
 	}
 
@@ -279,7 +299,7 @@ class{
 	}
 
 	/**
-	 * Using methods reduce the set of facts available to a `then()` method. Multiple using() methods can also be chained together if so desired. The aggregate of the facts with the names specified in all using() methods immediately preceeding a then() method will be made available to that then() method
+	 * Using methods reduce the set of facts available to a `then()` method. Multiple using() methods can also be chained together if so desired. The aggregate of the facts with the names specified in all using() methods immediately preceding a then() method will be made available to that then() method
 	 *
 	 * @factNames An array of names or a string list of fact names to store for the next `then()` execution.
 	 *

@@ -56,7 +56,7 @@ component {
 	 *
 	 * @projectName The project name used for resources and slugs
 	 * @version The version you are building
-	 * @buldID The build identifier
+	 * @buildID The build identifier
 	 * @branch The branch you are building
 	 */
 	function run(
@@ -117,7 +117,7 @@ component {
 	 *
 	 * @projectName The project name used for resources and slugs
 	 * @version The version you are building
-	 * @buldID The build identifier
+	 * @buildID The build identifier
 	 * @branch The branch you are building
 	 */
 	function buildSource(

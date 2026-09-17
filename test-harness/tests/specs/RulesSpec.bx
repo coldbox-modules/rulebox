@@ -112,6 +112,38 @@ class extends="tests.resources.BaseSpec"{
 					expect( ruleResult ).toBeTrue();
 				});
 
+				it( "can preserve existing facts when givenAll() is called with overwrite=false", () =>{
+					var rule = getInstance( "rule@rulebox" )
+						.given( "name", "luis" )
+						.givenAll( { "name" : "eric", "age" : 40 }, false );
+
+					expect( rule.getFacts().name ).toBe( "luis" );
+					expect( rule.getFacts().age ).toBe( 40 );
+				});
+
+				it( "does not leak facts across multiple run() calls", () =>{
+					var capturedFacts = [];
+					var rule = getInstance( "rule@rulebox" )
+						.setRuleBook( rulebook )
+						.then( ( facts ) => {
+							capturedFacts.append( duplicate( facts ) );
+						} );
+
+					rule.run( { "a" : 1 } );
+					rule.run( { "b" : 2 } );
+
+					expect( capturedFacts[ 1 ] ).toHaveKey( "a" );
+					expect( capturedFacts[ 2 ] ).notToHaveKey( "a" );
+					expect( capturedFacts[ 2 ] ).toHaveKey( "b" );
+				});
+
+				it( "throws a clear exception when run() is called without an attached RuleBook", () =>{
+					var rule = getInstance( "rule@rulebox" );
+					expect( function(){
+						rule.run();
+					} ).toThrow( "RuleBox.RuleNotAttachedException" );
+				});
+
 			});
 		}
 
