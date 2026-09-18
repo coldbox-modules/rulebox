@@ -8,8 +8,6 @@
  */
 class{
 
-	this.layout = "Visualizer"
-
 	@inject( "coldbox:moduleSettings:rulebox" )
 	property name="settings" type="struct";
 
@@ -21,6 +19,8 @@ class{
 
 	@inject( "RuleEventBus@rulebox" )
 	property name="eventBus";
+
+	this.layout = "Visualizer"
 
 	/**
 	 * Runs before every action in this handler: 404s the whole visualizer while it's disabled, and

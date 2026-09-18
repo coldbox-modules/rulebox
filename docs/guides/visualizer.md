@@ -85,8 +85,7 @@ survive a restart. It requires:
 this.datasources = {
 	rulebox_visualizer: {
 		driver: "sqlite",
-		protocol: "directory",
-		database: "./.database/rulebox_visualizer"
+		database: "./.database/rulebox_visualizer.db"
 	}
 }
 ```
