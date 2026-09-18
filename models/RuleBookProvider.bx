@@ -1,0 +1,31 @@
+/**
+ * A small provider for a named, config-declared RuleBook - get() returns a fresh instance every
+ * call. Handed out by the "rulebook:{name}" WireBox DSL so a rulebook can be safely injected even
+ * into a singleton: call .get() at the point of use, not once at injection time, and you always
+ * get a RuleBook nobody else is concurrently mutating facts on.
+ */
+class{
+
+	property name="name" type="string";
+	property name="registry";
+
+	/**
+	 * Constructor
+	 *
+	 * @name The declared rulebook name this provider builds
+	 * @registry The RuleBookRegistry to build it from
+	 */
+	RuleBookProvider function init( required string name, required any registry ){
+		variables.name     = arguments.name
+		variables.registry = arguments.registry
+		return this
+	}
+
+	/**
+	 * @return A fresh, fully-configured RuleBook instance
+	 */
+	RuleBook function get(){
+		return variables.registry.getRuleBook( variables.name )
+	}
+
+}

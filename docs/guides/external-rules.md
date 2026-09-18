@@ -218,3 +218,77 @@ ruleBook.reloadRules( new rulebox.models.JSONRuleSource( "/path/to/rules.json" )
 trail) followed by `loadRules( source )`. Registries
 (`registerAction()`/`registerPredicate()`) and [rule metrics](auditing.md#rule-metrics)
 are untouched - `clearRules()` only touches rules.
+
+## Declaring rulebooks in config
+
+For apps with several named rulebooks, `RuleBookRegistry` builds them from
+config instead of hand-writing `registerAction()`/`loadRules()` calls for
+each one. Declare them under `moduleSettings.rulebox.rulebooks` in your
+app's ColdBox config:
+
+```js
+moduleSettings = {
+	rulebox = {
+		rulebooks = {
+			// A string is a rule-source file path - JSON/YAML inferred from the extension.
+			// Relative paths resolve against your app root, no expandPath() needed.
+			"credit" : "config/rules/creditscore.yaml",
+
+			// An array is inline rule definitions - no file at all.
+			"promo" : [
+				{ "name": "blackFriday", "then": [ { "action": "applyDiscount" } ] }
+			],
+
+			// A struct is the full descriptor: source (any of the above, or a DB descriptor),
+			// plus the actions/predicates this rulebook's definitions reference.
+			"shipping" : {
+				"source"     : "config/rules/shipping.json",
+				"actions"    : { "applyDiscount" : "PromoActions@myModule" },
+				"predicates" : { "isEligible" : "PromoPredicates@myModule" }
+			},
+
+			// A DB source needs the struct form, since it can't be expressed as a path or array
+			"fraud" : {
+				"source" : { "type" : "db", "datasource" : "myApp", "sql" : "SELECT * FROM rules WHERE ruleset = 'fraud'" }
+			}
+		}
+	}
+}
+```
+
+`actions`/`predicates` values here can only be WireBox mapping ID strings
+(a closure can't be written in config) - resolved eagerly, same as calling
+`registerAction()`/`registerPredicate()` yourself. If you need a closure
+for a config-declared rulebook, grab it via the registry or DSL below and
+register it yourself before use.
+
+Any `*.json`/`*.yaml` file dropped in the convention folder (default
+`config/rulebox`, override via `conventionPath`) is auto-discovered too -
+the declared name is the filename without its extension. An explicit
+config entry of the same name layers its `actions`/`predicates` on top of
+that discovered file.
+
+### Retrieving a declared rulebook
+
+```js
+// From a model, handler, or anywhere with WireBox access
+getInstance( "RuleBookRegistry@rulebox" ).getRuleBook( "credit" )
+
+// The ruleBook() application helper mixin - available in handlers/views/layouts
+ruleBook( "credit" )
+
+// WireBox injection DSL
+property name="creditRules" inject="rulebook:credit";
+```
+
+Every one of these builds and returns a **fresh** `RuleBook` instance -
+`RuleBookRegistry` never caches a built instance, only the recipe to
+build one, so it stays safe to use from a singleton or across concurrent
+requests. The `inject="rulebook:credit"` form actually injects a small
+provider (`.get()` returns a fresh instance) rather than a live `RuleBook`
+directly - so it's safe to inject even into a singleton, since nothing is
+built until you call `.get()` at the point of use. `inject="rulebook"`
+(no name) injects the `RuleBookRegistry` singleton itself.
+
+Call `getInstance( "RuleBookRegistry@rulebox" ).reload()` to re-scan your
+config and convention folder without restarting.

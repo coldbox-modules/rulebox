@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RuleBook.clearRules()`/`reloadRules( source )`: manually re-read an external rule source (a JSON/YAML file, a DB table) without restarting. RuleBox never watches a source for changes on its own - you decide when to reload. Registries and rule metrics are untouched
 - `Rule.active( from, until )`: restrict a rule to a time window; outside of it the rule is skipped exactly like a failed `when()`. Either bound is optional. Externalized rule definitions can set this via `activeFrom`/`activeUntil` (or `active_from`/`active_until` columns for `DBRuleSource`)
 - `RuleBook.getRuleMetrics( name )`/`getRuleMetricsMap()`: dashboard-ready, JSON-serializable per-rule execution metrics (evaluation counts by state, min/max/total/last duration, first/last run timestamps), accumulated across every `run()` call on the instance rather than resetting each run. `resetMetrics()` clears them
+- `RuleBookRegistry@rulebox`: build named rulebooks from `moduleSettings.rulebox.rulebooks` config (a file path, inline rule definitions, or a full descriptor with actions/predicates/a DB source) and/or auto-discovered `*.json`/`*.yaml` files in a convention folder, instead of hand-wiring `registerAction()`/`loadRules()` per rulebook. `getRuleBook( name )` always returns a fresh instance - never a shared/cached one - so it's safe to use from a singleton or across concurrent requests. `reload()` re-scans config/the convention folder
+- `InlineRuleSource`: a `RuleSource` backed by a literal array of rule-definition structs, no file or database
+- A `ruleBook( name )` application helper mixin, available in handlers/views/layouts
+- A `rulebook`/`rulebook:{name}` WireBox injection DSL: `rulebook` injects the `RuleBookRegistry` singleton, `rulebook:{name}` injects a provider (`.get()`) for that declared rulebook so it stays safe to inject even into a singleton
 
 ### Fixed
 

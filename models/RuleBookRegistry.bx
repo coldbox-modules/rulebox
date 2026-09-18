@@ -1,0 +1,188 @@
+/**
+ * Builds and hands out config-declared RuleBooks by name, so you don't have to hand-wire
+ * registerAction()/registerPredicate()/loadRules() yourself for every rulebook your app defines.
+ *
+ * Rulebooks are declared in moduleSettings.rulebox.rulebooks, and/or auto-discovered from
+ * *.json/*.yaml files dropped in the convention folder (default "config/rulebox"). See the
+ * "Externalized Rule Definitions" guide for the full settings shape.
+ *
+ * getRuleBook() always builds and returns a FRESH RuleBook instance - never a shared/cached one -
+ * so this registry stays safe to use from a singleton or across concurrent requests: nothing here
+ * holds facts or run-time state, only the recipe to build one.
+ */
+class singleton{
+
+	@inject( "wirebox" )
+	property name="wirebox";
+
+	@inject( "coldbox:moduleSettings:rulebox" )
+	property name="settings" type="struct";
+
+	/**
+	 * Normalized rulebook definitions, keyed by declared name: { source, actions, predicates }
+	 */
+	property name="definitions" type="struct";
+
+	function onDIComplete(){
+		reload()
+	}
+
+	/**
+	 * Re-scan moduleSettings.rulebox.rulebooks and the convention folder, replacing the current
+	 * set of known rulebook definitions. Call this to pick up config/file changes without
+	 * restarting - e.g. from a scheduled task or an admin action.
+	 *
+	 * @return This registry instance, to allow for chaining of calls
+	 */
+	RuleBookRegistry function reload(){
+		var discovered = discoverConventionRuleBooks()
+
+		var configuredRuleBooks = variables.settings.keyExists( "rulebooks" ) ? variables.settings.rulebooks : {}
+		for( var name in configuredRuleBooks ){
+			discovered[ name ] = normalizeDefinition( configuredRuleBooks[ name ], discovered.keyExists( name ) ? discovered[ name ] : {} )
+		}
+
+		variables.definitions = discovered
+		return this
+	}
+
+	/**
+	 * Build and return a fresh, fully-configured RuleBook for the given declared name - registries
+	 * populated, rules loaded. A new instance every call: safe to call from anywhere, concurrently.
+	 *
+	 * @name The rulebook's declared name
+	 *
+	 * @return A ready-to-use RuleBook instance
+	 */
+	RuleBook function getRuleBook( required string name ){
+		if( !variables.definitions.keyExists( arguments.name ) ){
+			throw(
+				type    = "RuleBox.UnknownRuleBookException",
+				message = "No rulebook is declared under the name '#arguments.name#'.",
+				detail  = "Declared names: #variables.definitions.keyArray().toList()#. Check moduleSettings.rulebox.rulebooks or your convention folder."
+			)
+		}
+
+		var def      = variables.definitions[ arguments.name ]
+		var ruleBook = wirebox.getInstance( name: "RuleBook@rulebox", initArguments: { name: arguments.name } )
+
+		for( var actionName in def.actions ){
+			ruleBook.registerAction( actionName, def.actions[ actionName ] )
+		}
+		for( var predicateName in def.predicates ){
+			ruleBook.registerPredicate( predicateName, def.predicates[ predicateName ] )
+		}
+
+		ruleBook.loadRules( resolveSource( def.source ) )
+
+		return ruleBook
+	}
+
+	/**
+	 * Auto-discover *.json/*.yaml files in the convention folder. The declared name is the
+	 * filename without its extension.
+	 */
+	private struct function discoverConventionRuleBooks(){
+		var found          = {}
+		var conventionPath = variables.settings.keyExists( "conventionPath" ) ? variables.settings.conventionPath : "config/rulebox"
+		var expandedPath   = toAppPath( conventionPath )
+
+		if( !directoryExists( expandedPath ) ){
+			return found
+		}
+
+		for( var filePath in directoryList( expandedPath, false, "path", "*.json" ) ){
+			found[ getFileFromPath( filePath ).reReplaceNoCase( "\.json$", "" ) ] = {
+				source     : filePath,
+				actions    : {},
+				predicates : {}
+			}
+		}
+		for( var filePath in directoryList( expandedPath, false, "path", "*.yaml" ) ){
+			found[ getFileFromPath( filePath ).reReplaceNoCase( "\.yaml$", "" ) ] = {
+				source     : filePath,
+				actions    : {},
+				predicates : {}
+			}
+		}
+
+		return found
+	}
+
+	/**
+	 * Merge a moduleSettings.rulebox.rulebooks[ name ] entry onto whatever the convention scan
+	 * already found for that name (an explicit entry can override/add a source and layers on
+	 * actions/predicates, which convention discovery alone can never supply).
+	 *
+	 * The entry can be:
+	 * - a string:  a rule-source file path (JSON/YAML inferred from extension)
+	 * - an array:  inline rule-definition structs
+	 * - a struct:  { source: <string|array|{type:"db",...}>, actions: {...}, predicates: {...} }
+	 */
+	private struct function normalizeDefinition( required any entry, required struct existing ){
+		var normalized = {
+			source     : existing.keyExists( "source" ) ? existing.source : "",
+			actions    : existing.keyExists( "actions" ) ? existing.actions : {},
+			predicates : existing.keyExists( "predicates" ) ? existing.predicates : {}
+		}
+
+		if( isStruct( arguments.entry ) ){
+			if( arguments.entry.keyExists( "source" ) ){
+				normalized.source = arguments.entry.source
+			}
+			if( arguments.entry.keyExists( "actions" ) ){
+				normalized.actions = arguments.entry.actions
+			}
+			if( arguments.entry.keyExists( "predicates" ) ){
+				normalized.predicates = arguments.entry.predicates
+			}
+		} else {
+			// A bare string (path) or array (inline definitions) IS the source
+			normalized.source = arguments.entry
+		}
+
+		return normalized
+	}
+
+	/**
+	 * Resolve a definition's `source` value into a real rule source object.
+	 */
+	private any function resolveSource( required any source ){
+		if( isSimpleValue( arguments.source ) ){
+			var path = toAppPath( arguments.source )
+			if( path.reFindNoCase( "\.ya?ml$" ) ){
+				return wirebox.getInstance( name: "YAMLRuleSource@rulebox", initArguments: { filePath: path } )
+			}
+			return wirebox.getInstance( name: "JSONRuleSource@rulebox", initArguments: { filePath: path } )
+		}
+
+		if( isArray( arguments.source ) ){
+			return wirebox.getInstance( name: "InlineRuleSource@rulebox", initArguments: { definitions: arguments.source } )
+		}
+
+		if( isStruct( arguments.source ) && arguments.source.keyExists( "type" ) && arguments.source.type == "db" ){
+			var dbArgs = {}
+			for( var key in arguments.source ){
+				if( key != "type" ){
+					dbArgs[ key ] = arguments.source[ key ]
+				}
+			}
+			return wirebox.getInstance( name: "DBRuleSource@rulebox", initArguments: dbArgs )
+		}
+
+		throw(
+			type    = "RuleBox.InvalidRuleBookSourceException",
+			message = "Could not resolve a rulebook source.",
+			detail  = "Received: #jsonSerialize( arguments.source )#"
+		)
+	}
+
+	/**
+	 * Resolve a relative app path (e.g. "config/rulebox" or "config/rules/credit.json") to an
+	 * absolute one, so config authors never need to call expandPath() themselves.
+	 */
+	private string function toAppPath( required string relativePath ){
+		return expandPath( "/" & arguments.relativePath.reReplace( "^/+", "" ) )
+	}
+
+}

@@ -1,0 +1,162 @@
+/**
+* Tests for the config-driven RuleBookRegistry, its WireBox DSL, and the ruleBook() mixin.
+*/
+class extends="tests.resources.BaseSpec"{
+
+	function run( testResults, testBox ){
+		describe( "RuleBookRegistry", function(){
+
+			/**
+			 * A standalone registry instance, bypassing the shared WireBox singleton entirely, so
+			 * these tests can freely set custom settings without leaking state into other specs.
+			 */
+			function newRegistry( required struct settings ){
+				var registry = new rulebox.models.RuleBookRegistry();
+				registry.setWirebox( getWireBox() );
+				registry.setSettings( arguments.settings );
+				registry.reload();
+				return registry;
+			}
+
+			it( "throws RuleBox.UnknownRuleBookException for an undeclared name", function(){
+				var registry = newRegistry( { rulebooks : {} } );
+				expect( function(){
+					registry.getRuleBook( "doesNotExist" );
+				} ).toThrow( "RuleBox.UnknownRuleBookException" );
+			} );
+
+			it( "resolves a string entry as a rule-source file path", function(){
+				var registry = newRegistry( {
+					rulebooks : { "credit" : "tests/resources/rules/credit-rules.json" }
+				} );
+
+				var ruleBook = registry.getRuleBook( "credit" );
+
+				expect( ruleBook.getName() ).toBe( "credit" );
+				expect( ruleBook.hasRules() ).toBeTrue();
+			} );
+
+			it( "resolves an array entry as inline rule definitions", function(){
+				var registry = newRegistry( {
+					rulebooks : { "simple" : [ { "name" : "r1" } ] }
+				} );
+
+				var ruleBook = registry.getRuleBook( "simple" );
+
+				expect( ruleBook.hasRules() ).toBeTrue();
+				expect( ruleBook.getRuleStatus( "r1" ) ).toBe( ruleBook.RULE_STATES.REGISTERED );
+			} );
+
+			it( "resolves a struct descriptor's source/actions/predicates", function(){
+				var ranAction = false;
+				var registry  = newRegistry( {
+					rulebooks : {
+						"withActions" : {
+							"source"  : [ { "name" : "r1", "then" : [ { "action" : "flag" } ] } ],
+							"actions" : { "flag" : ( facts, result, params ) => { ranAction = true; } }
+						}
+					}
+				} );
+
+				var ruleBook = registry.getRuleBook( "withActions" );
+				ruleBook.run();
+
+				expect( ranAction ).toBeTrue();
+			} );
+
+			it( "resolves a struct descriptor's db source given a pre-built query", function(){
+				var rows = queryNew( "name", "varchar" );
+				queryAddRow( rows, [ { "name" : "dbRule" } ] );
+
+				var registry = newRegistry( {
+					rulebooks : {
+						"dbBook" : { "source" : { "type" : "db", "query" : rows } }
+					}
+				} );
+
+				var ruleBook = registry.getRuleBook( "dbBook" );
+
+				expect( ruleBook.hasRules() ).toBeTrue();
+				expect( ruleBook.getRuleStatus( "dbRule" ) ).toBe( ruleBook.RULE_STATES.REGISTERED );
+			} );
+
+			it( "layers explicit config actions onto a convention-discovered source", function(){
+				var ranAction = false;
+				var registry  = newRegistry( {
+					rulebooks : {
+						"needsaction" : { "actions" : { "flag" : ( facts, result, params ) => { ranAction = true; } } }
+					}
+				} );
+
+				var ruleBook = registry.getRuleBook( "needsaction" );
+				ruleBook.run();
+
+				expect( ranAction ).toBeTrue();
+			} );
+
+			it( "reload() replaces the previous set of declarations rather than merging", function(){
+				var registry = newRegistry( {
+					rulebooks : { "first" : [ { "name" : "r1" } ] }
+				} );
+				expect( registry.getRuleBook( "first" ).hasRules() ).toBeTrue();
+
+				registry.setSettings( { rulebooks : { "second" : [ { "name" : "r1" } ] } } );
+				registry.reload();
+
+				expect( function(){
+					registry.getRuleBook( "first" );
+				} ).toThrow( "RuleBox.UnknownRuleBookException" );
+				expect( registry.getRuleBook( "second" ).hasRules() ).toBeTrue();
+			} );
+
+			it( "returns a fresh RuleBook instance every call, never a cached one", function(){
+				var registry = newRegistry( {
+					rulebooks : { "simple" : [ { "name" : "r1" } ] }
+				} );
+
+				var first  = registry.getRuleBook( "simple" );
+				var second = registry.getRuleBook( "simple" );
+
+				expect( first ).notToBeSameInstanceAs( second );
+			} );
+
+			it( "auto-discovers *.json files from the convention folder", function(){
+				var registry = getInstance( "RuleBookRegistry@rulebox" );
+				var ruleBook = registry.getRuleBook( "testconvention" );
+
+				expect( ruleBook.hasRules() ).toBeTrue();
+				expect( ruleBook.getRuleStatus( "conventionRule" ) ).toBe( ruleBook.RULE_STATES.REGISTERED );
+			} );
+
+		} );
+
+		describe( "The rulebook WireBox DSL", function(){
+
+			it( "resolves the bare 'rulebook' namespace to the registry singleton", function(){
+				var registry = getWireBox().getInstance( dsl = "rulebook" );
+				expect( registry.getRuleBook( "testconvention" ).hasRules() ).toBeTrue();
+			} );
+
+			it( "resolves 'rulebook:{name}' to a provider that builds fresh instances", function(){
+				var provider = getWireBox().getInstance( dsl = "rulebook:testconvention" );
+
+				var first  = provider.get();
+				var second = provider.get();
+
+				expect( first.hasRules() ).toBeTrue();
+				expect( first ).notToBeSameInstanceAs( second );
+			} );
+
+		} );
+
+		describe( "The ruleBook() application helper mixin", function(){
+
+			it( "is available in handlers and builds a declared rulebook by name", function(){
+				var event = execute( event = "main.ruleboxMixinTest", renderResults = false );
+				expect( event.getHandlerResults() ).toBe( "testconvention" );
+			} );
+
+		} );
+	}
+
+}

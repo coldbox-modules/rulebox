@@ -16,12 +16,19 @@ class {
 	this.classMapping		= "rulebox"
 	// Dependencies
 	this.dependencies 		= []
+	// Global application helper mixins (handlers/views/layouts): ruleBook( name )
+	this.applicationHelper	= [ "mixins/Helpers.bxm" ]
 
 	/**
 	* Configure Module
 	*/
 	function configure(){
 		variables.settings = {
+			// Named rulebook declarations: { name : path | inline-array | { source, actions, predicates } }
+			// See the "Externalized Rule Definitions" guide for the full settings shape.
+			rulebooks      = {},
+			// *.json/*.yaml files dropped here are auto-discovered; name = filename without extension
+			conventionPath = "config/rulebox"
 		}
 	}
 
@@ -29,7 +36,8 @@ class {
 	* Fired when the module is registered and activated.
 	*/
 	function onLoad(){
-
+		// Custom injection DSL: inject="rulebook" (the registry) / inject="rulebook:{name}" (a provider)
+		wirebox.registerDSL( namespace = "rulebook", path = "rulebox.models.RuleBookDSL" )
 	}
 
 	/**
