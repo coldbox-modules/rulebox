@@ -1,0 +1,88 @@
+<bx:output>
+<h1 class="h3 mb-4">Dry Run</h1>
+
+<div
+	x-data="rbDryRun( #jsonSerialize( prc.rulebookNames )#, '#event.buildLink( 'visualizer.runDryRun' )#', '#event.getValue( 'name', '' )#' )"
+	class="row g-3"
+>
+	<div class="col-lg-6">
+		<div class="card bg-body-tertiary h-100">
+			<div class="card-header d-flex align-items-center justify-content-between">
+				<select class="form-select form-select-sm w-auto" x-model="rulebookName">
+					<template x-for="n in rulebookNames" :key="n">
+						<option :value="n" x-text="n"></option>
+					</template>
+				</select>
+				<button class="btn btn-sm btn-primary" @click="run()" :disabled="running">
+					<i class="ph ph-play"></i> Run dry run
+				</button>
+			</div>
+			<div class="card-body">
+				<label class="form-label small text-secondary">Facts (JSON)</label>
+				<textarea class="form-control font-monospace" rows="14" x-model="factsText"></textarea>
+				<div class="text-danger small mt-2" x-show="error" x-text="error"></div>
+			</div>
+		</div>
+	</div>
+	<div class="col-lg-6">
+		<div class="card bg-body-tertiary h-100">
+			<div class="card-header">Result</div>
+			<ul class="list-group list-group-flush">
+				<template x-for="row in results" :key="row.name">
+					<li class="list-group-item bg-transparent d-flex align-items-center justify-content-between"
+						:class="{ 'opacity-50': !row.wouldExecute }">
+						<div>
+							<div class="fw-medium" x-text="row.name"></div>
+							<div class="small text-secondary" x-text="row.wouldExecute ? (row.wouldStop ? 'would execute, then stop the chain' : 'would execute') : 'would not execute'"></div>
+						</div>
+						<i class="ph" :class="row.wouldExecute ? 'ph-check-circle text-success' : 'ph-minus-circle text-secondary'"></i>
+					</li>
+				</template>
+				<li class="list-group-item bg-transparent text-secondary" x-show="!results.length">
+					Run a dry run to see which rules would fire.
+				</li>
+			</ul>
+		</div>
+	</div>
+</div>
+
+<script>
+	function rbDryRun( rulebookNames, runUrl, initialName ){
+		return {
+			rulebookNames,
+			rulebookName: initialName || ( rulebookNames[ 0 ] ?? '' ),
+			factsText: '{\n\n}',
+			results: [],
+			error: '',
+			running: false,
+			async run(){
+				this.error = ''
+				let facts
+				try{
+					facts = JSON.parse( this.factsText || '{}' )
+				} catch( e ){
+					this.error = 'Facts must be valid JSON: ' + e.message
+					return
+				}
+				this.running = true
+				try{
+					const res = await fetch( runUrl, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify( { name: this.rulebookName, facts } )
+					} )
+					if( !res.ok ){
+						const body = await res.json().catch( () => ( {} ) )
+						throw new Error( body.error || ( 'Server returned ' + res.status ) )
+					}
+					this.results = await res.json()
+				} catch( e ){
+					this.error = e.message
+				} finally {
+					this.running = false
+				}
+			}
+		}
+	}
+</script>
+</bx:output>

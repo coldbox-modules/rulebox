@@ -1,0 +1,79 @@
+<bx:output>
+<h1 class="h3 mb-4">Metrics</h1>
+
+<div
+	x-data="rbMetrics( #jsonSerialize( prc.rulebookNames )#, '#event.buildLink( 'visualizer.apiMetrics' )#' )"
+	x-init="load()"
+>
+	<div class="d-flex align-items-center gap-2 mb-4">
+		<select class="form-select form-select-sm w-auto" x-model="rulebookName" @change="load()">
+			<template x-for="n in rulebookNames" :key="n">
+				<option :value="n" x-text="n"></option>
+			</template>
+		</select>
+		<button class="btn btn-sm btn-outline-light" @click="load()"><i class="ph ph-arrow-clockwise"></i> Refresh</button>
+	</div>
+
+	<div class="row g-3 mb-4">
+		<div class="col-sm-3">
+			<div class="card bg-body-tertiary"><div class="card-body">
+				<div class="text-secondary small">Evaluations</div>
+				<div class="fs-4 fw-semibold" x-text="summary.totalEvaluations ?? 0"></div>
+			</div></div>
+		</div>
+		<div class="col-sm-3">
+			<div class="card bg-body-tertiary"><div class="card-body">
+				<div class="text-secondary small">Avg duration</div>
+				<div class="fs-4 fw-semibold" x-text="(summary.avgDurationMs ?? 0).toFixed(2) + 'ms'"></div>
+			</div></div>
+		</div>
+		<div class="col-sm-3">
+			<div class="card bg-body-tertiary"><div class="card-body">
+				<div class="text-secondary small">Total duration</div>
+				<div class="fs-4 fw-semibold" x-text="(summary.totalDurationMs ?? 0).toFixed(0) + 'ms'"></div>
+			</div></div>
+		</div>
+		<div class="col-sm-3">
+			<div class="card bg-body-tertiary"><div class="card-body">
+				<div class="text-secondary small">States seen</div>
+				<div class="fs-4 fw-semibold" x-text="Object.keys(summary.countsByState ?? {}).length"></div>
+			</div></div>
+		</div>
+	</div>
+
+	<div class="card bg-body-tertiary">
+		<div class="card-header">Outcomes by state</div>
+		<div class="table-responsive">
+			<table class="table table-hover align-middle mb-0">
+				<thead><tr><th>State</th><th>Count</th></tr></thead>
+				<tbody>
+					<template x-for="state in Object.keys(summary.countsByState ?? {})" :key="state">
+						<tr>
+							<td><span class="rb-state-dot" :class="'rb-state-' + state"></span> <span x-text="state"></span></td>
+							<td x-text="summary.countsByState[state]"></td>
+						</tr>
+					</template>
+					<tr x-show="!Object.keys(summary.countsByState ?? {}).length">
+						<td colspan="2" class="text-secondary text-center py-4">No evaluations recorded yet for this rulebook.</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+
+<script>
+	function rbMetrics( rulebookNames, apiUrl ){
+		return {
+			rulebookNames,
+			rulebookName: rulebookNames[ 0 ] ?? '',
+			summary: {},
+			async load(){
+				if( !this.rulebookName ) return
+				const res = await fetch( apiUrl + '?name=' + encodeURIComponent( this.rulebookName ) )
+				this.summary = res.ok ? await res.json() : {}
+			}
+		}
+	}
+</script>
+</bx:output>

@@ -1,0 +1,80 @@
+/**
+ * Integration tests for handlers/Visualizer.bx: the enabled/disabled gate and its JSON-returning
+ * actions. The test-harness enables the visualizer suite-wide (test-harness/config/Coldbox.bx)
+ * with the in-memory metrics store, and declares two rulebooks via convention
+ * (test-harness/config/rulebox/*.json): "testconvention" (loads cleanly) and "needsaction"
+ * (references an unregistered action, so it fails to load - used to prove the dashboard
+ * survives one bad rulebook).
+ */
+class extends="tests.resources.BaseSpec"{
+
+	function run( testResults, testBox ){
+		describe( "Visualizer handler", function(){
+
+			it( "renders the dashboard with every declared rulebook, even one that fails to load", function(){
+				var event   = execute( event="rulebox:visualizer.index", renderResults=true );
+				var content = event.getRenderedContent();
+
+				expect( content ).toInclude( "testconvention" );
+				expect( content ).toInclude( "needsaction" );
+				expect( content ).toInclude( "Dashboard" );
+			} );
+
+			it( "renders the chain visualizer for a declared rulebook in execution order", function(){
+				url.name = "testconvention";
+				var event   = execute( event="rulebox:visualizer.chain", renderResults=true );
+				var content = event.getRenderedContent();
+
+				expect( content ).toInclude( "conventionRule" );
+			} );
+
+			it( "runDryRun() returns a dryRun() report as JSON", function(){
+				url.name  = "testconvention";
+				url.facts = jsonSerialize( {} );
+				var event = execute( event="rulebox:visualizer.runDryRun", renderResults=true );
+
+				var report = jsonDeserialize( event.getRenderedContent() );
+
+				expect( report ).toHaveLength( 1 );
+				expect( report[ 1 ].name ).toBe( "conventionRule" );
+				expect( report[ 1 ].wouldExecute ).toBeTrue();
+			} );
+
+			it( "runDryRun() 404s for an unknown rulebook", function(){
+				url.name  = "doesNotExist";
+				url.facts = jsonSerialize( {} );
+				var event = execute( event="rulebox:visualizer.runDryRun", renderResults=true );
+
+				var body = jsonDeserialize( event.getRenderedContent() );
+				expect( body ).toHaveKey( "error" );
+			} );
+
+			it( "apiMetrics() returns a rulebook summary as JSON", function(){
+				url.name = "testconvention";
+				var event = execute( event="rulebox:visualizer.apiMetrics", renderResults=true );
+
+				var summary = jsonDeserialize( event.getRenderedContent() );
+
+				expect( summary ).toHaveKey( "totalEvaluations" );
+				expect( summary ).toHaveKey( "countsByState" );
+			} );
+
+			it( "404s every action while the visualizer is disabled", function(){
+				// Same DSL the handler/RuleEventBus are injected with, so this is guaranteed to be
+				// the exact same live settings struct they read from.
+				var settings = getWireBox().getInstance( dsl="coldbox:moduleSettings:rulebox" );
+				settings.visualizer.enabled = false;
+
+				try{
+					var event = execute( event="rulebox:visualizer.index", renderResults=true );
+					var body  = jsonDeserialize( event.getRenderedContent() );
+					expect( body ).toHaveKey( "error" );
+				} finally {
+					settings.visualizer.enabled = true;
+				}
+			} );
+
+		} );
+	}
+
+}

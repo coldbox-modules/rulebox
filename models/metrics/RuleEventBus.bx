@@ -1,0 +1,122 @@
+/**
+ * The Rule Visualizer's event backbone: RuleBook.recordRuleMetric() publishes one event here per
+ * rule evaluation, and this fans it out to (a) the configured IMetricsStore for persistence and
+ * (b) any live subscribers (e.g. the visualizer's SSE stream action).
+ *
+ * publish() is a complete no-op while moduleSettings.rulebox.visualizer.enabled is false - that's
+ * the only thing the "enabled" switch actually gates at the model layer: no persistence, no
+ * broadcast, just a single boolean check per rule evaluation.
+ */
+@singleton
+@threadsafe
+class{
+
+	@inject( "wirebox" )
+	property name="wirebox";
+
+	@inject( "coldbox:moduleSettings:rulebox" )
+	property name="settings" type="struct";
+
+	@inject( "logbox:logger:{this}" )
+	property name="logger";
+
+	/**
+	 * Live subscriber closures, keyed by an opaque subscription token.
+	 */
+	property name="subscribers" type="struct";
+
+	function init(){
+		variables.subscribers  = {}
+		variables.nextToken    = 0
+		variables.metricsStoreFailed = false
+		return this
+	}
+
+	function onDIComplete(){
+		if( variables.settings.visualizer.enabled ){
+			resolveMetricsStore()
+		}
+		return this
+	}
+
+	/**
+	 * Register a listener to receive every published event from now on, until unsubscribe() is
+	 * called with the returned token. Used by the visualizer's live SSE stream.
+	 *
+	 * @listener A ( event ) => void closure
+	 *
+	 * @return An opaque subscription token
+	 */
+	numeric function subscribe( required listener ){
+		lock name="rulebox_event_bus_subscribers" type="exclusive" timeout="5"{
+			variables.nextToken++
+			variables.subscribers[ variables.nextToken ] = arguments.listener
+			return variables.nextToken
+		}
+	}
+
+	/**
+	 * Stop a listener registered via subscribe() from receiving further events.
+	 *
+	 * @token The token returned by subscribe()
+	 */
+	void function unsubscribe( required numeric token ){
+		lock name="rulebox_event_bus_subscribers" type="exclusive" timeout="5"{
+			variables.subscribers.delete( arguments.token )
+		}
+	}
+
+	/**
+	 * Publish one rule-evaluation event: persist it (if a metrics store is configured/available)
+	 * and forward it to every live subscriber. No-ops entirely when the visualizer is disabled.
+	 *
+	 * @event { rulebookName, ruleName, state, durationMs, timestamp }
+	 */
+	void function publish( required struct event ){
+		if( !variables.settings.visualizer.enabled ){
+			return
+		}
+
+		if( !structKeyExists( variables, "metricsStore" ) && !variables.metricsStoreFailed ){
+			resolveMetricsStore()
+		}
+
+		if( structKeyExists( variables, "metricsStore" ) ){
+			try{
+				variables.metricsStore.recordEvent( arguments.event )
+			} catch( any e ){
+				logger.error( "RuleBox visualizer's metrics store failed to record an event: #e.message# #e.detail#" )
+			}
+		}
+
+		var listeners     = []
+		var publishedEvent = arguments.event
+		lock name="rulebox_event_bus_subscribers" type="readOnly" timeout="5"{
+			listeners = variables.subscribers.valueArray()
+		}
+		listeners.each( ( listener ) => {
+			try{
+				listener( publishedEvent )
+			} catch( any e ){
+				logger.warn( "RuleBox visualizer: a live subscriber threw and was skipped: #e.message#" )
+			}
+		} )
+	}
+
+	/**
+	 * Lazily resolve the configured metrics store. Logs once and keeps the bus alive (broadcast
+	 * still works) if the mapping can't be resolved - e.g. the default SQLiteMetricsStore@rulebox
+	 * when bx-sqlite isn't installed.
+	 */
+	private void function resolveMetricsStore(){
+		try{
+			variables.metricsStore = wirebox.getInstance( variables.settings.visualizer.metricsStore )
+		} catch( any e ){
+			variables.metricsStoreFailed = true
+			logger.error(
+				"RuleBox visualizer could not resolve its configured metricsStore '#variables.settings.visualizer.metricsStore#'. Events will still broadcast live, but nothing will be persisted. #e.message# #e.detail#"
+			)
+		}
+	}
+
+}

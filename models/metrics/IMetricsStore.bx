@@ -1,0 +1,54 @@
+/**
+ * Contract for a Rule Visualizer metrics persistence store. Implement this and point
+ * moduleSettings.rulebox.visualizer.metricsStore at your WireBox mapping to swap out the
+ * default SQLiteMetricsStore@rulebox.
+ */
+interface {
+
+	/**
+	 * Persist one rule-evaluation event.
+	 *
+	 * @event { rulebookName, ruleName, state, durationMs, timestamp }
+	 */
+	void function recordEvent( required struct event )
+
+	/**
+	 * Return recorded events, newest first.
+	 *
+	 * @filters Optional filters: { rulebookName }
+	 * @limit Max rows to return
+	 *
+	 * @return An array of { rulebookName, ruleName, state, durationMs, timestamp } structs
+	 */
+	array function queryEvents( struct filters={}, numeric limit=50 )
+
+	/**
+	 * Aggregated stats for one rulebook across all its recorded rules.
+	 *
+	 * @rulebookName The rulebook to summarize
+	 *
+	 * @return { rulebookName, totalEvaluations, countsByState, avgDurationMs, totalDurationMs }
+	 */
+	struct function queryRuleBookSummary( required string rulebookName )
+
+	/**
+	 * Aggregated stats for a single rule within a rulebook.
+	 *
+	 * @rulebookName The rule's owning rulebook
+	 * @ruleName The rule to summarize
+	 *
+	 * @return { rulebookName, ruleName, totalEvaluations, countsByState, avgDurationMs, minDurationMs, maxDurationMs, lastRunAt }
+	 */
+	struct function queryRuleMetrics( required string rulebookName, required string ruleName )
+
+	/**
+	 * Every distinct rulebook name that has at least one recorded event.
+	 */
+	array function queryRuleBookNames()
+
+	/**
+	 * Clear every recorded event.
+	 */
+	void function reset()
+
+}
