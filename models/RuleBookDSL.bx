@@ -1,0 +1,44 @@
+/**
+ * Custom WireBox injection DSL for config-declared rulebooks.
+ *
+ * inject="rulebook"        -> the RuleBookRegistry singleton itself
+ * inject="rulebook:{name}" -> a RuleBookProvider for that declared name. Call .get() on it at the
+ *                             point of use for a fresh RuleBook instance - safe to inject even
+ *                             into a singleton, since nothing here is built until .get() is called.
+ */
+class{
+
+	property name="injector";
+
+	/**
+	 * Constructor
+	 *
+	 * @injector The linked WireBox Injector
+	 */
+	RuleBookDSL function init( required injector ){
+		variables.injector = arguments.injector
+		return this
+	}
+
+	/**
+	 * Process an incoming DSL definition and produce an object with it
+	 *
+	 * @definition The injection dsl definition structure to process. Keys: name, dsl
+	 * @targetObject The target object we are building this dependency for
+	 * @targetID The target ID we are building this dependency for
+	 */
+	function process( required definition, targetObject, targetID ){
+		var parts = arguments.definition.dsl.listToArray( ":" )
+		var name  = parts.len() > 1 ? parts[ 2 ] : ""
+
+		if( !len( name ) ){
+			return variables.injector.getInstance( "RuleBookRegistry@rulebox" )
+		}
+
+		return new RuleBookProvider(
+			name     = name,
+			registry = variables.injector.getInstance( "RuleBookRegistry@rulebox" )
+		)
+	}
+
+}

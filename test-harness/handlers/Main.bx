@@ -8,4 +8,9 @@ class{
 		return "ColdBox Module Template";
 	}
 
+	// Exercises the ruleBook() application helper mixin from rulebox
+	any function ruleboxMixinTest( event, rc, prc ){
+		return ruleBook( "testconvention" ).getName();
+	}
+
 }

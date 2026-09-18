@@ -1,0 +1,11 @@
+<bx:script>
+	/**
+	 * Get a fresh, fully-configured RuleBook by its declared name (moduleSettings.rulebox.rulebooks,
+	 * or a *.json/*.yaml file in the convention folder). A new instance every call.
+	 *
+	 * @name The rulebook's declared name
+	 */
+	function ruleBook( required string name ){
+		return wirebox.getInstance( "RuleBookRegistry@rulebox" ).getRuleBook( arguments.name )
+	}
+</bx:script>

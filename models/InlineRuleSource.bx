@@ -1,0 +1,32 @@
+/**
+ * Loads rule definitions from an in-memory array handed to it directly - no file, no database.
+ *
+ * Used internally when a config-driven rulebook declaration (moduleSettings.rulebox.rulebooks)
+ * supplies its rule definitions as a literal array instead of a file path, but it's a plain
+ * RuleSource like any other - usable directly with loadRules()/reloadRules() too.
+ */
+class{
+
+	/**
+	 * The array of rule-definition structs
+	 */
+	property name="definitions" type="array";
+
+	/**
+	 * Constructor
+	 *
+	 * @definitions An array of rule-definition structs
+	 */
+	InlineRuleSource function init( required array definitions ){
+		variables.definitions = arguments.definitions
+		return this
+	}
+
+	/**
+	 * @return An array of rule-definition structs
+	 */
+	array function load(){
+		return variables.definitions
+	}
+
+}

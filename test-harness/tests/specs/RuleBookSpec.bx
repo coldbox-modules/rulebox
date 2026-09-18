@@ -250,6 +250,144 @@ class extends="tests.resources.BaseSpec"{
 				expect( downstreamRan ).toBeFalse();
 			});
 
+			describe( "clearRules() / reloadRules()", function(){
+
+				it( "clearRules() resets to a rule-less state", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "someRule" ) );
+					expect( ruleBook.hasRules() ).toBeTrue();
+
+					ruleBook.clearRules();
+
+					expect( ruleBook.hasRules() ).toBeFalse();
+					expect( ruleBook.getRuleStatus( "someRule" ) ).toBe( ruleBook.RULE_STATES.NOT_AVAILABLE );
+				});
+
+				it( "clearRules() does not touch registries", function(){
+					var ranAction = false;
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+						.registerAction( "flag", ( facts, result, params ) => { ranAction = true; } );
+					ruleBook.addRule( ruleBook.newRule( "someRule" ) );
+
+					ruleBook.clearRules();
+
+					ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+						{ "name" : "r1", "then" : [ { "action" : "flag" } ] }
+					] ) );
+					ruleBook.run();
+
+					expect( ranAction ).toBeTrue();
+				});
+
+				it( "reloadRules() replaces the rule chain with what the source returns now", function(){
+					var executed = [];
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+						.registerAction( "capture", ( facts, result, params ) => { executed.append( facts.tag ); } )
+						.given( "tag", "v1" );
+
+					ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+						{ "name" : "old", "then" : [ { "action" : "capture" } ] }
+					] ) );
+					expect( ruleBook.hasRules() ).toBeTrue();
+
+					ruleBook.reloadRules( new tests.resources.InlineRuleSource( [
+						{ "name" : "new", "then" : [ { "action" : "capture" } ] }
+					] ) );
+
+					expect( ruleBook.getRuleStatus( "old" ) ).toBe( ruleBook.RULE_STATES.NOT_AVAILABLE );
+					expect( ruleBook.getRuleStatus( "new" ) ).toBe( ruleBook.RULE_STATES.REGISTERED );
+
+					ruleBook.run();
+
+					expect( executed ).toBe( [ "v1" ] );
+				});
+
+			});
+
+			describe( "rule metrics", function(){
+
+				it( "returns an empty, zero-valued struct for a rule that has never been evaluated", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					var metrics  = ruleBook.getRuleMetrics( "neverRan" );
+
+					expect( metrics.name ).toBe( "neverRan" );
+					expect( metrics.totalEvaluations ).toBe( 0 );
+					expect( metrics.countsByState ).toBeEmpty();
+					expect( metrics.totalDurationMs ).toBe( 0 );
+					expect( metrics ).notToHaveKey( "firstRunAt" );
+					expect( metrics ).notToHaveKey( "lastRunAt" );
+				});
+
+				it( "records an EXECUTED evaluation after a rule fires", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "myRule" ).then( ( facts ) => {} ) );
+
+					ruleBook.run();
+
+					var metrics = ruleBook.getRuleMetrics( "myRule" );
+					expect( metrics.totalEvaluations ).toBe( 1 );
+					expect( metrics.countsByState.EXECUTED ).toBe( 1 );
+					expect( metrics ).toHaveKey( "firstRunAt" );
+					expect( metrics ).toHaveKey( "lastRunAt" );
+				});
+
+				it( "records a SKIPPED evaluation when the predicate fails", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "myRule" ).when( ( facts ) => false ) );
+
+					ruleBook.run();
+
+					expect( ruleBook.getRuleMetrics( "myRule" ).countsByState.SKIPPED ).toBe( 1 );
+				});
+
+				it( "records a FAILED evaluation when a then() consumer throws", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule(
+						ruleBook.newRule( "myRule" ).then( ( facts ) => {
+							throw( type = "TestBoom", message = "Kaboom" );
+						} )
+					);
+
+					expect( function(){ ruleBook.run(); } ).toThrow();
+
+					expect( ruleBook.getRuleMetrics( "myRule" ).countsByState.FAILED ).toBe( 1 );
+				});
+
+				it( "accumulates metrics across multiple run() calls, unlike the status map", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "myRule" ).then( ( facts ) => {} ) );
+
+					ruleBook.run();
+					ruleBook.run();
+					ruleBook.run();
+
+					expect( ruleBook.getRuleMetrics( "myRule" ).totalEvaluations ).toBe( 3 );
+					expect( ruleBook.getRuleMetrics( "myRule" ).countsByState.EXECUTED ).toBe( 3 );
+				});
+
+				it( "dryRun() does not record metrics", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "myRule" ) );
+
+					ruleBook.dryRun();
+
+					expect( ruleBook.getRuleMetrics( "myRule" ).totalEvaluations ).toBe( 0 );
+				});
+
+				it( "resetMetrics() clears accumulated metrics without touching rules", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "myRule" ).then( ( facts ) => {} ) );
+					ruleBook.run();
+					expect( ruleBook.getRuleMetrics( "myRule" ).totalEvaluations ).toBe( 1 );
+
+					ruleBook.resetMetrics();
+
+					expect( ruleBook.getRuleMetrics( "myRule" ).totalEvaluations ).toBe( 0 );
+					expect( ruleBook.hasRules() ).toBeTrue();
+				});
+
+			});
+
 		});
 	}
 
