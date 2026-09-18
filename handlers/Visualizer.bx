@@ -55,10 +55,6 @@ class{
 	 * recent-activity feed.
 	 */
 	function index( event, rc, prc ){
-		// TEMPORARY diagnostic - direct stdout write (bypasses LogBox entirely) so a CI run
-		// reveals what ColdBox actually resolved. Remove once the rendering issue is root-caused.
-		systemOutput( "RULEBOX_DIAG layout=#event.getCurrentLayout()# layoutModule=#event.getCurrentLayoutModule()# view=#event.getCurrentView()# viewModule=#event.getCurrentViewModule()# currentModule=#event.getCurrentModule()#", true )
-
 		var store = getMetricsStore()
 		var names = registry.getRuleBookNames()
 
