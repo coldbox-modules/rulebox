@@ -593,7 +593,7 @@ class{
 			ruleName     : arguments.name,
 			state        : arguments.state,
 			durationMs   : arguments.durationMs,
-			timestamp    : dateTimeFormat( metric.lastRunAt, "yyyy-mm-dd'T'HH:nn:ss.lll" )
+			timestamp    : dateTimeFormat( metric.lastRunAt, "yyyy-mm-dd'T'HH:nn:ss" )
 		} )
 	}
 

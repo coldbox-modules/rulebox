@@ -89,13 +89,14 @@ class{
 			}
 		}
 
-		var listeners = []
+		var listeners     = []
+		var publishedEvent = arguments.event
 		lock name="rulebox_event_bus_subscribers" type="readOnly" timeout="5"{
 			listeners = variables.subscribers.valueArray()
 		}
 		listeners.each( ( listener ) => {
 			try{
-				listener( arguments.event )
+				listener( publishedEvent )
 			} catch( any e ){
 				logger.warn( "RuleBox visualizer: a live subscriber threw and was skipped: #e.message#" )
 			}

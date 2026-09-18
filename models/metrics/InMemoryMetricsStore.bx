@@ -31,9 +31,10 @@ class implements="IMetricsStore"{
 	}
 
 	array function queryEvents( struct filters={}, numeric limit=50 ){
+		var requestedFilters = arguments.filters
 		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
 			var matches = variables.events.filter( ( evt ) => {
-				return !arguments.filters.keyExists( "rulebookName" ) || evt.rulebookName == arguments.filters.rulebookName
+				return !requestedFilters.keyExists( "rulebookName" ) || evt.rulebookName == requestedFilters.rulebookName
 			} )
 			matches = matches.reverse()
 			return matches.len() > arguments.limit ? matches.slice( 1, arguments.limit ) : matches
@@ -46,8 +47,9 @@ class implements="IMetricsStore"{
 	}
 
 	struct function queryRuleMetrics( required string rulebookName, required string ruleName ){
+		var requestedRuleName = arguments.ruleName
 		var matches = queryEvents( filters={ rulebookName: arguments.rulebookName }, limit=variables.maxEvents )
-			.filter( ( evt ) => evt.ruleName == arguments.ruleName )
+			.filter( ( evt ) => evt.ruleName == requestedRuleName )
 		var summary = summarize( matches, { rulebookName: arguments.rulebookName, ruleName: arguments.ruleName } )
 		summary[ "minDurationMs" ] = matches.isEmpty() ? 0 : matches.reduce( ( min, evt ) => mathMin( min, evt.durationMs ), matches[ 1 ].durationMs )
 		summary[ "maxDurationMs" ] = matches.isEmpty() ? 0 : matches.reduce( ( max, evt ) => mathMax( max, evt.durationMs ), matches[ 1 ].durationMs )
