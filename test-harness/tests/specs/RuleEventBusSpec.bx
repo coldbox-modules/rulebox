@@ -1,0 +1,90 @@
+/**
+ * Tests for RuleEventBus: the switch that gates the Rule Visualizer's persistence + live
+ * broadcast, entirely independent of any real RuleBook run.
+ */
+class extends="tests.resources.BaseSpec"{
+
+	function run( testResults, testBox ){
+		describe( "RuleEventBus", function(){
+
+			/**
+			 * A standalone bus instance, bypassing the shared WireBox singleton so each test can
+			 * freely set its own visualizer settings without leaking state into other specs.
+			 */
+			function newBus( required struct visualizerSettings ){
+				var bus = new rulebox.models.metrics.RuleEventBus();
+				bus.setWirebox( getWireBox() );
+				bus.setLogger( getController().getLogBox().getRootLogger() );
+				bus.setSettings( { visualizer: arguments.visualizerSettings } );
+				return bus;
+			}
+
+			function anEvent( rulebookName="rb", ruleName="r1", state="EXECUTED", durationMs=10, timestamp="2026-01-01T00:00:00.000" ){
+				return arguments
+			}
+
+			it( "does not broadcast or persist while disabled", function(){
+				var received = [];
+				var bus = newBus( { enabled: false, metricsStore: "InMemoryMetricsStore@rulebox", datasourceName: "" } );
+				bus.subscribe( ( evt ) => received.append( evt ) );
+
+				bus.publish( anEvent() );
+
+				expect( received ).toBeEmpty();
+			} );
+
+			it( "broadcasts to subscribers and persists to the configured store once enabled", function(){
+				var store = getInstance( "InMemoryMetricsStore@rulebox" );
+				store.reset();
+
+				var received = [];
+				var bus = newBus( { enabled: true, metricsStore: "InMemoryMetricsStore@rulebox", datasourceName: "" } );
+				bus.subscribe( ( evt ) => received.append( evt ) );
+
+				bus.publish( anEvent( rulebookName="busTest" ) );
+
+				expect( received ).toHaveLength( 1 );
+				expect( received[ 1 ].rulebookName ).toBe( "busTest" );
+				expect( store.queryEvents( filters={ rulebookName: "busTest" } ) ).toHaveLength( 1 );
+			} );
+
+			it( "stops delivering to a listener once unsubscribed", function(){
+				var received = [];
+				var bus = newBus( { enabled: true, metricsStore: "InMemoryMetricsStore@rulebox", datasourceName: "" } );
+				var token = bus.subscribe( ( evt ) => received.append( evt ) );
+				bus.unsubscribe( token );
+
+				bus.publish( anEvent() );
+
+				expect( received ).toBeEmpty();
+			} );
+
+			it( "keeps broadcasting even if the configured metrics store mapping can't be resolved", function(){
+				var received = [];
+				var bus = newBus( { enabled: true, metricsStore: "ThisMappingDoesNotExist@rulebox", datasourceName: "" } );
+				bus.subscribe( ( evt ) => received.append( evt ) );
+
+				expect( function(){
+					bus.publish( anEvent() );
+				} ).notToThrow();
+
+				expect( received ).toHaveLength( 1 );
+			} );
+
+			it( "supports multiple independent subscribers", function(){
+				var firstReceived  = [];
+				var secondReceived = [];
+				var bus = newBus( { enabled: true, metricsStore: "InMemoryMetricsStore@rulebox", datasourceName: "" } );
+				bus.subscribe( ( evt ) => firstReceived.append( evt ) );
+				bus.subscribe( ( evt ) => secondReceived.append( evt ) );
+
+				bus.publish( anEvent() );
+
+				expect( firstReceived ).toHaveLength( 1 );
+				expect( secondReceived ).toHaveLength( 1 );
+			} );
+
+		} );
+	}
+
+}

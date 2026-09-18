@@ -17,3 +17,4 @@ toc: false
 - [Thread Safety](thread-safety.md) - why RuleBooks and Rules are transient
 - [Error Handling](error-handling.md) - exceptions and failure states
 - [A Complex Example](complex-example.md) - a full, real-world walkthrough
+- [Rule Visualizer](visualizer.md) - a dashboard, dry-run playground, metrics, and a live SSE tracker

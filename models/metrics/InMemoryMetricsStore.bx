@@ -1,0 +1,99 @@
+/**
+ * Default-of-last-resort IMetricsStore: keeps events in a bounded in-memory array. Nothing is
+ * persisted across a restart. Useful for tests, or for apps that only care about the visualizer's
+ * live tracker and don't need historical metrics to survive a redeploy.
+ *
+ * Swap it in via moduleSettings.rulebox.visualizer.metricsStore = "InMemoryMetricsStore@rulebox".
+ */
+@singleton
+@threadsafe
+class implements="IMetricsStore"{
+
+	/**
+	 * Recorded events, oldest first. Capped at maxEvents - oldest entries fall off once full.
+	 */
+	property name="events" type="array";
+
+	property name="maxEvents" type="numeric" default="5000";
+
+	function init(){
+		variables.events = []
+		return this
+	}
+
+	void function recordEvent( required struct event ){
+		lock name="rulebox_inmemory_metrics" type="exclusive" timeout="5"{
+			variables.events.append( arguments.event )
+			if( variables.events.len() > variables.maxEvents ){
+				variables.events.deleteAt( 1 )
+			}
+		}
+	}
+
+	array function queryEvents( struct filters={}, numeric limit=50 ){
+		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
+			var matches = variables.events.filter( ( evt ) => {
+				return !arguments.filters.keyExists( "rulebookName" ) || evt.rulebookName == arguments.filters.rulebookName
+			} )
+			matches = matches.reverse()
+			return matches.len() > arguments.limit ? matches.slice( 1, arguments.limit ) : matches
+		}
+	}
+
+	struct function queryRuleBookSummary( required string rulebookName ){
+		var matches = queryEvents( filters={ rulebookName: arguments.rulebookName }, limit=variables.maxEvents )
+		return summarize( matches, { rulebookName: arguments.rulebookName } )
+	}
+
+	struct function queryRuleMetrics( required string rulebookName, required string ruleName ){
+		var matches = queryEvents( filters={ rulebookName: arguments.rulebookName }, limit=variables.maxEvents )
+			.filter( ( evt ) => evt.ruleName == arguments.ruleName )
+		var summary = summarize( matches, { rulebookName: arguments.rulebookName, ruleName: arguments.ruleName } )
+		summary[ "minDurationMs" ] = matches.isEmpty() ? 0 : matches.reduce( ( min, evt ) => mathMin( min, evt.durationMs ), matches[ 1 ].durationMs )
+		summary[ "maxDurationMs" ] = matches.isEmpty() ? 0 : matches.reduce( ( max, evt ) => mathMax( max, evt.durationMs ), matches[ 1 ].durationMs )
+		summary[ "lastRunAt" ]     = matches.isEmpty() ? "" : matches[ 1 ].timestamp
+		return summary
+	}
+
+	array function queryRuleBookNames(){
+		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
+			var names = {}
+			variables.events.each( ( evt ) => names[ evt.rulebookName ] = true )
+			return names.keyArray()
+		}
+	}
+
+	void function reset(){
+		lock name="rulebox_inmemory_metrics" type="exclusive" timeout="5"{
+			variables.events = []
+		}
+	}
+
+	/**
+	 * Shared aggregation for queryRuleBookSummary()/queryRuleMetrics(): counts, total/avg duration.
+	 */
+	private struct function summarize( required array matches, required struct identity ){
+		var countsByState = {}
+		var totalDurationMs = 0
+		arguments.matches.each( ( evt ) => {
+			countsByState[ evt.state ] = ( countsByState.keyExists( evt.state ) ? countsByState[ evt.state ] : 0 ) + 1
+			totalDurationMs += evt.durationMs
+		} )
+
+		var summary = arguments.identity.copy()
+		summary[ "totalEvaluations" ] = arguments.matches.len()
+		summary[ "countsByState" ]    = countsByState
+		summary[ "totalDurationMs" ]  = totalDurationMs
+		summary[ "avgDurationMs" ]    = arguments.matches.isEmpty() ? 0 : totalDurationMs / arguments.matches.len()
+		return summary
+	}
+
+	private numeric function mathMin( required numeric a, required numeric b ){
+		return arguments.a < arguments.b ? arguments.a : arguments.b
+	}
+
+	private numeric function mathMax( required numeric a, required numeric b ){
+		return arguments.a > arguments.b ? arguments.a : arguments.b
+	}
+
+}

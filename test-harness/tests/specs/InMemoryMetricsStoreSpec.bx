@@ -1,0 +1,103 @@
+/**
+ * Tests for InMemoryMetricsStore, the fallback-of-last-resort IMetricsStore implementation.
+ */
+class extends="tests.resources.BaseSpec"{
+
+	function run( testResults, testBox ){
+		describe( "InMemoryMetricsStore", function(){
+
+			function anEvent( rulebookName="rb", ruleName="r1", state="EXECUTED", durationMs=10, timestamp="2026-01-01T00:00:00.000" ){
+				return arguments
+			}
+
+			beforeEach( function(){
+				variables.store = new rulebox.models.metrics.InMemoryMetricsStore();
+			} );
+
+			it( "starts with no events", function(){
+				expect( variables.store.queryEvents() ).toBeEmpty();
+				expect( variables.store.queryRuleBookNames() ).toBeEmpty();
+			} );
+
+			it( "returns recorded events newest first", function(){
+				variables.store.recordEvent( anEvent( ruleName="r1", timestamp="1" ) );
+				variables.store.recordEvent( anEvent( ruleName="r2", timestamp="2" ) );
+
+				var events = variables.store.queryEvents();
+
+				expect( events[ 1 ].ruleName ).toBe( "r2" );
+				expect( events[ 2 ].ruleName ).toBe( "r1" );
+			} );
+
+			it( "filters queryEvents by rulebookName", function(){
+				variables.store.recordEvent( anEvent( rulebookName="a" ) );
+				variables.store.recordEvent( anEvent( rulebookName="b" ) );
+
+				var events = variables.store.queryEvents( filters={ rulebookName: "a" } );
+
+				expect( events ).toHaveLength( 1 );
+				expect( events[ 1 ].rulebookName ).toBe( "a" );
+			} );
+
+			it( "respects the limit passed to queryEvents", function(){
+				for( var i = 1; i <= 5; i++ ){
+					variables.store.recordEvent( anEvent( ruleName="r#i#" ) );
+				}
+
+				expect( variables.store.queryEvents( limit=2 ) ).toHaveLength( 2 );
+			} );
+
+			it( "aggregates a rulebook summary across every recorded state", function(){
+				variables.store.recordEvent( anEvent( rulebookName="rb", state="EXECUTED", durationMs=10 ) );
+				variables.store.recordEvent( anEvent( rulebookName="rb", state="EXECUTED", durationMs=20 ) );
+				variables.store.recordEvent( anEvent( rulebookName="rb", state="SKIPPED", durationMs=1 ) );
+
+				var summary = variables.store.queryRuleBookSummary( "rb" );
+
+				expect( summary.totalEvaluations ).toBe( 3 );
+				expect( summary.countsByState.EXECUTED ).toBe( 2 );
+				expect( summary.countsByState.SKIPPED ).toBe( 1 );
+				expect( summary.totalDurationMs ).toBe( 31 );
+				expect( summary.avgDurationMs ).toBe( 31 / 3 );
+			} );
+
+			it( "returns a zero-valued summary for a rulebook with no recorded events", function(){
+				var summary = variables.store.queryRuleBookSummary( "neverRan" );
+
+				expect( summary.totalEvaluations ).toBe( 0 );
+				expect( summary.avgDurationMs ).toBe( 0 );
+				expect( summary.countsByState ).toBeEmpty();
+			} );
+
+			it( "aggregates per-rule metrics with min/max/lastRunAt", function(){
+				variables.store.recordEvent( anEvent( ruleName="r1", durationMs=5, timestamp="1" ) );
+				variables.store.recordEvent( anEvent( ruleName="r1", durationMs=15, timestamp="2" ) );
+				variables.store.recordEvent( anEvent( ruleName="other", durationMs=999, timestamp="3" ) );
+
+				var metrics = variables.store.queryRuleMetrics( "rb", "r1" );
+
+				expect( metrics.totalEvaluations ).toBe( 2 );
+				expect( metrics.minDurationMs ).toBe( 5 );
+				expect( metrics.maxDurationMs ).toBe( 15 );
+				expect( metrics.lastRunAt ).toBe( "2" );
+			} );
+
+			it( "lists distinct rulebook names that have recorded events", function(){
+				variables.store.recordEvent( anEvent( rulebookName="a" ) );
+				variables.store.recordEvent( anEvent( rulebookName="a" ) );
+				variables.store.recordEvent( anEvent( rulebookName="b" ) );
+
+				expect( variables.store.queryRuleBookNames().sort( "text" ) ).toBe( [ "a", "b" ] );
+			} );
+
+			it( "reset() clears every recorded event", function(){
+				variables.store.recordEvent( anEvent() );
+				variables.store.reset();
+
+				expect( variables.store.queryEvents() ).toBeEmpty();
+			} );
+
+		} );
+	}
+
+}

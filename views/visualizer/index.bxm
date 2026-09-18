@@ -1,0 +1,102 @@
+<h1 class="h3 mb-4">Dashboard</h1>
+
+<div class="row g-3 mb-4">
+	<div class="col-sm-4">
+		<div class="card bg-body-tertiary h-100">
+			<div class="card-body">
+				<div class="text-secondary small mb-1">Rulebooks</div>
+				<div class="fs-3 fw-semibold">#prc.totalRuleBooks#</div>
+			</div>
+		</div>
+	</div>
+	<div class="col-sm-4">
+		<div class="card bg-body-tertiary h-100">
+			<div class="card-body">
+				<div class="text-secondary small mb-1">Rules</div>
+				<div class="fs-3 fw-semibold">#prc.totalRules#</div>
+			</div>
+		</div>
+	</div>
+	<div class="col-sm-4">
+		<div class="card bg-body-tertiary h-100">
+			<div class="card-body">
+				<div class="text-secondary small mb-1">Evaluations recorded</div>
+				<div class="fs-3 fw-semibold">#numberFormat( prc.totalEvaluations )#</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="row g-3">
+	<div class="col-lg-8">
+		<div class="card bg-body-tertiary">
+			<div class="card-header d-flex align-items-center justify-content-between">
+				<span>Rulebooks</span>
+			</div>
+			<div class="table-responsive">
+				<table class="table table-hover align-middle mb-0">
+					<thead>
+						<tr>
+							<th>Name</th>
+							<th>Rules</th>
+							<th>Evaluations</th>
+							<th>Outcomes</th>
+							<th>Avg duration</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						<bx:loop array="#prc.rulebooks#" index="rb">
+							<tr>
+								<td class="fw-medium">
+									#rb.rulebookName#
+									<bx:if rb.keyExists( "loadError" )>
+										<i class="ph ph-warning-circle text-danger" title="#htmlEditFormat( rb.loadError )#"></i>
+									</bx:if>
+								</td>
+								<td>#rb.ruleCount#</td>
+								<td>#numberFormat( rb.totalEvaluations )#</td>
+								<td>
+									<bx:loop collection="#rb.countsByState#" item="state">
+										<span class="badge border rb-badge-#state# me-1">#state#: #rb.countsByState[ state ]#</span>
+									</bx:loop>
+									<bx:if rb.countsByState.isEmpty()>
+										<span class="text-secondary">no runs yet</span>
+									</bx:if>
+								</td>
+								<td>#numberFormat( rb.avgDurationMs, "0.00" )#ms</td>
+								<td class="text-end">
+									<a class="btn btn-sm btn-outline-light" href="#event.buildLink( 'visualizer.chain' )#?name=#urlEncodedFormat( rb.rulebookName )#">
+										<i class="ph ph-tree-structure"></i> View chain
+									</a>
+								</td>
+							</tr>
+						</bx:loop>
+						<bx:if prc.rulebooks.isEmpty()>
+							<tr><td colspan="6" class="text-secondary text-center py-4">No rulebooks declared yet. See moduleSettings.rulebox.rulebooks.</td></tr>
+						</bx:if>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+	<div class="col-lg-4">
+		<div class="card bg-body-tertiary h-100">
+			<div class="card-header">Recent activity</div>
+			<ul class="list-group list-group-flush">
+				<bx:loop array="#prc.recentEvents#" index="evt">
+					<li class="list-group-item bg-transparent d-flex align-items-center gap-2">
+						<span class="rb-state-dot rb-state-#evt.state#"></span>
+						<div class="flex-grow-1">
+							<div class="small">#evt.rulebookName# &middot; #evt.ruleName#</div>
+							<div class="text-secondary" style="font-size:.75rem">#evt.state# &middot; #numberFormat( evt.durationMs, "0.00" )#ms</div>
+						</div>
+					</li>
+				</bx:loop>
+				<bx:if prc.recentEvents.isEmpty()>
+					<li class="list-group-item bg-transparent text-secondary">No activity recorded yet.</li>
+				</bx:if>
+			</ul>
+		</div>
+	</div>
+</div>

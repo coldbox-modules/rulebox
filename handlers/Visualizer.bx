@@ -1,0 +1,203 @@
+/**
+ * The Rule Visualizer admin UI: a dashboard, per-rulebook chain visualization, a dry-run
+ * playground, metrics/stats, and a live SSE tracker.
+ *
+ * Entirely inert unless moduleSettings.rulebox.visualizer.enabled is true - every action here
+ * 404s while it's off. RuleBox does not secure these routes itself; wrap
+ * "/rulebox-visualizer" (or your own cbSecurity rule) once you enable it.
+ */
+class{
+
+	this.layout = "Visualizer"
+
+	@inject( "coldbox:moduleSettings:rulebox" )
+	property name="settings" type="struct";
+
+	@inject( "wirebox" )
+	property name="wirebox";
+
+	@inject( "RuleBookRegistry@rulebox" )
+	property name="registry";
+
+	@inject( "RuleEventBus@rulebox" )
+	property name="eventBus";
+
+	/**
+	 * Runs before every action in this handler: 404s the whole visualizer while it's disabled, and
+	 * seeds prc with the settings the shared layout needs (sidebar datasource badge).
+	 */
+	function preHandler( event, rc, prc, action, eventArguments ){
+		if( !variables.settings.visualizer.enabled ){
+			event.renderData(
+				type       = "json",
+				data       = { error: "The Rule Visualizer is disabled. Enable it via moduleSettings.rulebox.visualizer.enabled." },
+				statusCode = 404
+			)
+			event.noExecution()
+			return
+		}
+		prc.visualizerSettings = variables.settings.visualizer
+	}
+
+	/**
+	 * Dashboard: every declared rulebook with its rule count and evaluation summary, plus a
+	 * recent-activity feed.
+	 */
+	function index( event, rc, prc ){
+		var store = getMetricsStore()
+		var names = registry.getRuleBookNames()
+
+		// A declared rulebook (bad file path, unregistered action, ...) failing to build shouldn't
+		// take the whole dashboard down with it - report it inline instead.
+		prc.rulebooks = names.map( ( name ) => {
+			var summary = store.queryRuleBookSummary( name )
+			try{
+				summary[ "ruleCount" ] = registry.getRuleBook( name ).getRules().len()
+			} catch( any e ){
+				summary[ "ruleCount" ] = 0
+				summary[ "loadError" ] = e.message
+			}
+			return summary
+		} )
+		prc.recentEvents = store.queryEvents( limit=10 )
+		prc.totalRuleBooks = names.len()
+		prc.totalRules     = prc.rulebooks.reduce( ( sum, rb ) => sum + rb.ruleCount, 0 )
+		prc.totalEvaluations = prc.rulebooks.reduce( ( sum, rb ) => sum + rb.totalEvaluations, 0 )
+	}
+
+	/**
+	 * Rule chain visualizer for one rulebook (rc.name), in real execution order.
+	 */
+	function chain( event, rc, prc ){
+		param name="rc.name" default=""
+
+		if( !rc.name.len() || !registry.getRuleBookNames().contains( rc.name ) ){
+			event.renderData( data={ error: "Unknown rulebook '#rc.name#'." }, statusCode=404, type="json" )
+			return
+		}
+
+		var store    = getMetricsStore()
+		var ruleBook = registry.getRuleBook( rc.name )
+
+		prc.rulebookName   = rc.name
+		prc.rulebookNames  = registry.getRuleBookNames()
+		prc.chain          = walkChain( ruleBook )
+		prc.chain.each( ( node ) => {
+			node[ "metrics" ] = store.queryRuleMetrics( rc.name, node.name )
+		} )
+	}
+
+	/**
+	 * Dry-run playground shell (rc.name is optional - the view lets you pick a rulebook).
+	 */
+	function dryrun( event, rc, prc ){
+		prc.rulebookNames = registry.getRuleBookNames()
+	}
+
+	/**
+	 * JSON action backing the dry-run playground: POST { name, facts } -> RuleBook.dryRun() report.
+	 */
+	function runDryRun( event, rc, prc ){
+		param name="rc.name" default=""
+		param name="rc.facts" default="{}"
+
+		if( !rc.name.len() || !registry.getRuleBookNames().contains( rc.name ) ){
+			event.renderData( data={ error: "Unknown rulebook '#rc.name#'." }, statusCode=404, type="json" )
+			return
+		}
+
+		var facts = isStruct( rc.facts ) ? rc.facts : jsonDeserialize( rc.facts )
+		var ruleBook = registry.getRuleBook( rc.name )
+
+		event.renderData( data=ruleBook.dryRun( facts ), type="json" )
+	}
+
+	/**
+	 * Metrics/stats dashboard shell.
+	 */
+	function metrics( event, rc, prc ){
+		prc.rulebookNames = registry.getRuleBookNames()
+	}
+
+	/**
+	 * JSON action backing the metrics dashboard: rc.name -> rulebook summary, else recent events.
+	 */
+	function apiMetrics( event, rc, prc ){
+		param name="rc.name" default=""
+		var store = getMetricsStore()
+
+		if( rc.name.len() ){
+			event.renderData( data=store.queryRuleBookSummary( rc.name ), type="json" )
+			return
+		}
+
+		event.renderData( data=store.queryEvents( limit=100 ), type="json" )
+	}
+
+	/**
+	 * Live tracker shell - opens an EventSource against stream().
+	 */
+	function live( event, rc, prc ){
+	}
+
+	/**
+	 * SSE stream of every rule-evaluation event, as it happens, across all rulebooks.
+	 */
+	function stream( event, rc, prc ){
+		var queue = createObject( "java", "java.util.concurrent.LinkedBlockingQueue" ).init()
+		var bus   = variables.eventBus
+		var token = bus.subscribe( ( evt ) => queue.offer( evt ) )
+
+		SSE(
+			callback: ( emitter ) => {
+				try{
+					while( !emitter.isClosed() ){
+						var evt = queue.poll( 1000, createObject( "java", "java.util.concurrent.TimeUnit" ).MILLISECONDS )
+						if( !isNull( evt ) ){
+							emitter.send( evt, "rule" )
+						}
+					}
+				} finally {
+					bus.unsubscribe( token )
+				}
+			},
+			async: true,
+			keepAliveInterval: 15000,
+			timeout: 0
+		)
+	}
+
+	/**
+	 * Resolve the configured metrics store fresh each call - cheap (WireBox singleton lookup) and
+	 * keeps the handler correct even if the setting changes between requests.
+	 */
+	private any function getMetricsStore(){
+		return wirebox.getInstance( variables.settings.visualizer.metricsStore )
+	}
+
+	/**
+	 * Walk a RuleBook's real execution chain (head -> nextRule...), returning display-ready structs.
+	 */
+	private array function walkChain( required ruleBook ){
+		var out = []
+
+		if( !arguments.ruleBook.hasRules() ){
+			return out
+		}
+
+		var current = arguments.ruleBook.getHeadRule()
+		while( !isNull( current ) ){
+			out.append( {
+				"name"        : current.getName(),
+				"priority"    : current.getPriority(),
+				"stops"       : current.getCurrentState() == current.STATES.STOP,
+				"activeFrom"  : isNull( current.getActiveFrom() ) ? "" : dateTimeFormat( current.getActiveFrom(), "yyyy-mm-dd'T'HH:nn:ss" ),
+				"activeUntil" : isNull( current.getActiveUntil() ) ? "" : dateTimeFormat( current.getActiveUntil(), "yyyy-mm-dd'T'HH:nn:ss" )
+			} )
+			current = current.getNextRule()
+		}
+
+		return out
+	}
+
+}

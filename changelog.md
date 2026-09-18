@@ -31,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `InlineRuleSource`: a `RuleSource` backed by a literal array of rule-definition structs, no file or database
 - A `ruleBook( name )` application helper mixin, available in handlers/views/layouts
 - A `rulebook`/`rulebook:{name}` WireBox injection DSL: `rulebook` injects the `RuleBookRegistry` singleton, `rulebook:{name}` injects a provider (`.get()`) for that declared rulebook so it stays safe to inject even into a singleton
+- The Rule Visualizer: an admin UI (dashboard, per-rulebook chain visualization, a dry-run playground, metrics/stats, and a live SSE tracker), off by default. Enable it with `moduleSettings.rulebox.visualizer.enabled = true` - RuleBox doesn't secure it on its own, so wrap it with cbSecurity (or your own auth) once enabled. Built on Bootstrap 5, Alpine.js, and Phosphor Icons via CDN. See the "Rule Visualizer" guide
+- `IMetricsStore@rulebox`: the visualizer's metrics persistence contract, with `InMemoryMetricsStore` (fallback, no I/O) and `SQLiteMetricsStore` (default, via the `bx-sqlite` module) implementations. Swap in your own via `moduleSettings.rulebox.visualizer.metricsStore`
+- `RuleEventBus@rulebox`: fans out one event per rule evaluation to the configured metrics store and any live subscribers (the visualizer's SSE stream). A complete no-op while the visualizer is disabled
 
 ### Fixed
 

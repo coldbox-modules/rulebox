@@ -18,6 +18,9 @@ class {
 	this.dependencies 		= []
 	// Global application helper mixins (handlers/views/layouts): ruleBook( name )
 	this.applicationHelper	= [ "mixins/Helpers.bxm" ]
+	// Enables convention-based routing for the visualizer's handler/views under /rulebox-visualizer.
+	// The visualizer itself stays inert (routes 404, no events recorded) unless settings.visualizer.enabled = true.
+	this.entryPoint			= "rulebox-visualizer"
 
 	/**
 	* Configure Module
@@ -28,7 +31,23 @@ class {
 			// See the "Externalized Rule Definitions" guide for the full settings shape.
 			rulebooks      = {},
 			// *.json/*.yaml files dropped here are auto-discovered; name = filename without extension
-			conventionPath = "config/rulebox"
+			conventionPath = "config/rulebox",
+
+			// The Rule Visualizer: a dashboard/dry-run/metrics/live-tracker admin UI, off by default.
+			// Secure it yourself (e.g. with cbSecurity) once enabled - RuleBox doesn't gate access on its own.
+			// See the "Rule Visualizer" guide for the full settings shape.
+			visualizer = {
+				// Master switch. While false, the visualizer's routes 404 and no rule events are
+				// recorded or broadcast at all - flipping this on is the only thing that turns on
+				// the (small) per-rule-evaluation bookkeeping cost.
+				enabled        = false,
+				// WireBox mapping ID for the metrics persistence store. Swap in your own by
+				// implementing IMetricsStore@rulebox and pointing this at its mapping.
+				metricsStore   = "SQLiteMetricsStore@rulebox",
+				// Datasource name the default SQLiteMetricsStore reads/writes. Requires the
+				// bx-sqlite module and a matching datasource to be registered in your app.
+				datasourceName = "rulebox_visualizer"
+			}
 		}
 	}
 

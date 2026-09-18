@@ -1,0 +1,68 @@
+<div x-data="rbLive( '#event.buildLink( 'visualizer.stream' )#' )" x-init="start()">
+	<div class="d-flex align-items-center justify-content-between mb-4">
+		<h1 class="h3 mb-0">Live Tracker</h1>
+		<div class="d-flex align-items-center gap-2">
+			<span class="badge" :class="connected ? 'text-bg-success' : 'text-bg-secondary'">
+				<i class="ph ph-broadcast"></i> <span x-text="connected ? 'Live' : 'Connecting'"></span>
+			</span>
+			<span class="text-secondary small">Streaming via BoxLang SSE</span>
+			<button class="btn btn-sm btn-outline-light" @click="paused ? resume() : pause()">
+				<i class="ph" :class="paused ? 'ph-play' : 'ph-pause'"></i>
+				<span x-text="paused ? 'Resume' : 'Pause'"></span>
+			</button>
+		</div>
+	</div>
+
+	<div class="card bg-body-tertiary">
+		<div class="table-responsive" style="max-height: 70vh">
+			<table class="table table-sm table-hover align-middle mb-0 font-monospace">
+				<thead class="sticky-top bg-body-tertiary">
+					<tr><th>Time</th><th>Rulebook</th><th>Rule</th><th>State</th><th>Duration</th></tr>
+				</thead>
+				<tbody>
+					<template x-for="(evt, i) in events" :key="i">
+						<tr>
+							<td x-text="evt.timestamp"></td>
+							<td x-text="evt.rulebookName"></td>
+							<td x-text="evt.ruleName"></td>
+							<td>
+								<span class="badge border" :class="'rb-badge-' + evt.state" x-text="evt.state"></span>
+							</td>
+							<td x-text="Number( evt.durationMs ).toFixed( 2 ) + 'ms'"></td>
+						</tr>
+					</template>
+					<tr x-show="!events.length">
+						<td colspan="5" class="text-secondary text-center py-4">Waiting for rule evaluations&hellip; run a rulebook to see events here.</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+
+<script>
+	function rbLive( streamUrl ){
+		return {
+			events: [],
+			connected: false,
+			paused: false,
+			source: null,
+			maxRows: 200,
+			start(){
+				this.source = new EventSource( streamUrl )
+				this.source.addEventListener( 'open', () => this.connected = true )
+				this.source.addEventListener( 'error', () => this.connected = false )
+				this.source.addEventListener( 'rule', ( e ) => {
+					if( this.paused ) return
+					const evt = JSON.parse( e.data )
+					this.events.unshift( evt )
+					if( this.events.length > this.maxRows ){
+						this.events.length = this.maxRows
+					}
+				} )
+			},
+			pause(){ this.paused = true },
+			resume(){ this.paused = false }
+		}
+	}
+</script>

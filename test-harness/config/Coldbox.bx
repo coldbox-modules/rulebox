@@ -44,6 +44,20 @@
 		interceptors = [
 		];
 
+		// Test-harness override: the Rule Visualizer is enabled here (default off in the
+		// module) so its handler/event-flow can be exercised by the test suite. Uses the
+		// in-memory metrics store suite-wide so every existing RuleBook/Rule spec exercises the
+		// event bus wiring for free, without giving the whole suite a SQLite/bx-sqlite dependency.
+		// SQLiteMetricsStoreSpec covers the default store in isolation instead.
+		moduleSettings = {
+			rulebox = {
+				visualizer = {
+					enabled      = true,
+					metricsStore = "InMemoryMetricsStore@rulebox"
+				}
+			}
+		};
+
 		//LogBox DSL
 		logBox = {
 			// Define Appenders
