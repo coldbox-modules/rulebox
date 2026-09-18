@@ -27,7 +27,7 @@ class extends="tests.resources.BaseSpec"{
 
 			it( "resolves a string entry as a rule-source file path", function(){
 				var registry = newRegistry( {
-					rulebooks : { "credit" : "tests/resources/rules/credit-rules.json" }
+					rulebooks : { "credit" : "tests/resources/rules/no-action-rules.json" }
 				} );
 
 				var ruleBook = registry.getRuleBook( "credit" );
@@ -152,8 +152,8 @@ class extends="tests.resources.BaseSpec"{
 		describe( "The ruleBook() application helper mixin", function(){
 
 			it( "is available in handlers and builds a declared rulebook by name", function(){
-				var event = execute( event = "main.ruleboxMixinTest", renderResults = false );
-				expect( event.getHandlerResults() ).toBe( "testconvention" );
+				var event = execute( event = "main.ruleboxMixinTest", renderResults = true );
+				expect( event.getRenderedContent() ).toBe( "testconvention" );
 			} );
 
 		} );
