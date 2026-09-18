@@ -20,9 +20,6 @@ class{
 	@inject( "RuleEventBus@rulebox" )
 	property name="eventBus";
 
-	@inject( "logbox:logger:{this}" )
-	property name="logger";
-
 	this.layout = "Visualizer"
 
 	/**
@@ -54,21 +51,14 @@ class{
 	}
 
 	/**
-	 * TEMPORARY diagnostic - logs resolved layout/view state after every action so a CI run
-	 * reveals what ColdBox actually resolved. Remove once the dashboard/chain rendering issue
-	 * is root-caused.
-	 */
-	function postHandler( event, rc, prc, action, eventArguments ){
-		logger.error(
-			"RULEBOX_DIAG action=#arguments.action# layout=#event.getCurrentLayout()# layoutModule=#event.getCurrentLayoutModule()# view=#event.getCurrentView()# viewModule=#event.getCurrentViewModule()# currentModule=#event.getCurrentModule()#"
-		)
-	}
-
-	/**
 	 * Dashboard: every declared rulebook with its rule count and evaluation summary, plus a
 	 * recent-activity feed.
 	 */
 	function index( event, rc, prc ){
+		// TEMPORARY diagnostic - direct stdout write (bypasses LogBox entirely) so a CI run
+		// reveals what ColdBox actually resolved. Remove once the rendering issue is root-caused.
+		systemOutput( "RULEBOX_DIAG layout=#event.getCurrentLayout()# layoutModule=#event.getCurrentLayoutModule()# view=#event.getCurrentView()# viewModule=#event.getCurrentViewModule()# currentModule=#event.getCurrentModule()#", true )
+
 		var store = getMetricsStore()
 		var names = registry.getRuleBookNames()
 
