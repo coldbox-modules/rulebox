@@ -85,7 +85,7 @@ class{
 			try{
 				variables.metricsStore.recordEvent( arguments.event )
 			} catch( any e ){
-				logger.error( "RuleBox visualizer's metrics store failed to record an event: #e.message#", e )
+				logger.error( "RuleBox visualizer's metrics store failed to record an event: #e.message# #e.detail#" )
 			}
 		}
 
@@ -113,8 +113,7 @@ class{
 		} catch( any e ){
 			variables.metricsStoreFailed = true
 			logger.error(
-				"RuleBox visualizer could not resolve its configured metricsStore '#variables.settings.visualizer.metricsStore#'. Events will still broadcast live, but nothing will be persisted. #e.message#",
-				e
+				"RuleBox visualizer could not resolve its configured metricsStore '#variables.settings.visualizer.metricsStore#'. Events will still broadcast live, but nothing will be persisted. #e.message# #e.detail#"
 			)
 		}
 	}

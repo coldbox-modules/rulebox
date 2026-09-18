@@ -43,8 +43,7 @@ class implements="IMetricsStore"{
 			)
 		} catch( any e ){
 			logger.error(
-				"RuleBox visualizer could not create/verify its SQLite schema on datasource '#variables.datasourceName#'. Is the bx-sqlite module installed and is that datasource registered? #e.message#",
-				e
+				"RuleBox visualizer could not create/verify its SQLite schema on datasource '#variables.datasourceName#'. Is the bx-sqlite module installed and is that datasource registered? #e.message# #e.detail#"
 			)
 		}
 	}
