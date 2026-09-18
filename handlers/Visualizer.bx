@@ -37,6 +37,11 @@ class{
 			return
 		}
 		prc.visualizerSettings = variables.settings.visualizer
+
+		// this.layout is not reliably picked up as a handler convention in every environment
+		// this module runs in (seen in this repo's own test-harness) - setting it explicitly at
+		// request time is the documented, always-supported way to select a module layout.
+		event.setLayout( name="Visualizer", module="rulebox" )
 	}
 
 	/**
