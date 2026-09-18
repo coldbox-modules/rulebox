@@ -42,6 +42,12 @@ class{
 		// this module runs in (seen in this repo's own test-harness) - setting it explicitly at
 		// request time is the documented, always-supported way to select a module layout.
 		event.setLayout( name="Visualizer", module="rulebox" )
+
+		// ColdBox's implicit view discovery (used when no view is explicitly set) resolves the
+		// view name correctly but always resets the view's *module* to "" - so a module's own
+		// view never gets found unless something sets it explicitly first. Matches the same
+		// {event-name-without-module-prefix} convention ColdBox's own discovery would compute.
+		event.setView( view="visualizer/#arguments.action#", module="rulebox" )
 	}
 
 	/**
