@@ -1,3 +1,4 @@
+<bx:output>
 <h1 class="h3 mb-4">Dashboard</h1>
 
 <div class="row g-3 mb-4">
@@ -26,6 +27,7 @@
 		</div>
 	</div>
 </div>
+</bx:output>
 
 <div class="row g-3">
 	<div class="col-lg-8">
@@ -47,6 +49,7 @@
 					</thead>
 					<tbody>
 						<bx:loop array="#prc.rulebooks#" index="rb">
+						<bx:output>
 							<tr>
 								<td class="fw-medium">
 									#rb.rulebookName#
@@ -58,7 +61,9 @@
 								<td>#numberFormat( rb.totalEvaluations )#</td>
 								<td>
 									<bx:loop collection="#rb.countsByState#" item="state">
+									<bx:output>
 										<span class="badge border rb-badge-#state# me-1">#state#: #rb.countsByState[ state ]#</span>
+									</bx:output>
 									</bx:loop>
 									<bx:if rb.countsByState.isEmpty()>
 										<span class="text-secondary">no runs yet</span>
@@ -71,6 +76,7 @@
 									</a>
 								</td>
 							</tr>
+						</bx:output>
 						</bx:loop>
 						<bx:if prc.rulebooks.isEmpty()>
 							<tr><td colspan="6" class="text-secondary text-center py-4">No rulebooks declared yet. See moduleSettings.rulebox.rulebooks.</td></tr>
@@ -85,6 +91,7 @@
 			<div class="card-header">Recent activity</div>
 			<ul class="list-group list-group-flush">
 				<bx:loop array="#prc.recentEvents#" index="evt">
+				<bx:output>
 					<li class="list-group-item bg-transparent d-flex align-items-center gap-2">
 						<span class="rb-state-dot rb-state-#evt.state#"></span>
 						<div class="flex-grow-1">
@@ -92,6 +99,7 @@
 							<div class="text-secondary" style="font-size:.75rem">#evt.state# &middot; #numberFormat( evt.durationMs, "0.00" )#ms</div>
 						</div>
 					</li>
+				</bx:output>
 				</bx:loop>
 				<bx:if prc.recentEvents.isEmpty()>
 					<li class="list-group-item bg-transparent text-secondary">No activity recorded yet.</li>

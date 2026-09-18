@@ -1,3 +1,4 @@
+<bx:output>
 <h1 class="h3 mb-4">Dry Run</h1>
 
 <div
@@ -84,3 +85,4 @@
 		}
 	}
 </script>
+</bx:output>

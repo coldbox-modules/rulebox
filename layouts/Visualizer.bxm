@@ -41,6 +41,7 @@
 	</style>
 </head>
 <body>
+<bx:output>
 	<div class="d-flex rb-shell">
 		<nav class="rb-sidebar flex-shrink-0 p-3 d-flex flex-column">
 			<div class="d-flex align-items-center gap-2 mb-4 px-2">
@@ -91,3 +92,4 @@
 	</div>
 </body>
 </html>
+</bx:output>

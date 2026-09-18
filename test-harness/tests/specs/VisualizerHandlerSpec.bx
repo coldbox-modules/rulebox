@@ -1,41 +1,31 @@
 /**
- * Integration tests for handlers/Visualizer.bx: the enabled/disabled gate, its prepared view data,
- * and its JSON-returning actions. The test-harness enables the visualizer suite-wide
- * (test-harness/config/Coldbox.bx) with the in-memory metrics store, and declares two rulebooks
- * via convention (test-harness/config/rulebox/*.json): "testconvention" (loads cleanly) and
- * "needsaction" (references an unregistered action, so it fails to load - used to prove the
- * dashboard survives one bad rulebook).
+ * Integration tests for handlers/Visualizer.bx: the enabled/disabled gate and its JSON-returning
+ * actions. The test-harness enables the visualizer suite-wide (test-harness/config/Coldbox.bx)
+ * with the in-memory metrics store, and declares two rulebooks via convention
+ * (test-harness/config/rulebox/*.json): "testconvention" (loads cleanly) and "needsaction"
+ * (references an unregistered action, so it fails to load - used to prove the dashboard
+ * survives one bad rulebook).
  */
 class extends="tests.resources.BaseSpec"{
 
 	function run( testResults, testBox ){
 		describe( "Visualizer handler", function(){
 
-			it( "prepares the dashboard with every declared rulebook, even one that fails to load", function(){
-				// Asserts on prc (the data the handler hands to the view) rather than rendered
-				// HTML: TestBox's execute() renders module-owned layouts/views through a
-				// different pipeline than a real request, and can't be relied on to produce the
-				// final HTML for this handler's own layout+view combo. The handler's actual
-				// contract - what data it prepares - is what's under test here.
-				var event = execute( event="rulebox:visualizer.index", renderResults=true );
-				var prc   = event.getPrivateCollection();
-				var names = prc.rulebooks.map( ( rb ) => rb.rulebookName );
+			it( "renders the dashboard with every declared rulebook, even one that fails to load", function(){
+				var event   = execute( event="rulebox:visualizer.index", renderResults=true );
+				var content = event.getRenderedContent();
 
-				expect( names ).toInclude( "testconvention" );
-				expect( names ).toInclude( "needsaction" );
-
-				var failedOne = prc.rulebooks.filter( ( rb ) => rb.rulebookName == "needsaction" )[ 1 ];
-				expect( failedOne ).toHaveKey( "loadError" );
+				expect( content ).toInclude( "testconvention" );
+				expect( content ).toInclude( "needsaction" );
+				expect( content ).toInclude( "Dashboard" );
 			} );
 
-			it( "walks the chain visualizer for a declared rulebook in execution order", function(){
-				// See the note above the dashboard test - asserts on prc, not rendered HTML.
+			it( "renders the chain visualizer for a declared rulebook in execution order", function(){
 				url.name = "testconvention";
-				var event = execute( event="rulebox:visualizer.chain", renderResults=true );
-				var prc   = event.getPrivateCollection();
+				var event   = execute( event="rulebox:visualizer.chain", renderResults=true );
+				var content = event.getRenderedContent();
 
-				var ruleNames = prc.chain.map( ( node ) => node.name );
-				expect( ruleNames ).toInclude( "conventionRule" );
+				expect( content ).toInclude( "conventionRule" );
 			} );
 
 			it( "runDryRun() returns a dryRun() report as JSON", function(){
