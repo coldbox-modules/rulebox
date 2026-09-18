@@ -20,6 +20,9 @@ class{
 	@inject( "RuleEventBus@rulebox" )
 	property name="eventBus";
 
+	@inject( "logbox:logger:{this}" )
+	property name="logger";
+
 	this.layout = "Visualizer"
 
 	/**
@@ -48,6 +51,17 @@ class{
 		// view never gets found unless something sets it explicitly first. Matches the same
 		// {event-name-without-module-prefix} convention ColdBox's own discovery would compute.
 		event.setView( view="visualizer/#arguments.action#", module="rulebox" )
+	}
+
+	/**
+	 * TEMPORARY diagnostic - logs resolved layout/view state after every action so a CI run
+	 * reveals what ColdBox actually resolved. Remove once the dashboard/chain rendering issue
+	 * is root-caused.
+	 */
+	function postHandler( event, rc, prc, action, eventArguments ){
+		logger.error(
+			"RULEBOX_DIAG action=#arguments.action# layout=#event.getCurrentLayout()# layoutModule=#event.getCurrentLayoutModule()# view=#event.getCurrentView()# viewModule=#event.getCurrentViewModule()# currentModule=#event.getCurrentModule()#"
+		)
 	}
 
 	/**
