@@ -14,7 +14,7 @@
     "installPaths":{
         "coldbox":"coldbox/",
         "testbox":"testbox/",
-        "bx-sqlite":"modules/bx-sqlite/"
+        "bx-sqlite":"../.boxlang/modules/bx-sqlite/"
     },
     "testbox":{
         "runner":"http://localhost:60299/tests/runner.cfm"
