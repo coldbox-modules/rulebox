@@ -36,7 +36,7 @@
 	</script>
 	<link rel="stylesheet" href="/assets/vendor/bootstrap/bootstrap.min.css">
 	<link rel="stylesheet" href="/assets/vendor/highlight/github.min.css">
-	<link rel="stylesheet" href="/assets/theme/style.08f867df.css">
+	<link rel="stylesheet" href="/assets/theme/style.de0a3c16.css">
 	
 
 	<style>
@@ -124,12 +124,12 @@ Auditing Rules</h1>
 	<p class="page-summary">Track which rules fired, skipped, stopped, or failed - or preview it with dryRun&#x28;&#x29;.</p>
 
 
-	<div class="page-tags mb-3"><a class="page-tag" href="/tags/index.html#tag-guides">guides</a><a class="page-tag" href="/tags/index.html#tag-auditing">auditing</a><a class="page-tag" href="/tags/index.html#tag-dry-run">dry-run</a></div>
+	<div class="page-tags mb-3"><a class="page-tag" href="/tags/index.html#tag-guides">guides</a><a class="page-tag" href="/tags/index.html#tag-auditing">auditing</a><a class="page-tag" href="/tags/index.html#tag-dry-run">dry-run</a><a class="page-tag" href="/tags/index.html#tag-metrics">metrics</a></div>
 
 
 
 
-	<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#rule-states">Rule states</a></li><li class="toc-level-2"><a href="#reading-the-audit-trail">Reading the audit trail</a></li><li class="toc-level-2"><a href="#dry-run--explain-mode">Dry-run &#x2f; explain mode</a></li></ul></details>
+	<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#rule-states">Rule states</a></li><li class="toc-level-2"><a href="#reading-the-audit-trail">Reading the audit trail</a></li><li class="toc-level-2"><a href="#dry-run--explain-mode">Dry-run &#x2f; explain mode</a></li><li class="toc-level-2"><a href="#rule-metrics">Rule metrics</a></li></ul></details>
 
 					<h1 id="auditing-rules"><a href="#auditing-rules" id="auditing-rules" name="auditing-rules" class="anchor"></a>Auditing Rules</h1>
 <p>Rule auditing tells you which rules fired and which didn't. A <code>RuleBook</code>
@@ -201,9 +201,46 @@ doesn't require being attached to a <code>RuleBook</code> first:</p>
 
 // { &quot;name&quot; : &quot;...&quot;, &quot;wouldExecute&quot; : true, &quot;wouldStop&quot; : true }
 </code></pre>
+<h2 id="rule-metrics"><a href="#rule-metrics" id="rule-metrics" name="rule-metrics" class="anchor"></a>Rule metrics</h2>
+<p>While the audit trail tells you what happened on the <em>last</em> <code>run()</code>,
+<code>RuleBook</code> also keeps running execution metrics per rule, accumulated
+across every <code>run()</code> call on the instance - meant to be fed straight into
+a dashboard:</p>
+<pre><code class="language-js">metrics = ruleBook.getRuleMetrics( &quot;creditScoreAdjustment&quot; )
+writeDump( metrics )
+</code></pre>
+<pre><code class="language-js">{
+	&quot;name&quot;             : &quot;creditScoreAdjustment&quot;,
+	&quot;totalEvaluations&quot; : 42,
+	&quot;countsByState&quot;    : { &quot;EXECUTED&quot; : 30, &quot;SKIPPED&quot; : 10, &quot;STOPPED&quot; : 1, &quot;FAILED&quot; : 1 },
+	&quot;totalDurationMs&quot;  : 1234,
+	&quot;minDurationMs&quot;    : 2,
+	&quot;maxDurationMs&quot;    : 55,
+	&quot;lastDurationMs&quot;   : 8,
+	&quot;firstRunAt&quot;       : {ts '...'},
+	&quot;lastRunAt&quot;        : {ts '...'}
+}
+</code></pre>
+<ul>
+<li><code>countsByState</code> uses the same <code>RULE_STATES</code> values as the audit trail</li>
+<li>Duration covers the whole evaluation - <code>when()</code>/<code>except()</code> plus any
+<code>then()</code> consumers that ran - so a rule that's slow to <em>check</em> shows up
+even when it never fires</li>
+<li>A rule that's never been evaluated (or doesn't exist) returns the same
+shape with <code>totalEvaluations: 0</code> and no <code>firstRunAt</code>/<code>lastRunAt</code>, rather
+than throwing</li>
+<li><code>dryRun()</code> never records metrics, same as it never touches the audit trail</li>
+</ul>
+<p>Get every rule's metrics in one call with <code>ruleBook.getRuleMetricsMap()</code> -
+a struct of <code>name → metrics</code>, plain enough to serialize straight to JSON
+for a dashboard endpoint.</p>
+<p>Unlike the status map, metrics are <strong>not</strong> reset by <code>run()</code> - they're a
+running history for the instance's lifetime. Clear them explicitly with:</p>
+<pre><code class="language-js">ruleBook.resetMetrics()
+</code></pre>
 
 
-	<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/auditing.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/auditing.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Sep 17, 2026, 8&#x3a;37&#x3a;07 PM</span></div>
+	<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/auditing.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/auditing.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Sep 18, 2026, 12&#x3a;55&#x3a;33 PM</span></div>
 
 				</article>
 
@@ -226,7 +263,7 @@ doesn't require being attached to a <code>RuleBook</code> first:</p>
 			</main>
 
 			<aside class="col-xl-2 toc-sidebar d-none d-xl-block">
-				<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#rule-states">Rule states</a></li><li class="toc-level-2"><a href="#reading-the-audit-trail">Reading the audit trail</a></li><li class="toc-level-2"><a href="#dry-run--explain-mode">Dry-run &#x2f; explain mode</a></li></ul></nav>
+				<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#rule-states">Rule states</a></li><li class="toc-level-2"><a href="#reading-the-audit-trail">Reading the audit trail</a></li><li class="toc-level-2"><a href="#dry-run--explain-mode">Dry-run &#x2f; explain mode</a></li><li class="toc-level-2"><a href="#rule-metrics">Rule metrics</a></li></ul></nav>
 			</aside>
 
 		</div>
@@ -260,6 +297,7 @@ doesn't require being attached to a <code>RuleBook</code> first:</p>
 
 	<script src="/assets/vendor/mermaid/mermaid.min.js"></script>
 	<script src="/assets/mermaid-init.js"></script>
+
 
 
 

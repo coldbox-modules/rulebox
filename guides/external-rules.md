@@ -25,6 +25,8 @@ of rule-definition structs. Each struct can contain:
 |---|---|---|
 | `name` | No | The rule's name, used for [auditing](auditing.md). Defaults like any other rule if omitted |
 | `priority` | No | See [Rule Priority](the-dsl.md). Defaults to `0` |
+| `activeFrom` | No | See [active()](the-dsl.md#active). Left open-ended if omitted |
+| `activeUntil` | No | See [active()](the-dsl.md#active). Left open-ended if omitted |
 | `when` | No | A [condition node](#the-condition-tree-grammar) or a [predicate reference](#the-predicate-and-action-registries). Defaults to always-true |
 | `except` | No | Same shape as `when`, negated |
 | `then` | No | An array of [action references](#the-predicate-and-action-registries). Defaults to none |
@@ -177,16 +179,18 @@ test code that uses `DBRuleSource`:
 ruleBook.loadRules( new rulebox.models.DBRuleSource( query = myQuery ) )
 ```
 
-Expected columns: `name`, `priority`, `when_json`, `except_json`
-(optional), `then_json`, `stop`, `using_facts` (optional, a
-comma-delimited list of fact names). `when_json`/`except_json`/`then_json`
-hold the same condition-tree/action JSON used by `JSONRuleSource`, stored
-as text:
+Expected columns: `name`, `priority`, `active_from` (optional),
+`active_until` (optional), `when_json`, `except_json` (optional),
+`then_json`, `stop`, `using_facts` (optional, a comma-delimited list of
+fact names). `when_json`/`except_json`/`then_json` hold the same
+condition-tree/action JSON used by `JSONRuleSource`, stored as text:
 
 | Column | Maps to |
 |---|---|
 | `name` | `name` |
 | `priority` | `priority` |
+| `active_from` | `activeFrom` (optional) |
+| `active_until` | `activeUntil` (optional) |
 | `when_json` | `when` (deserialized) |
 | `except_json` | `except` (deserialized, optional) |
 | `then_json` | `then` (deserialized) |
@@ -198,3 +202,93 @@ as text:
 Any object with a `load()` method returning an array of rule-definition
 structs works with `loadRules()` - a REST call, a config service, a cache,
 whatever fits. There's no interface to implement.
+
+## Reloading rules manually
+
+`loadRules()` is a one-shot call you make explicitly - RuleBox never
+watches a file or table for changes on its own. To pick up edits, call
+`reloadRules()` whenever you decide it's time (a scheduled task, an admin
+action, whatever fits your app):
+
+```js
+ruleBook.reloadRules( new rulebox.models.JSONRuleSource( "/path/to/rules.json" ) )
+```
+
+`reloadRules()` is `clearRules()` (wipe the current rule chain and audit
+trail) followed by `loadRules( source )`. Registries
+(`registerAction()`/`registerPredicate()`) and [rule metrics](auditing.md#rule-metrics)
+are untouched - `clearRules()` only touches rules.
+
+## Declaring rulebooks in config
+
+For apps with several named rulebooks, `RuleBookRegistry` builds them from
+config instead of hand-writing `registerAction()`/`loadRules()` calls for
+each one. Declare them under `moduleSettings.rulebox.rulebooks` in your
+app's ColdBox config:
+
+```js
+moduleSettings = {
+	rulebox = {
+		rulebooks = {
+			// A string is a rule-source file path - JSON/YAML inferred from the extension.
+			// Relative paths resolve against your app root, no expandPath() needed.
+			"credit" : "config/rules/creditscore.yaml",
+
+			// An array is inline rule definitions - no file at all.
+			"promo" : [
+				{ "name": "blackFriday", "then": [ { "action": "applyDiscount" } ] }
+			],
+
+			// A struct is the full descriptor: source (any of the above, or a DB descriptor),
+			// plus the actions/predicates this rulebook's definitions reference.
+			"shipping" : {
+				"source"     : "config/rules/shipping.json",
+				"actions"    : { "applyDiscount" : "PromoActions@myModule" },
+				"predicates" : { "isEligible" : "PromoPredicates@myModule" }
+			},
+
+			// A DB source needs the struct form, since it can't be expressed as a path or array
+			"fraud" : {
+				"source" : { "type" : "db", "datasource" : "myApp", "sql" : "SELECT * FROM rules WHERE ruleset = 'fraud'" }
+			}
+		}
+	}
+}
+```
+
+`actions`/`predicates` values here can only be WireBox mapping ID strings
+(a closure can't be written in config) - resolved eagerly, same as calling
+`registerAction()`/`registerPredicate()` yourself. If you need a closure
+for a config-declared rulebook, grab it via the registry or DSL below and
+register it yourself before use.
+
+Any `*.json`/`*.yaml` file dropped in the convention folder (default
+`config/rulebox`, override via `conventionPath`) is auto-discovered too -
+the declared name is the filename without its extension. An explicit
+config entry of the same name layers its `actions`/`predicates` on top of
+that discovered file.
+
+### Retrieving a declared rulebook
+
+```js
+// From a model, handler, or anywhere with WireBox access
+getInstance( "RuleBookRegistry@rulebox" ).getRuleBook( "credit" )
+
+// The ruleBook() application helper mixin - available in handlers/views/layouts
+ruleBook( "credit" )
+
+// WireBox injection DSL
+property name="creditRules" inject="rulebook:credit";
+```
+
+Every one of these builds and returns a **fresh** `RuleBook` instance -
+`RuleBookRegistry` never caches a built instance, only the recipe to
+build one, so it stays safe to use from a singleton or across concurrent
+requests. The `inject="rulebook:credit"` form actually injects a small
+provider (`.get()` returns a fresh instance) rather than a live `RuleBook`
+directly - so it's safe to inject even into a singleton, since nothing is
+built until you call `.get()` at the point of use. `inject="rulebook"`
+(no name) injects the `RuleBookRegistry` singleton itself.
+
+Call `getInstance( "RuleBookRegistry@rulebox" ).reload()` to re-scan your
+config and convention folder without restarting.

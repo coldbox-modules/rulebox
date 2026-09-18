@@ -36,7 +36,7 @@
 	</script>
 	<link rel="stylesheet" href="/assets/vendor/bootstrap/bootstrap.min.css">
 	<link rel="stylesheet" href="/assets/vendor/highlight/github.min.css">
-	<link rel="stylesheet" href="/assets/theme/style.08f867df.css">
+	<link rel="stylesheet" href="/assets/theme/style.de0a3c16.css">
 	
 
 	<style>
@@ -129,7 +129,7 @@ Externalized Rule Definitions</h1>
 
 
 
-	<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#the-rule-definition-schema">The rule-definition schema</a></li><li class="toc-level-2"><a href="#the-condition-tree-grammar">The condition tree grammar</a></li><li class="toc-level-2"><a href="#the-predicate-and-action-registries">The predicate and action registries</a></li><li class="toc-level-2"><a href="#jsonrulesource">JSONRuleSource</a></li><li class="toc-level-2"><a href="#yamlrulesource">YAMLRuleSource</a></li><li class="toc-level-2"><a href="#dbrulesource">DBRuleSource</a></li><li class="toc-level-2"><a href="#writing-your-own-source">Writing your own source</a></li></ul></details>
+	<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#the-rule-definition-schema">The rule-definition schema</a></li><li class="toc-level-2"><a href="#the-condition-tree-grammar">The condition tree grammar</a></li><li class="toc-level-2"><a href="#the-predicate-and-action-registries">The predicate and action registries</a></li><li class="toc-level-2"><a href="#jsonrulesource">JSONRuleSource</a></li><li class="toc-level-2"><a href="#yamlrulesource">YAMLRuleSource</a></li><li class="toc-level-2"><a href="#dbrulesource">DBRuleSource</a></li><li class="toc-level-2"><a href="#writing-your-own-source">Writing your own source</a></li><li class="toc-level-2"><a href="#reloading-rules-manually">Reloading rules manually</a></li><li class="toc-level-2"><a href="#declaring-rulebooks-in-config">Declaring rulebooks in config</a></li><li class="toc-level-3"><a href="#retrieving-a-declared-rulebook">Retrieving a declared rulebook</a></li></ul></details>
 
 					<h1 id="externalized-rule-definitions"><a href="#externalized-rule-definitions" id="externalized-rule-definitions" name="externalized-rule-definitions" class="anchor"></a>Externalized Rule Definitions</h1>
 <p>Every rule you've seen so far is written in BoxLang, using the RuleBox
@@ -149,6 +149,8 @@ of rule-definition structs. Each struct can contain:</p>
 <tbody>
 <tr><td><code>name</code></td><td>No</td><td>The rule's name, used for <a href="/guides/auditing/index.html">auditing</a>. Defaults like any other rule if omitted</td></tr>
 <tr><td><code>priority</code></td><td>No</td><td>See <a href="/guides/the-dsl/index.html">Rule Priority</a>. Defaults to <code>0</code></td></tr>
+<tr><td><code>activeFrom</code></td><td>No</td><td>See <a href="/guides/the-dsl/index.html#active">active()</a>. Left open-ended if omitted</td></tr>
+<tr><td><code>activeUntil</code></td><td>No</td><td>See <a href="/guides/the-dsl/index.html#active">active()</a>. Left open-ended if omitted</td></tr>
 <tr><td><code>when</code></td><td>No</td><td>A <a href="#the-condition-tree-grammar">condition node</a> or a <a href="#the-predicate-and-action-registries">predicate reference</a>. Defaults to always-true</td></tr>
 <tr><td><code>except</code></td><td>No</td><td>Same shape as <code>when</code>, negated</td></tr>
 <tr><td><code>then</code></td><td>No</td><td>An array of <a href="#the-predicate-and-action-registries">action references</a>. Defaults to none</td></tr>
@@ -268,11 +270,11 @@ does <strong>not</strong> install for you - install it yourself if you use
 test code that uses <code>DBRuleSource</code>:</p>
 <pre><code class="language-js">ruleBook.loadRules( new rulebox.models.DBRuleSource( query = myQuery ) )
 </code></pre>
-<p>Expected columns: <code>name</code>, <code>priority</code>, <code>when_json</code>, <code>except_json</code>
-(optional), <code>then_json</code>, <code>stop</code>, <code>using_facts</code> (optional, a
-comma-delimited list of fact names). <code>when_json</code>/<code>except_json</code>/<code>then_json</code>
-hold the same condition-tree/action JSON used by <code>JSONRuleSource</code>, stored
-as text:</p>
+<p>Expected columns: <code>name</code>, <code>priority</code>, <code>active_from</code> (optional),
+<code>active_until</code> (optional), <code>when_json</code>, <code>except_json</code> (optional),
+<code>then_json</code>, <code>stop</code>, <code>using_facts</code> (optional, a comma-delimited list of
+fact names). <code>when_json</code>/<code>except_json</code>/<code>then_json</code> hold the same
+condition-tree/action JSON used by <code>JSONRuleSource</code>, stored as text:</p>
 <div class="bxsites-table-wrap"><table class="table">
 <thead>
 <tr><th>Column</th><th>Maps to</th></tr>
@@ -280,6 +282,8 @@ as text:</p>
 <tbody>
 <tr><td><code>name</code></td><td><code>name</code></td></tr>
 <tr><td><code>priority</code></td><td><code>priority</code></td></tr>
+<tr><td><code>active_from</code></td><td><code>activeFrom</code> (optional)</td></tr>
+<tr><td><code>active_until</code></td><td><code>activeUntil</code> (optional)</td></tr>
 <tr><td><code>when_json</code></td><td><code>when</code> (deserialized)</td></tr>
 <tr><td><code>except_json</code></td><td><code>except</code> (deserialized, optional)</td></tr>
 <tr><td><code>then_json</code></td><td><code>then</code> (deserialized)</td></tr>
@@ -291,9 +295,83 @@ as text:</p>
 <p>Any object with a <code>load()</code> method returning an array of rule-definition
 structs works with <code>loadRules()</code> - a REST call, a config service, a cache,
 whatever fits. There's no interface to implement.</p>
+<h2 id="reloading-rules-manually"><a href="#reloading-rules-manually" id="reloading-rules-manually" name="reloading-rules-manually" class="anchor"></a>Reloading rules manually</h2>
+<p><code>loadRules()</code> is a one-shot call you make explicitly - RuleBox never
+watches a file or table for changes on its own. To pick up edits, call
+<code>reloadRules()</code> whenever you decide it's time (a scheduled task, an admin
+action, whatever fits your app):</p>
+<pre><code class="language-js">ruleBook.reloadRules( new rulebox.models.JSONRuleSource( &quot;/path/to/rules.json&quot; ) )
+</code></pre>
+<p><code>reloadRules()</code> is <code>clearRules()</code> (wipe the current rule chain and audit
+trail) followed by <code>loadRules( source )</code>. Registries
+(<code>registerAction()</code>/<code>registerPredicate()</code>) and <a href="/guides/auditing/index.html#rule-metrics">rule metrics</a>
+are untouched - <code>clearRules()</code> only touches rules.</p>
+<h2 id="declaring-rulebooks-in-config"><a href="#declaring-rulebooks-in-config" id="declaring-rulebooks-in-config" name="declaring-rulebooks-in-config" class="anchor"></a>Declaring rulebooks in config</h2>
+<p>For apps with several named rulebooks, <code>RuleBookRegistry</code> builds them from
+config instead of hand-writing <code>registerAction()</code>/<code>loadRules()</code> calls for
+each one. Declare them under <code>moduleSettings.rulebox.rulebooks</code> in your
+app's ColdBox config:</p>
+<pre><code class="language-js">moduleSettings = {
+	rulebox = {
+		rulebooks = {
+			// A string is a rule-source file path - JSON/YAML inferred from the extension.
+			// Relative paths resolve against your app root, no expandPath() needed.
+			&quot;credit&quot; : &quot;config/rules/creditscore.yaml&quot;,
+
+			// An array is inline rule definitions - no file at all.
+			&quot;promo&quot; : [
+				{ &quot;name&quot;: &quot;blackFriday&quot;, &quot;then&quot;: [ { &quot;action&quot;: &quot;applyDiscount&quot; } ] }
+			],
+
+			// A struct is the full descriptor: source (any of the above, or a DB descriptor),
+			// plus the actions/predicates this rulebook's definitions reference.
+			&quot;shipping&quot; : {
+				&quot;source&quot;     : &quot;config/rules/shipping.json&quot;,
+				&quot;actions&quot;    : { &quot;applyDiscount&quot; : &quot;PromoActions@myModule&quot; },
+				&quot;predicates&quot; : { &quot;isEligible&quot; : &quot;PromoPredicates@myModule&quot; }
+			},
+
+			// A DB source needs the struct form, since it can't be expressed as a path or array
+			&quot;fraud&quot; : {
+				&quot;source&quot; : { &quot;type&quot; : &quot;db&quot;, &quot;datasource&quot; : &quot;myApp&quot;, &quot;sql&quot; : &quot;SELECT * FROM rules WHERE ruleset = 'fraud'&quot; }
+			}
+		}
+	}
+}
+</code></pre>
+<p><code>actions</code>/<code>predicates</code> values here can only be WireBox mapping ID strings
+(a closure can't be written in config) - resolved eagerly, same as calling
+<code>registerAction()</code>/<code>registerPredicate()</code> yourself. If you need a closure
+for a config-declared rulebook, grab it via the registry or DSL below and
+register it yourself before use.</p>
+<p>Any <code>*.json</code>/<code>*.yaml</code> file dropped in the convention folder (default
+<code>config/rulebox</code>, override via <code>conventionPath</code>) is auto-discovered too -
+the declared name is the filename without its extension. An explicit
+config entry of the same name layers its <code>actions</code>/<code>predicates</code> on top of
+that discovered file.</p>
+<h3 id="retrieving-a-declared-rulebook"><a href="#retrieving-a-declared-rulebook" id="retrieving-a-declared-rulebook" name="retrieving-a-declared-rulebook" class="anchor"></a>Retrieving a declared rulebook</h3>
+<pre><code class="language-js">// From a model, handler, or anywhere with WireBox access
+getInstance( &quot;RuleBookRegistry@rulebox&quot; ).getRuleBook( &quot;credit&quot; )
+
+// The ruleBook() application helper mixin - available in handlers/views/layouts
+ruleBook( &quot;credit&quot; )
+
+// WireBox injection DSL
+property name=&quot;creditRules&quot; inject=&quot;rulebook:credit&quot;;
+</code></pre>
+<p>Every one of these builds and returns a <strong>fresh</strong> <code>RuleBook</code> instance -
+<code>RuleBookRegistry</code> never caches a built instance, only the recipe to
+build one, so it stays safe to use from a singleton or across concurrent
+requests. The <code>inject=&quot;rulebook:credit&quot;</code> form actually injects a small
+provider (<code>.get()</code> returns a fresh instance) rather than a live <code>RuleBook</code>
+directly - so it's safe to inject even into a singleton, since nothing is
+built until you call <code>.get()</code> at the point of use. <code>inject=&quot;rulebook&quot;</code>
+(no name) injects the <code>RuleBookRegistry</code> singleton itself.</p>
+<p>Call <code>getInstance( &quot;RuleBookRegistry@rulebox&quot; ).reload()</code> to re-scan your
+config and convention folder without restarting.</p>
 
 
-	<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/external-rules.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/external-rules.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Sep 17, 2026, 8&#x3a;37&#x3a;07 PM</span></div>
+	<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/external-rules.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/external-rules.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Sep 18, 2026, 12&#x3a;55&#x3a;33 PM</span></div>
 
 				</article>
 
@@ -316,7 +394,7 @@ whatever fits. There's no interface to implement.</p>
 			</main>
 
 			<aside class="col-xl-2 toc-sidebar d-none d-xl-block">
-				<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#the-rule-definition-schema">The rule-definition schema</a></li><li class="toc-level-2"><a href="#the-condition-tree-grammar">The condition tree grammar</a></li><li class="toc-level-2"><a href="#the-predicate-and-action-registries">The predicate and action registries</a></li><li class="toc-level-2"><a href="#jsonrulesource">JSONRuleSource</a></li><li class="toc-level-2"><a href="#yamlrulesource">YAMLRuleSource</a></li><li class="toc-level-2"><a href="#dbrulesource">DBRuleSource</a></li><li class="toc-level-2"><a href="#writing-your-own-source">Writing your own source</a></li></ul></nav>
+				<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#the-rule-definition-schema">The rule-definition schema</a></li><li class="toc-level-2"><a href="#the-condition-tree-grammar">The condition tree grammar</a></li><li class="toc-level-2"><a href="#the-predicate-and-action-registries">The predicate and action registries</a></li><li class="toc-level-2"><a href="#jsonrulesource">JSONRuleSource</a></li><li class="toc-level-2"><a href="#yamlrulesource">YAMLRuleSource</a></li><li class="toc-level-2"><a href="#dbrulesource">DBRuleSource</a></li><li class="toc-level-2"><a href="#writing-your-own-source">Writing your own source</a></li><li class="toc-level-2"><a href="#reloading-rules-manually">Reloading rules manually</a></li><li class="toc-level-2"><a href="#declaring-rulebooks-in-config">Declaring rulebooks in config</a></li><li class="toc-level-3"><a href="#retrieving-a-declared-rulebook">Retrieving a declared rulebook</a></li></ul></nav>
 			</aside>
 
 		</div>
@@ -350,6 +428,7 @@ whatever fits. There's no interface to implement.</p>
 
 	<script src="/assets/vendor/mermaid/mermaid.min.js"></script>
 	<script src="/assets/mermaid-init.js"></script>
+
 
 
 

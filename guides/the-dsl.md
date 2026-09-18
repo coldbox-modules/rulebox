@@ -158,3 +158,28 @@ addRule(
 		.stop()
 )
 ```
+
+## active()
+
+`active()` restricts a rule to a time window. Outside of it, the rule is
+skipped exactly like a failed `when()` - no `then()` consumers run, and it
+shows as `SKIPPED` in the [audit trail](auditing.md). Either bound can be
+omitted to leave that side open-ended:
+
+```js
+addRule(
+	newRule( "blackFridayPromo" )
+		.active( from: "2025-11-28", until: "2025-12-01" )
+		.then( ( facts, result ) => result.setValue( result.getValue() * 0.8 ) )
+)
+
+addRule(
+	newRule( "legacyDiscount" )
+		// no "from" - already active; expires at the given date
+		.active( until: "2025-01-01" )
+		.then( ( facts, result ) => result.setValue( result.getValue() * 0.9 ) )
+)
+```
+
+`active()` can be called any time before `run()`/`dryRun()`; it's checked
+fresh on every evaluation, not just once.
