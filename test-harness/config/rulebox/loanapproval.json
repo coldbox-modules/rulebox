@@ -1,0 +1,23 @@
+[
+	{
+		"name": "highRiskDecline",
+		"priority": 20,
+		"when": { "lt": [ "creditScore", 580 ] },
+		"stop": true
+	},
+	{
+		"name": "requiresManualReview",
+		"priority": 10,
+		"when": {
+			"and": [
+				{ "gte": [ "creditScore", 580 ] },
+				{ "lt": [ "creditScore", 680 ] }
+			]
+		}
+	},
+	{
+		"name": "autoApprove",
+		"priority": 0,
+		"when": { "gte": [ "creditScore", 680 ] }
+	}
+]

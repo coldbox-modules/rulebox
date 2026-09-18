@@ -202,8 +202,8 @@ class{
 				"name"        : current.getName(),
 				"priority"    : current.getPriority(),
 				"stops"       : current.getCurrentState() == current.STATES.STOP,
-				"activeFrom"  : isNull( current.getActiveFrom() ) ? "" : dateTimeFormat( current.getActiveFrom(), "yyyy-mm-dd'T'HH:nn:ss" ),
-				"activeUntil" : isNull( current.getActiveUntil() ) ? "" : dateTimeFormat( current.getActiveUntil(), "yyyy-mm-dd'T'HH:nn:ss" )
+				"activeFrom"  : isNull( current.getActiveFrom() ) ? "" : dateTimeFormat( current.getActiveFrom(), "yyyy-MM-dd'T'HH:mm:ss" ),
+				"activeUntil" : isNull( current.getActiveUntil() ) ? "" : dateTimeFormat( current.getActiveUntil(), "yyyy-MM-dd'T'HH:mm:ss" )
 			} )
 			current = current.getNextRule()
 		}
