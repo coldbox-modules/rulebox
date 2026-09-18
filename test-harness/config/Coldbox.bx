@@ -36,12 +36,12 @@
 		// environment settings, create a detectEnvironment() method to detect it yourself.
 		// create a function with the name of the environment so it can be executed if that environment is detected
 		// the value of the environment is a list of regex patterns to match the cgi.http_host.
-		environments = {
+		variables.environments = {
 			development = "localhost,127\.0\.0\.1"
 		};
 
 		//Register interceptors as an array, we need order
-		interceptors = [
+		variables.interceptors = [
 		];
 
 		// Test-harness override: the Rule Visualizer is enabled here (default off in the
@@ -49,7 +49,11 @@
 		// in-memory metrics store suite-wide so every existing RuleBook/Rule spec exercises the
 		// event bus wiring for free, without giving the whole suite a SQLite/bx-sqlite dependency.
 		// SQLiteMetricsStoreSpec covers the default store in isolation instead.
-		moduleSettings = {
+		//
+		// Unscoped assignment here doesn't reach `variables` in a BoxLang class the way it does
+		// in a traditional CFML component - explicit `variables.` is required or ColdBox's own
+		// getPropertyMixin() (which reads straight from `variables`) never sees this override.
+		variables.moduleSettings = {
 			rulebox = {
 				visualizer = {
 					enabled      = true,
@@ -59,7 +63,7 @@
 		};
 
 		//LogBox DSL
-		logBox = {
+		variables.logBox = {
 			// Define Appenders
 			appenders = {
 				files={class="coldbox.system.logging.appenders.RollingFileAppender",
