@@ -16,9 +16,6 @@
         "testbox":"testbox/",
         "bx-sqlite":"modules/bx-sqlite/"
     },
-    "scripts":{
-        "postInstallAll":"!mkdir -p ${BOXLANG_HOME}/modules && rm -rf ${BOXLANG_HOME}/modules/bx-sqlite && cp -r modules/bx-sqlite ${BOXLANG_HOME}/modules/bx-sqlite"
-    },
     "testbox":{
         "runner":"http://localhost:60299/tests/runner.cfm"
     }

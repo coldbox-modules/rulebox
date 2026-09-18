@@ -41,11 +41,13 @@ class {
 				// recorded or broadcast at all - flipping this on is the only thing that turns on
 				// the (small) per-rule-evaluation bookkeeping cost.
 				enabled        = false,
-				// WireBox mapping ID for the metrics persistence store. Swap in your own by
-				// implementing IMetricsStore@rulebox and pointing this at its mapping.
-				metricsStore   = "SQLiteMetricsStore@rulebox",
-				// Datasource name the default SQLiteMetricsStore reads/writes. Requires the
-				// bx-sqlite module and a matching datasource to be registered in your app.
+				// WireBox mapping ID for the metrics persistence store. Defaults to the in-memory
+				// store (no setup, nothing survives a restart). For persistence across restarts,
+				// point this at "SQLiteMetricsStore@rulebox" - see the "Rule Visualizer" guide for
+				// what that needs (the bx-sqlite module plus a matching datasource), or implement
+				// IMetricsStore@rulebox yourself and point this at its mapping.
+				metricsStore   = "InMemoryMetricsStore@rulebox",
+				// Datasource name SQLiteMetricsStore reads/writes, if you opt into it above.
 				datasourceName = "rulebox_visualizer"
 			}
 		}

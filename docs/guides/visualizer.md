@@ -63,22 +63,30 @@ moduleSettings = {
 		visualizer = {
 			enabled        = true,
 			// A WireBox mapping ID - swap in your own implementation of IMetricsStore@rulebox
-			metricsStore   = "SQLiteMetricsStore@rulebox",
-			// Only read by SQLiteMetricsStore
+			metricsStore   = "InMemoryMetricsStore@rulebox",
+			// Only read by SQLiteMetricsStore, if you opt into it below
 			datasourceName = "rulebox_visualizer"
 		}
 	}
 }
 ```
 
-### The default: SQLite
+### The default: in-memory
 
-`SQLiteMetricsStore@rulebox` is the default - it persists events to a
+`InMemoryMetricsStore@rulebox` is the default - zero setup, live broadcast
+and the dashboard/metrics screens work immediately after enabling the
+visualizer. The tradeoff: nothing survives a restart.
+
+### Persisting across restarts: SQLite
+
+For metrics that survive a restart, point `metricsStore` at
+`SQLiteMetricsStore@rulebox` instead. It persists events to a
 `rulebox_events` table (auto-created on first use) via the
-[`bx-sqlite`](https://forgebox.io/view/bx-sqlite) BoxLang module, so metrics
-survive a restart. It requires:
+[`bx-sqlite`](https://forgebox.io/view/bx-sqlite) BoxLang module. It requires:
 
-1. `bx-sqlite` installed (`box install bx-sqlite`)
+1. `bx-sqlite` installed (`box install bx-sqlite`) and registered with your
+   engine so its JDBC driver is available - how you do this depends on your
+   engine/environment, so verify it independently of RuleBox
 2. A datasource registered under the name in `datasourceName` (default `rulebox_visualizer`), e.g. in `Application.bx`:
 
 ```cfc
@@ -91,9 +99,9 @@ this.datasources = {
 ```
 
 Neither the module nor the datasource is installed/registered for you - if
-you enable the visualizer and keep the default store, you set these up
-yourself. If `bx-sqlite` or the datasource isn't available, RuleBox logs it
-and keeps going: live broadcast still works, nothing gets persisted.
+you opt into this store, you set these up yourself. If `bx-sqlite` or the
+datasource isn't available, RuleBox logs it and keeps going: live broadcast
+still works, nothing gets persisted.
 
 ### Swapping it out
 
@@ -101,8 +109,6 @@ Implement `IMetricsStore@rulebox` (`recordEvent`, `queryEvents`,
 `queryRuleBookSummary`, `queryRuleMetrics`, `queryRuleBookNames`, `reset`)
 and point `metricsStore` at your WireBox mapping - a Redis-backed store, a
 real RDBMS table via `qb`, whatever fits your app.
-`InMemoryMetricsStore@rulebox` ships as a fallback-of-last-resort: no I/O,
-nothing survives a restart, useful for tests or a purely live-tracker setup.
 
 ## What it doesn't do
 

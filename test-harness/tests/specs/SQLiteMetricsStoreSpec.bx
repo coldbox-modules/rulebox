@@ -22,11 +22,20 @@ class extends="tests.resources.BaseSpec"{
 			}
 
 			beforeEach( function(){
-				variables.store = newStore();
-				variables.store.reset();
+				variables.storeUnavailable = "";
+				try{
+					variables.store = newStore();
+					variables.store.reset();
+				} catch( any e ){
+					variables.storeUnavailable = "bx-sqlite driver is not registered with BoxLang's DatasourceService in this environment: #e.message#"
+				}
 			} );
 
 			it( "records and queries events back out", function(){
+				if( len( variables.storeUnavailable ) ){
+					skip( variables.storeUnavailable );
+					return;
+				}
 				variables.store.recordEvent( anEvent( ruleName="r1" ) );
 				variables.store.recordEvent( anEvent( ruleName="r2" ) );
 
@@ -36,6 +45,10 @@ class extends="tests.resources.BaseSpec"{
 			} );
 
 			it( "aggregates a rulebook summary across recorded states", function(){
+				if( len( variables.storeUnavailable ) ){
+					skip( variables.storeUnavailable );
+					return;
+				}
 				variables.store.recordEvent( anEvent( state="EXECUTED", durationMs=10 ) );
 				variables.store.recordEvent( anEvent( state="EXECUTED", durationMs=20 ) );
 				variables.store.recordEvent( anEvent( state="SKIPPED", durationMs=1 ) );
@@ -49,6 +62,10 @@ class extends="tests.resources.BaseSpec"{
 			} );
 
 			it( "aggregates per-rule metrics with min/max/lastRunAt", function(){
+				if( len( variables.storeUnavailable ) ){
+					skip( variables.storeUnavailable );
+					return;
+				}
 				variables.store.recordEvent( anEvent( ruleName="r1", durationMs=5, timestamp="2026-01-01T00:00:01.000" ) );
 				variables.store.recordEvent( anEvent( ruleName="r1", durationMs=15, timestamp="2026-01-01T00:00:02.000" ) );
 
@@ -61,12 +78,20 @@ class extends="tests.resources.BaseSpec"{
 			} );
 
 			it( "lists distinct rulebook names", function(){
+				if( len( variables.storeUnavailable ) ){
+					skip( variables.storeUnavailable );
+					return;
+				}
 				variables.store.recordEvent( anEvent( rulebookName="sqliteTest" ) );
 
 				expect( variables.store.queryRuleBookNames() ).toInclude( "sqliteTest" );
 			} );
 
 			it( "reset() clears every recorded event", function(){
+				if( len( variables.storeUnavailable ) ){
+					skip( variables.storeUnavailable );
+					return;
+				}
 				variables.store.recordEvent( anEvent() );
 
 				variables.store.reset();
