@@ -78,7 +78,7 @@
 			<div class="small text-secondary px-2 pt-3 border-top border-secondary-subtle">
 				<div class="d-flex align-items-center gap-2 mb-1">
 					<i class="ph ph-database"></i>
-					<span>#listFirst( prc.visualizerSettings.metricsStore, '@' )#</span>
+					<span>#htmlEditFormat( listFirst( prc.visualizerSettings.metricsStore, '@' ) )#</span>
 				</div>
 				<div class="d-flex align-items-center gap-2">
 					<span class="rb-state-dot rb-state-EXECUTED"></span>
