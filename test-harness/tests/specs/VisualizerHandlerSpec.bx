@@ -35,18 +35,21 @@ class extends="tests.resources.BaseSpec"{
 				expect( content ).toInclude( "rulebox-visualizer/visualizer/chain?name=testconvention" );
 			} );
 
-			it( "loads every CDN script and stylesheet with Subresource Integrity", function(){
-				var content = execute( event="rulebox:visualizer.index", renderResults=true ).getRenderedContent();
+			it( "loads every CDN script and stylesheet in the layout with Subresource Integrity", function(){
+				// The TestBox runner sets enableOutputOnly=true, which drops everything a template
+				// writes outside <bx:output> - including the layout's whole <head> - so a rendered
+				// event never contains the asset tags. Assert on the layout source the handler renders.
+				var layout = fileRead( expandPath( "/rulebox/layouts/Visualizer.bxm" ) );
 
 				// One <script src> (Alpine) and three <link rel=stylesheet> (Bootstrap + 2 Phosphor).
-				var tags = reMatchNoCase( "<(script|link)\b[^>]*https://[^>]*>", content );
+				var tags = reMatchNoCase( "<(script|link)\b[^>]*https://[^>]*>", layout );
 				expect( tags ).toHaveLength( 4 );
 				tags.each( function( tag ){
 					expect( tag ).toMatch( 'integrity="sha384-[A-Za-z0-9+/]{64}"' );
 					expect( tag ).toInclude( 'crossorigin="anonymous"' );
 				} );
-				expect( content ).toInclude( "alpinejs@3.14.3" );
-				expect( content ).toInclude( "bootstrap@5.3.3" );
+				expect( layout ).toInclude( "alpinejs@3.14.3" );
+				expect( layout ).toInclude( "bootstrap@5.3.3" );
 			} );
 
 			it( "HTML-encodes the rulebook names JSON in the dry run and metrics x-data attributes", function(){
