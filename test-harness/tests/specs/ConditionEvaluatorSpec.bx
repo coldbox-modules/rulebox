@@ -49,6 +49,81 @@ class extends="tests.resources.BaseSpec"{
 
 			} );
 
+			describe( "ordering operators against missing or incomparable facts", function(){
+
+				var orderingOperators = [ "lt", "lte", "gt", "gte" ];
+
+				orderingOperators.each( function( op ){
+
+					it( "#op# is false against a missing fact", function(){
+						expect( evaluator.evaluate( { "#op#" : [ "creditScore", 600 ] }, {} ) ).toBeFalse();
+					} );
+
+					it( "#op# is false against a nested missing path", function(){
+						var node = { "#op#" : [ "applicant.score.value", 600 ] };
+						expect( evaluator.evaluate( node, {} ) ).toBeFalse();
+						expect( evaluator.evaluate( node, { "applicant" : {} } ) ).toBeFalse();
+						expect( evaluator.evaluate( node, { "applicant" : { "score" : 700 } } ) ).toBeFalse();
+					} );
+
+					it( "#op# is false against a non-comparable fact", function(){
+						expect( evaluator.evaluate( { "#op#" : [ "x", 600 ] }, { "x" : "abc" } ) ).toBeFalse();
+						expect( evaluator.evaluate( { "#op#" : [ "x", 600 ] }, { "x" : { "a" : 1 } } ) ).toBeFalse();
+						expect( evaluator.evaluate( { "#op#" : [ "x", 600 ] }, { "x" : [ 1 ] } ) ).toBeFalse();
+					} );
+
+				} );
+
+				it( "does not let a missing fact fire a decline rule built on lt", function(){
+					var decline = evaluator.compile( { "lt" : [ "creditScore", 600 ] } );
+					expect( decline( {} ) ).toBeFalse();
+					expect( decline( { "creditScore" : 550 } ) ).toBeTrue();
+				} );
+
+				it( "still compares numeric strings numerically", function(){
+					expect( evaluator.evaluate( { "lt" : [ "creditScore", 600 ] }, { "creditScore" : "550" } ) ).toBeTrue();
+					expect( evaluator.evaluate( { "gt" : [ "creditScore", 600 ] }, { "creditScore" : "550" } ) ).toBeFalse();
+				} );
+
+				it( "keeps neq true and eq false against a missing fact", function(){
+					expect( evaluator.evaluate( { "neq" : [ "status", "active" ] }, {} ) ).toBeTrue();
+					expect( evaluator.evaluate( { "eq" : [ "status", "active" ] }, {} ) ).toBeFalse();
+				} );
+
+			} );
+
+			describe( "in operator", function(){
+
+				it( "compares case-insensitively like eq", function(){
+					expect( evaluator.evaluate( { "in" : [ "state", [ "NY", "CA" ] ] }, { "state" : "ca" } ) ).toBeTrue();
+					expect( evaluator.evaluate( { "in" : [ "state", [ "ny", "ca" ] ] }, { "state" : "CA" } ) ).toBeTrue();
+				} );
+
+				it( "does not match a missing fact", function(){
+					expect( evaluator.evaluate( { "in" : [ "state", [ "NY", "CA" ] ] }, {} ) ).toBeFalse();
+				} );
+
+				it( "does not do substring matching", function(){
+					expect( evaluator.evaluate( { "in" : [ "state", [ "NEWYORK" ] ] }, { "state" : "NEW" } ) ).toBeFalse();
+				} );
+
+				it( "throws a typed error when the second operand is a string", function(){
+					expect( function(){
+						evaluator.evaluate( { "in" : [ "state", "NYCA" ] }, { "state" : "NY" } );
+					} ).toThrow( "RuleBox.InvalidConditionException" );
+				} );
+
+				it( "throws a typed error when the second operand is a struct or missing", function(){
+					expect( function(){
+						evaluator.evaluate( { "in" : [ "state", { "a" : 1 } ] }, { "state" : "NY" } );
+					} ).toThrow( "RuleBox.InvalidConditionException" );
+					expect( function(){
+						evaluator.evaluate( { "in" : [ "state" ] }, { "state" : "NY" } );
+					} ).toThrow( "RuleBox.InvalidConditionException" );
+				} );
+
+			} );
+
 			describe( "boolean composition", function(){
 
 				it( "evaluates and", function(){
@@ -122,6 +197,12 @@ class extends="tests.resources.BaseSpec"{
 					expect( function(){
 						evaluator.evaluate( { "bogus" : [ "a", "b" ] }, {} );
 					} ).toThrow( "RuleBox.UnknownConditionOperatorException" );
+				} );
+
+				it( "throws on a node with more than one operator key", function(){
+					expect( function(){
+						evaluator.evaluate( { "eq" : [ "a", 1 ], "lt" : [ "a", 0 ] }, { "a" : 1 } );
+					} ).toThrow( "RuleBox.UnknownConditionOperatorException", "exactly one operator key" );
 				} );
 
 				it( "throws on a malformed (empty) condition node", function(){
