@@ -480,6 +480,59 @@ class extends="tests.resources.BaseSpec"{
 					expect( events[ 1 ].state ).toBe( ruleBook.RULE_STATES.EXECUTED );
 				});
 
+				it( "completes the run, keeps the rule EXECUTED and counts it once when the event bus throws", function(){
+					var thenRuns  = 0;
+					var publishes = 0;
+					var ruleBook  = getInstance( "RuleBook@rulebox" ).setName( "brokenBusTest" );
+					// A bus whose publish() blows up, e.g. a subscriber lock timeout
+					ruleBook.setEventBus( {
+						publish : function( event ){
+							publishes++;
+							throw( type = "TestBusBoom", message = "Timeout of [5] seconds reached while waiting to acquire lock" );
+						}
+					} );
+					ruleBook.addRule( ruleBook.newRule( "myRule" ).then( ( facts ) => { thenRuns++; } ) );
+
+					ruleBook.run();
+
+					expect( thenRuns ).toBe( 1 );
+					expect( publishes ).toBe( 1 );
+					expect( ruleBook.getRuleStatus( "myRule" ) ).toBe( ruleBook.RULE_STATES.EXECUTED );
+					var metrics = ruleBook.getRuleMetrics( "myRule" );
+					expect( metrics.totalEvaluations ).toBe( 1 );
+					expect( metrics.countsByState.EXECUTED ).toBe( 1 );
+					expect( metrics.countsByState ).notToHaveKey( "FAILED" );
+				});
+
+				it( "keeps a STOPPED rule STOPPED and still halts the chain when the event bus throws", function(){
+					var secondRan = false;
+					var ruleBook  = getInstance( "RuleBook@rulebox" ).setName( "brokenBusStopTest" );
+					ruleBook.setEventBus( {
+						publish : function( event ){
+							throw( type = "TestBusBoom", message = "bus down" );
+						}
+					} );
+					ruleBook.addRule( ruleBook.newRule( "first" ).then( ( facts ) => {} ).stop() );
+					ruleBook.addRule( ruleBook.newRule( "second" ).then( ( facts ) => { secondRan = true; } ) );
+
+					ruleBook.run();
+
+					expect( secondRan ).toBeFalse();
+					expect( ruleBook.getRuleStatus( "first" ) ).toBe( ruleBook.RULE_STATES.STOPPED );
+					expect( ruleBook.getRuleMetrics( "first" ).totalEvaluations ).toBe( 1 );
+				});
+
+				it( "never flips an executed rule to FAILED or records it twice when metric recording throws", function(){
+					var ruleBook = prepareMock( getInstance( "RuleBook@rulebox" ) );
+					ruleBook.$( "recordRuleMetric" ).$throws( type = "TestMetricBoom", message = "metrics down" );
+					ruleBook.addRule( ruleBook.newRule( "myRule" ).then( ( facts ) => {} ) );
+
+					ruleBook.run();
+
+					expect( ruleBook.getRuleStatus( "myRule" ) ).toBe( ruleBook.RULE_STATES.EXECUTED );
+					expect( ruleBook.$once( "recordRuleMetric" ) ).toBeTrue();
+				});
+
 			});
 
 			describe( "result lifecycle across runs", function(){

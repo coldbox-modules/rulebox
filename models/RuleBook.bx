@@ -607,13 +607,18 @@ class{
 
 		// Feeds the Rule Visualizer (dashboard, metrics, live tracker). A cheap no-op unless
 		// moduleSettings.rulebox.visualizer.enabled is true - see RuleEventBus@rulebox.
-		variables.eventBus.publish( {
-			rulebookName : variables.name,
-			ruleName     : arguments.name,
-			state        : arguments.state,
-			durationMs   : arguments.durationMs,
-			timestamp    : dateTimeFormat( metric.lastRunAt, "yyyy-MM-dd'T'HH:mm:ss" )
-		} )
+		// Metrics must never fail or double-count a business rule, so a broken event bus is logged and swallowed.
+		try{
+			variables.eventBus.publish( {
+				rulebookName : variables.name,
+				ruleName     : arguments.name,
+				state        : arguments.state,
+				durationMs   : arguments.durationMs,
+				timestamp    : dateTimeFormat( metric.lastRunAt, "yyyy-MM-dd'T'HH:mm:ss" )
+			} )
+		} catch( any e ){
+			logger.warn( "RuleBox could not publish the metric event for rule [#arguments.name#] in rulebook [#variables.name#]: #e.message#" )
+		}
 	}
 
 	/**

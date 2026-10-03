@@ -231,19 +231,18 @@ class{
 				logger.debug( "Predicate was false, skipping rule (#variables.name#)" );
 			}
 
-			// Register in the status map and metrics - once per run(), with the final state
-			variables.ruleBook.getRuleStatusMap().put( variables.name, finalState )
-			variables.ruleBook.recordRuleMetric( variables.name, finalState, getTickCount() - startTicks )
-
-			if( finalState == variables.ruleBook.RULE_STATES.STOPPED ){
-				return
-			}
-
 		} catch( any e ){
 			// Record the failure in the audit trail and let the caller decide what to do with it
-			variables.ruleBook.getRuleStatusMap().put( variables.name, variables.ruleBook.RULE_STATES.FAILED )
-			variables.ruleBook.recordRuleMetric( variables.name, variables.ruleBook.RULE_STATES.FAILED, getTickCount() - startTicks )
+			recordOutcome( variables.ruleBook.RULE_STATES.FAILED, getTickCount() - startTicks )
 			rethrow;
+		}
+
+		// Register in the status map and metrics - once per run(), with the final state. This is
+		// deliberately outside the try above: only the rule's own when()/except()/then() may flip it to FAILED.
+		recordOutcome( finalState, getTickCount() - startTicks )
+
+		if( finalState == variables.ruleBook.RULE_STATES.STOPPED ){
+			return
 		}
 
 		// Continue down the rule rabbit hole and pass the facts along
@@ -251,6 +250,26 @@ class{
 			?.setResult( variables.result )
 			?.run( argumentCollection=arguments );
 
+	}
+
+	/**
+	 * Write this evaluation's final state to the status map and metrics. Bookkeeping failures are
+	 * logged and swallowed so they can never change the outcome of the rule or mask its exception.
+	 *
+	 * @state The final RULE_STATES for this evaluation
+	 * @durationMs How long the evaluation took, in milliseconds
+	 */
+	private void function recordOutcome( required string state, required numeric durationMs ){
+		try{
+			variables.ruleBook.getRuleStatusMap().put( variables.name, arguments.state )
+		} catch( any e ){
+			logger.warn( "RuleBox could not record the status of rule [#variables.name#]: #e.message#" )
+		}
+		try{
+			variables.ruleBook.recordRuleMetric( variables.name, arguments.state, arguments.durationMs )
+		} catch( any e ){
+			logger.warn( "RuleBox could not record the metrics of rule [#variables.name#]: #e.message#" )
+		}
 	}
 
 	/**
