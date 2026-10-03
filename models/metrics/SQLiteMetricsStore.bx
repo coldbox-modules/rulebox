@@ -74,6 +74,14 @@ class implements="IMetricsStore"{
 		return this
 	}
 
+	/**
+	 * Override how many successful inserts happen between retention prunes (default 500).
+	 * Exists so the retention cadence is unit-testable.
+	 *
+	 * @every Number of inserts between prunes
+	 *
+	 * @return This store, to allow chaining
+	 */
 	function setPruneEvery( required numeric every ){
 		variables.pruneEvery = arguments.every
 		return this
@@ -87,6 +95,9 @@ class implements="IMetricsStore"{
 		return variables.circuitOpen
 	}
 
+	/**
+	 * Has the events table and its index been created? A failed create is retried by the next recordEvent().
+	 */
 	boolean function isSchemaReady(){
 		return variables.schemaReady
 	}
@@ -287,10 +298,22 @@ class implements="IMetricsStore"{
 		}
 	}
 
+	/**
+	 * The current time in milliseconds, from the injected clock when there is one.
+	 */
 	private numeric function nowMillis(){
 		return structKeyExists( variables, "clock" ) ? variables.clock() : getTickCount()
 	}
 
+	/**
+	 * Execute SQL through the injected runner when there is one, else queryExecute() on the configured datasource.
+	 *
+	 * @sql The SQL statement
+	 * @params Query parameters
+	 * @options Extra options for the injected runner (queryExecute always uses the configured datasource)
+	 *
+	 * @return The query result, or whatever the injected runner returns
+	 */
 	private any function runSql( required string sql, struct params={}, struct options={} ){
 		if( structKeyExists( variables, "sqlRunner" ) ){
 			return variables.sqlRunner( arguments.sql, arguments.params, arguments.options )
