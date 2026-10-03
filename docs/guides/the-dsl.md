@@ -141,8 +141,10 @@ addRule(
 `withPriority()` can be called before or after a rule is added to a
 `RuleBook` - the `RuleBook` re-derives its entire execution chain, sorted
 by priority (ties broken by insertion order), every time `addRule()` is
-called, so a later, higher-priority rule correctly slots ahead of rules
-already registered.
+called and every time `withPriority()` changes the priority of a rule that
+is already added, so a later, higher-priority rule (or a rule whose priority
+was raised after it was added) correctly slots ahead of rules already
+registered.
 
 ## stop()
 

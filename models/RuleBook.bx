@@ -183,7 +183,8 @@ class{
 	 *
 	 * Rules execute in priority order (highest `withPriority()` value first); rules sharing the same
 	 * priority execute in the order they were added here. Adding a rule re-derives the entire
-	 * execution chain, so priorities can be set on rules in any order before or after they are added.
+	 * execution chain, and so does calling `withPriority()` on a rule that is already added, so priorities
+	 * can be set on rules in any order before or after they are added.
 	 *
 	 * @rule A rule object or a closure/lambda that will represent the rule.
 	 *
@@ -241,6 +242,23 @@ class{
 	}
 
 	/**
+	 * Re-derive this RuleBook's execution chain from the rules' current priorities. A Rule calls this
+	 * automatically when `withPriority()` changes the priority of a rule already attached to this
+	 * RuleBook, so you normally never need to call it yourself.
+	 *
+	 * Ordering is highest priority first; rules sharing a priority keep the order they were added in.
+	 * A RuleBook with no rules is left untouched.
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function relinkRules(){
+		if( variables.rules.len() ){
+			linkRuleChain()
+		}
+		return this
+	}
+
+	/**
 	 * Rebuilds the head/tail rule execution chain from `variables.rules`, ordering rules by priority
 	 * (highest first) and, for rules sharing the same priority, by the order they were added.
 	 */
@@ -259,14 +277,14 @@ class{
 		} )
 
 		// Relink every rule's nextRule pointer to reflect the new order. The final rule in the new
-		// order needs no explicit update: it is either brand new (nextRule already null) or was
-		// already the tail before this call (nextRule already null), since the relative order between
-		// any two previously-added rules never changes once they've both been added.
+		// order must have its pointer cleared: it may have been mid-chain before this call (e.g. its
+		// priority was lowered after addRule()), and a stale pointer would loop or repeat rules.
 		variables.headRule = indexed[ 1 ].rule
 		variables.tailRule = indexed[ indexed.len() ].rule
 		for( var i = 1; i < indexed.len(); i++ ){
 			indexed[ i ].rule.setNextRule( indexed[ i + 1 ].rule )
 		}
+		variables.tailRule.clearNextRule()
 	}
 
 	/**
