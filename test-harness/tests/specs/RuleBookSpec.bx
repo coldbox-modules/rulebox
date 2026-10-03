@@ -386,6 +386,21 @@ class extends="tests.resources.BaseSpec"{
 					expect( ruleBook.hasRules() ).toBeTrue();
 				});
 
+				it( "feeds the Rule Visualizer's event bus on every recorded evaluation", function(){
+					var metricsStore = getInstance( "InMemoryMetricsStore@rulebox" );
+					metricsStore.reset();
+
+					var ruleBook = getInstance( "RuleBook@rulebox" ).setName( "visualizerFeedTest" );
+					ruleBook.addRule( ruleBook.newRule( "myRule" ).then( ( facts ) => {} ) );
+
+					ruleBook.run();
+
+					var events = metricsStore.queryEvents( filters={ rulebookName: "visualizerFeedTest" } );
+					expect( events ).toHaveLength( 1 );
+					expect( events[ 1 ].ruleName ).toBe( "myRule" );
+					expect( events[ 1 ].state ).toBe( ruleBook.RULE_STATES.EXECUTED );
+				});
+
 			});
 
 		});

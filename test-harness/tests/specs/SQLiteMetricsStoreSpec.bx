@@ -1,0 +1,105 @@
+/**
+ * Tests for SQLiteMetricsStore, the Rule Visualizer's default IMetricsStore. Exercises the real
+ * bx-sqlite datasource ("rulebox_visualizer", see test-harness/Application.bx) end to end -
+ * kept in its own spec so a bx-sqlite/JDBC problem in CI is easy to isolate from the rest of the
+ * suite, which otherwise only depends on InMemoryMetricsStore.
+ */
+class extends="tests.resources.BaseSpec"{
+
+	function run( testResults, testBox ){
+		describe( "SQLiteMetricsStore", function(){
+
+			function newStore(){
+				var store = new rulebox.models.metrics.SQLiteMetricsStore();
+				store.setLogger( getController().getLogBox().getRootLogger() );
+				store.setSettings( { visualizer: { datasourceName: "rulebox_visualizer" } } );
+				store.onDIComplete();
+				return store;
+			}
+
+			function anEvent( rulebookName="sqliteTest", ruleName="r1", state="EXECUTED", durationMs=10, timestamp="2026-01-01T00:00:00.000" ){
+				return arguments
+			}
+
+			beforeEach( function(){
+				variables.storeUnavailable = "";
+				try{
+					variables.store = newStore();
+					variables.store.reset();
+				} catch( any e ){
+					variables.storeUnavailable = "bx-sqlite driver is not registered with BoxLang's DatasourceService in this environment: #e.message#"
+				}
+			} );
+
+			it( "records and queries events back out", function(){
+				if( len( variables.storeUnavailable ) ){
+					skip( variables.storeUnavailable );
+					return;
+				}
+				variables.store.recordEvent( anEvent( ruleName="r1" ) );
+				variables.store.recordEvent( anEvent( ruleName="r2" ) );
+
+				var events = variables.store.queryEvents( filters={ rulebookName: "sqliteTest" } );
+
+				expect( events ).toHaveLength( 2 );
+			} );
+
+			it( "aggregates a rulebook summary across recorded states", function(){
+				if( len( variables.storeUnavailable ) ){
+					skip( variables.storeUnavailable );
+					return;
+				}
+				variables.store.recordEvent( anEvent( state="EXECUTED", durationMs=10 ) );
+				variables.store.recordEvent( anEvent( state="EXECUTED", durationMs=20 ) );
+				variables.store.recordEvent( anEvent( state="SKIPPED", durationMs=1 ) );
+
+				var summary = variables.store.queryRuleBookSummary( "sqliteTest" );
+
+				expect( summary.totalEvaluations ).toBe( 3 );
+				expect( summary.countsByState.EXECUTED ).toBe( 2 );
+				expect( summary.countsByState.SKIPPED ).toBe( 1 );
+				expect( summary.totalDurationMs ).toBe( 31 );
+			} );
+
+			it( "aggregates per-rule metrics with min/max/lastRunAt", function(){
+				if( len( variables.storeUnavailable ) ){
+					skip( variables.storeUnavailable );
+					return;
+				}
+				variables.store.recordEvent( anEvent( ruleName="r1", durationMs=5, timestamp="2026-01-01T00:00:01.000" ) );
+				variables.store.recordEvent( anEvent( ruleName="r1", durationMs=15, timestamp="2026-01-01T00:00:02.000" ) );
+
+				var metrics = variables.store.queryRuleMetrics( "sqliteTest", "r1" );
+
+				expect( metrics.totalEvaluations ).toBe( 2 );
+				expect( metrics.minDurationMs ).toBe( 5 );
+				expect( metrics.maxDurationMs ).toBe( 15 );
+				expect( metrics.lastRunAt ).toBe( "2026-01-01T00:00:02.000" );
+			} );
+
+			it( "lists distinct rulebook names", function(){
+				if( len( variables.storeUnavailable ) ){
+					skip( variables.storeUnavailable );
+					return;
+				}
+				variables.store.recordEvent( anEvent( rulebookName="sqliteTest" ) );
+
+				expect( variables.store.queryRuleBookNames() ).toInclude( "sqliteTest" );
+			} );
+
+			it( "reset() clears every recorded event", function(){
+				if( len( variables.storeUnavailable ) ){
+					skip( variables.storeUnavailable );
+					return;
+				}
+				variables.store.recordEvent( anEvent() );
+
+				variables.store.reset();
+
+				expect( variables.store.queryEvents( filters={ rulebookName: "sqliteTest" } ) ).toBeEmpty();
+			} );
+
+		} );
+	}
+
+}

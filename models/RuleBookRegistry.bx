@@ -47,6 +47,15 @@ class singleton{
 	}
 
 	/**
+	 * Every currently-declared rulebook name - from moduleSettings.rulebox.rulebooks and/or
+	 * convention-discovered files, as of the last reload(). Useful for a dashboard/admin UI that
+	 * wants to list all declared rulebooks, not just the ones that have been run.
+	 */
+	array function getRuleBookNames(){
+		return variables.definitions.keyArray()
+	}
+
+	/**
 	 * Build and return a fresh, fully-configured RuleBook for the given declared name - registries
 	 * populated, rules loaded. A new instance every call: safe to call from anywhere, concurrently.
 	 *

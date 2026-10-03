@@ -1,0 +1,163 @@
+/**
+ * Default IMetricsStore for the Rule Visualizer: persists rule-evaluation events to a SQLite
+ * table via the bx-sqlite module, so metrics/stats survive a restart.
+ *
+ * Requires the bx-sqlite BoxLang module and a datasource registered under
+ * moduleSettings.rulebox.visualizer.datasourceName (default "rulebox_visualizer"). Neither is
+ * installed/declared by RuleBox itself - see the "Rule Visualizer" guide for setup.
+ *
+ * Swap this out entirely via moduleSettings.rulebox.visualizer.metricsStore.
+ */
+@singleton
+class implements="IMetricsStore"{
+
+	@inject( "coldbox:moduleSettings:rulebox" )
+	property name="settings" type="struct";
+
+	@inject( "logbox:logger:{this}" )
+	property name="logger";
+
+	property name="datasourceName" type="string";
+
+	function onDIComplete(){
+		variables.datasourceName = variables.settings.visualizer.datasourceName
+		ensureSchema()
+		return this
+	}
+
+	private void function ensureSchema(){
+		try{
+			queryExecute(
+				"
+				CREATE TABLE IF NOT EXISTS rulebox_events (
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					rulebookName TEXT NOT NULL,
+					ruleName TEXT NOT NULL,
+					state TEXT NOT NULL,
+					durationMs REAL NOT NULL,
+					timestamp TEXT NOT NULL
+				)
+				",
+				{},
+				{ datasource: variables.datasourceName }
+			)
+		} catch( any e ){
+			logger.error(
+				"RuleBox visualizer could not create/verify its SQLite schema on datasource '#variables.datasourceName#'. Is the bx-sqlite module installed and is that datasource registered? #e.message# #e.detail#"
+			)
+		}
+	}
+
+	void function recordEvent( required struct event ){
+		queryExecute(
+			"INSERT INTO rulebox_events ( rulebookName, ruleName, state, durationMs, timestamp ) VALUES ( :rulebookName, :ruleName, :state, :durationMs, :timestamp )",
+			{
+				rulebookName : { value: arguments.event.rulebookName, cfsqltype: "varchar" },
+				ruleName     : { value: arguments.event.ruleName, cfsqltype: "varchar" },
+				state        : { value: arguments.event.state, cfsqltype: "varchar" },
+				durationMs   : { value: arguments.event.durationMs, cfsqltype: "double" },
+				timestamp    : { value: arguments.event.timestamp, cfsqltype: "varchar" }
+			},
+			{ datasource: variables.datasourceName }
+		)
+	}
+
+	array function queryEvents( struct filters={}, numeric limit=50 ){
+		var whereClause = arguments.filters.keyExists( "rulebookName" ) ? "WHERE rulebookName = :rulebookName" : ""
+		var params = { limit: { value: arguments.limit, cfsqltype: "integer" } }
+		if( arguments.filters.keyExists( "rulebookName" ) ){
+			params[ "rulebookName" ] = { value: arguments.filters.rulebookName, cfsqltype: "varchar" }
+		}
+
+		var q = queryExecute(
+			"SELECT rulebookName, ruleName, state, durationMs, timestamp FROM rulebox_events #whereClause# ORDER BY id DESC LIMIT :limit",
+			params,
+			{ datasource: variables.datasourceName, returnType: "array" }
+		)
+
+		return q
+	}
+
+	struct function queryRuleBookSummary( required string rulebookName ){
+		var q = queryExecute(
+			"
+			SELECT state, COUNT(*) AS eventCount, SUM(durationMs) AS totalDurationMs
+			FROM rulebox_events
+			WHERE rulebookName = :rulebookName
+			GROUP BY state
+			",
+			{ rulebookName: { value: arguments.rulebookName, cfsqltype: "varchar" } },
+			{ datasource: variables.datasourceName, returnType: "array" }
+		)
+
+		return aggregate( q, { rulebookName: arguments.rulebookName } )
+	}
+
+	struct function queryRuleMetrics( required string rulebookName, required string ruleName ){
+		var q = queryExecute(
+			"
+			SELECT state, COUNT(*) AS eventCount, SUM(durationMs) AS totalDurationMs, MIN(durationMs) AS minDurationMs, MAX(durationMs) AS maxDurationMs
+			FROM rulebox_events
+			WHERE rulebookName = :rulebookName AND ruleName = :ruleName
+			GROUP BY state
+			",
+			{
+				rulebookName: { value: arguments.rulebookName, cfsqltype: "varchar" },
+				ruleName: { value: arguments.ruleName, cfsqltype: "varchar" }
+			},
+			{ datasource: variables.datasourceName, returnType: "array" }
+		)
+
+		var summary = aggregate( q, { rulebookName: arguments.rulebookName, ruleName: arguments.ruleName } )
+		summary[ "minDurationMs" ] = q.isEmpty() ? 0 : q.reduce( ( min, row ) => row.minDurationMs < min ? row.minDurationMs : min, q[ 1 ].minDurationMs )
+		summary[ "maxDurationMs" ] = q.isEmpty() ? 0 : q.reduce( ( max, row ) => row.maxDurationMs > max ? row.maxDurationMs : max, q[ 1 ].maxDurationMs )
+
+		var lastRun = queryExecute(
+			"SELECT timestamp FROM rulebox_events WHERE rulebookName = :rulebookName AND ruleName = :ruleName ORDER BY id DESC LIMIT 1",
+			{
+				rulebookName: { value: arguments.rulebookName, cfsqltype: "varchar" },
+				ruleName: { value: arguments.ruleName, cfsqltype: "varchar" }
+			},
+			{ datasource: variables.datasourceName, returnType: "array" }
+		)
+		summary[ "lastRunAt" ] = lastRun.isEmpty() ? "" : lastRun[ 1 ].timestamp
+
+		return summary
+	}
+
+	array function queryRuleBookNames(){
+		var q = queryExecute(
+			"SELECT DISTINCT rulebookName FROM rulebox_events ORDER BY rulebookName",
+			{},
+			{ datasource: variables.datasourceName, returnType: "array" }
+		)
+		return q.map( ( row ) => row.rulebookName )
+	}
+
+	void function reset(){
+		queryExecute( "DELETE FROM rulebox_events", {}, { datasource: variables.datasourceName } )
+	}
+
+	/**
+	 * Turn a { state, eventCount, totalDurationMs } grouped result set into the shared summary shape.
+	 */
+	private struct function aggregate( required array rows, required struct identity ){
+		var countsByState   = {}
+		var totalEvaluations = 0
+		var totalDurationMs  = 0
+
+		arguments.rows.each( ( row ) => {
+			countsByState[ row.state ] = row.eventCount
+			totalEvaluations += row.eventCount
+			totalDurationMs  += row.totalDurationMs
+		} )
+
+		var summary = arguments.identity.copy()
+		summary[ "totalEvaluations" ] = totalEvaluations
+		summary[ "countsByState" ]    = countsByState
+		summary[ "totalDurationMs" ]  = totalDurationMs
+		summary[ "avgDurationMs" ]    = totalEvaluations == 0 ? 0 : totalDurationMs / totalEvaluations
+		return summary
+	}
+
+}

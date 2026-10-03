@@ -19,7 +19,8 @@
 			"guides/external-rules.md",
 			"guides/thread-safety.md",
 			"guides/error-handling.md",
-			"guides/complex-example.md"
+			"guides/complex-example.md",
+			"guides/visualizer.md"
 		]
 	}
 ]

@@ -22,10 +22,15 @@
     ],
     "contributors":[],
     "dependencies":{},
+    "peerDependencies":{
+        "bx-sqlite":"*"
+    },
+    "peerDependenciesNote":"Only required if you enable the visualizer (moduleSettings.rulebox.visualizer.enabled) and keep its default SQLiteMetricsStore. Not needed otherwise, and not needed if you swap in your own metricsStore.",
 	"devDependencies" 	:{
 		"commandbox-boxlang":"*",
         "commandbox-docbox":"*",
-        "bx-sites":"be"
+        "bx-sites":"be",
+        "bx-sqlite":"*"
 	},
     "ignore":[
         "**/.*",

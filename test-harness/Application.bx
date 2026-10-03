@@ -47,6 +47,14 @@ class{
 	this.mappings[ "/moduleroot" ] = moduleRootPath;
 	this.mappings[ "/#request.MODULE_NAME#" ] = modulePath;
 
+	// Test datasource for the Rule Visualizer's default SQLiteMetricsStore
+	this.datasources = {
+		rulebox_visualizer: {
+			driver: "sqlite",
+			database: "./.database/rulebox_visualizer.db"
+		}
+	};
+
 	// ORM definitions: ENABLE IF NEEDED
 	//this.datasource = "coolblog";
 	//this.ormEnabled = "true";

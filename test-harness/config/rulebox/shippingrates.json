@@ -1,0 +1,17 @@
+[
+	{
+		"name": "freeShippingThreshold",
+		"priority": 20,
+		"when": { "gte": [ "orderTotal", 100 ] },
+		"stop": true
+	},
+	{
+		"name": "expressUpsell",
+		"priority": 10,
+		"when": { "in": [ "region", [ "US", "CA" ] ] }
+	},
+	{
+		"name": "standardShipping",
+		"priority": 0
+	}
+]

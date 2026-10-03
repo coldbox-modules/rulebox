@@ -15,6 +15,10 @@ test-harness/.env
 # log files
 logs/**
 
+## The Rule Visualizer's default SQLite datasource - the directory is tracked (see .cfconfig.json
+## and the "Rule Visualizer" guide), the generated db file is not
+.database/*.db
+
 ## Built docs site (bxSites)
 site/**
 

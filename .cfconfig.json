@@ -9,6 +9,10 @@
             "password":"${DB_PASSWORD}",
             "port":"3306",
             "username":"${DB_USERNAME}"
+        },
+        "rulebox_visualizer":{
+            "driver":"sqlite",
+            "database":"./.database/rulebox_visualizer.db"
         }
     },
     "debuggingEnabled":true,
