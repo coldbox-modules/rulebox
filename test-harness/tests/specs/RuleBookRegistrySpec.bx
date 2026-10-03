@@ -248,17 +248,17 @@ class extends="tests.resources.BaseSpec"{
 				}
 			} );
 
-			it( "rejects a numeric declaration with RuleBox.InvalidRuleBookDeclarationException naming the rulebook", function(){
+			it( "rejects a declaration that is not a path, array or struct with RuleBox.InvalidRuleBookDeclarationException naming the rulebook", function(){
 				var e = caught( function(){
-					buildRegistry( { rulebooks : { "numeric" : 42 } } );
+					buildRegistry( { rulebooks : { "closure" : () => 42 } } );
 				} );
 				expect( e.type ).toBe( "RuleBox.InvalidRuleBookDeclarationException" );
-				expect( e.message ).toInclude( "numeric" );
+				expect( e.message ).toInclude( "closure" );
 			} );
 
 			it( "rejects a null declaration", function(){
 				var e = caught( function(){
-					buildRegistry( { rulebooks : { "nothing" : javaCast( "null", 0 ) } } );
+					buildRegistry( { rulebooks : { "nothing" : null } } );
 				} );
 				expect( e.type ).toBe( "RuleBox.InvalidRuleBookDeclarationException" );
 				expect( e.message ).toInclude( "nothing" );
@@ -280,15 +280,15 @@ class extends="tests.resources.BaseSpec"{
 				expect( e.message ).toInclude( "nosource" );
 			} );
 
-			it( "rejects a struct descriptor whose source is a number or null", function(){
+			it( "rejects a struct descriptor whose source is not a path, array or struct, or is null", function(){
 				var e = caught( function(){
-					buildRegistry( { rulebooks : { "numsource" : { "source" : 7 } } } );
+					buildRegistry( { rulebooks : { "closuresource" : { "source" : () => 7 } } } );
 				} );
 				expect( e.type ).toBe( "RuleBox.InvalidRuleBookDeclarationException" );
-				expect( e.message ).toInclude( "numsource" );
+				expect( e.message ).toInclude( "closuresource" );
 
 				e = caught( function(){
-					buildRegistry( { rulebooks : { "nullsource" : { "source" : javaCast( "null", 0 ) } } } );
+					buildRegistry( { rulebooks : { "nullsource" : { "source" : null } } } );
 				} );
 				expect( e.type ).toBe( "RuleBox.InvalidRuleBookDeclarationException" );
 				expect( e.message ).toInclude( "nullsource" );
