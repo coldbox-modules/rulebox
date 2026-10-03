@@ -56,6 +56,8 @@
     color: transparent;
 }
 .rb-wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; box-sizing: border-box; }
+/* Clipped here so the glows never widen the page */
+.rb-glows { position: absolute; inset: 0 0 auto 0; height: 1400px; overflow: hidden; pointer-events: none; z-index: 0; }
 .rb-glow { position: absolute; border-radius: 50%; pointer-events: none; z-index: 0; }
 .rb-glow-1 { top: -260px; left: -200px; width: 900px; height: 900px; background: radial-gradient(circle, var(--rb-glow-1), transparent 65%); }
 .rb-glow-2 { top: 120px; right: -260px; width: 860px; height: 860px; background: radial-gradient(circle, var(--rb-glow-2), transparent 65%); }
@@ -73,7 +75,8 @@
 .rb-brand img { width: 32px; height: 32px; }
 .rb-brand-name { font-family: var(--rb-display, sans-serif); font-size: 21px; font-weight: 700; letter-spacing: -0.02em; }
 .rb-version { font-family: var(--rb-mono, monospace); font-size: 11px; color: var(--rb-muted); border: 1px solid var(--rb-line); border-radius: 999px; padding: 2px 8px; }
-.rb-navlinks { display: flex; gap: 26px; font-size: 15px; font-weight: 600; flex-wrap: wrap; }
+.rb-navlinks { display: flex; gap: 26px; font-size: 15px; font-weight: 600; white-space: nowrap; }
+.rb-navcta .rb-menu-btn { display: none; }
 .rb-navlinks a { color: var(--rb-text); }
 .rb-navcta { display: flex; align-items: center; gap: 10px; }
 .rb-nav .form-control, .rb-nav .version-switcher {
@@ -288,16 +291,31 @@
 }
 
 /* Responsive */
-@media (max-width: 980px) {
+/* Tablets and unfolded foldables: links move into a menu, the hero stacks */
+@media (max-width: 1180px) {
+    .rb-navrow { position: relative; }
+    .rb-navcta .rb-menu-btn { display: inline-grid; }
+    .rb-navlinks {
+        display: none; position: absolute; top: calc(100% + 8px); right: 24px; z-index: 30;
+        flex-direction: column; gap: 4px; min-width: 240px; padding: 10px;
+        background: var(--rb-surface); border: 1px solid var(--rb-line); border-radius: 14px; box-shadow: var(--rb-shadow);
+    }
+    .rb-navlinks.rb-navlinks-open { display: flex; }
+    .rb-navlinks a { padding: 10px 12px; border-radius: 10px; text-decoration: none; }
+    .rb-navlinks a:hover { background: var(--rb-chip); }
     .rb-hero-grid { grid-template-columns: minmax(0, 1fr); }
+    .rb-hero-copy { max-width: 720px; }
+    .rb-window { max-width: 760px; }
+    .rb-float-1 { right: 8px; } .rb-float-2 { left: 8px; }
+}
+@media (max-width: 980px) {
     .rb-grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .rb-foot { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .rb-flow { grid-template-columns: minmax(0, 1fr); }
     .rb-link { display: none; }
-    .rb-float-1 { right: 8px; } .rb-float-2 { left: 8px; }
 }
 @media (max-width: 720px) {
-    .rb-navlinks, .rb-search, .rb-navcta .version-switcher { display: none; }
+    .rb-search, .rb-navcta .version-switcher { display: none; }
     .rb-hero h1 { font-size: 44px; }
     .rb-section-head h2 { font-size: 30px; }
     .rb-grid3, .rb-grid2, .rb-lessons, .rb-foot { grid-template-columns: minmax(0, 1fr); }

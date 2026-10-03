@@ -219,11 +219,10 @@
 </head>
 <body
 	class="rb-home"
-	x-data="{ dark: document.documentElement.getAttribute( 'data-theme' ) === 'dark', copied: false }"
+	x-data="{ dark: document.documentElement.getAttribute( 'data-theme' ) === 'dark', copied: false, menu: false }"
 	x-init="$watch( 'dark', v => { document.documentElement.setAttribute( 'data-theme', v ? 'dark' : 'light' ); localStorage.setItem( 'bxsites-theme', v ? 'dark' : 'light' ) } )">
 
-	<div class="rb-glow rb-glow-1" aria-hidden="true"></div>
-	<div class="rb-glow rb-glow-2" aria-hidden="true"></div>
+	<div class="rb-glows" aria-hidden="true"><div class="rb-glow rb-glow-1"></div><div class="rb-glow rb-glow-2"></div></div>
 
 	<!--- Nav --->
 	<header class="rb-nav">
@@ -232,7 +231,7 @@
 				<img src="#variables.assetUrl#rulebox-icon.svg" alt="">
 				<span class="rb-brand-name">#encodeForHTML( variables.siteConfig.name )#</span>
 			</a>
-			<nav class="rb-navlinks" aria-label="Main">
+			<nav class="rb-navlinks" id="rb-navlinks" :class="menu && 'rb-navlinks-open'" @click.outside="menu = false" aria-label="Main">
 				<a href="#variables.basePath#getting-started/">Getting Started</a>
 				<a href="#variables.basePath#course/">Tutorial Course</a>
 				<a href="#variables.basePath#guides/">Guides</a>
@@ -252,6 +251,11 @@
 				<bx:if len( variables.repoUrl )>
 					<a class="rb-btn rb-btn-ghost rb-btn-sm" href="#bxsitesUrlAttr( variables.repoUrl )#" target="_blank" rel="noopener noreferrer">#bxsitesIcon( "github" )# Star</a>
 				</bx:if>
+				<!--- Below 1180px the links move into this menu --->
+				<button type="button" class="rb-icon-btn rb-menu-btn" @click.stop="menu = !menu" :aria-expanded="menu" aria-controls="rb-navlinks" aria-label="Menu">
+					<svg x-show="!menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+					<svg x-show="menu" x-cloak viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+				</button>
 			</div>
 		</div>
 	</header>
