@@ -83,6 +83,11 @@ Now, run it:
 getInstance( "HelloWorld" ).run()
 ```
 
+Rule names must be unique within a `RuleBook`, because the
+[audit trail](auditing.md) is keyed by name. Adding a rule whose name is
+already taken throws a `RuleBox.DuplicateRuleNameException`; unnamed rules
+are never affected.
+
 ## Retrieving a RuleBook
 
 Since a `RuleBook` subclass is just a WireBox-mapped CFC/BX class, you

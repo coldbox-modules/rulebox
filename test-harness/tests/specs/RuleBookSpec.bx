@@ -304,6 +304,113 @@ class extends="tests.resources.BaseSpec"{
 
 			});
 
+			describe( "duplicate rule names", function(){
+
+				beforeEach( function(){
+					setup();
+				} );
+
+				it( "throws a DuplicateRuleNameException naming the rule when a name is added twice", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "approve" ) );
+
+					var e = {};
+					try{
+						ruleBook.addRule( ruleBook.newRule( "approve" ) );
+					} catch( any ex ){
+						e = ex;
+					}
+
+					expect( e ).toHaveKey( "type" );
+					expect( e.type ).toBe( "RuleBox.DuplicateRuleNameException" );
+					expect( e.message ).toInclude( "approve" );
+				});
+
+				it( "leaves the rulebook untouched when the duplicate is rejected", function(){
+					var ran = [];
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "approve" ).then( ( facts ) => { ran.append( "first" ); } ) );
+
+					expect( function(){
+						ruleBook.addRule( ruleBook.newRule( "approve" ).then( ( facts ) => { ran.append( "second" ); } ) );
+					} ).toThrow( "RuleBox.DuplicateRuleNameException" );
+
+					expect( ruleBook.getRules() ).toHaveLength( 1 );
+
+					ruleBook.run();
+
+					expect( ran ).toBe( [ "first" ] );
+					expect( ruleBook.getRuleStatus( "approve" ) ).toBe( ruleBook.RULE_STATES.EXECUTED );
+				});
+
+				it( "rejects a duplicate defined via the closure form of addRule()", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ( rule ) => { rule.setName( "approve" ); } );
+
+					expect( function(){
+						ruleBook.addRule( ( rule ) => { rule.setName( "approve" ); } );
+					} ).toThrow( "RuleBox.DuplicateRuleNameException" );
+
+					expect( ruleBook.getRules() ).toHaveLength( 1 );
+				});
+
+				it( "treats names as case-insensitive, like the status map keys", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "Approve" ) );
+
+					expect( function(){
+						ruleBook.addRule( ruleBook.newRule( "approve" ) );
+					} ).toThrow( "RuleBox.DuplicateRuleNameException" );
+				});
+
+				it( "keeps one audit entry per distinct rule name", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "approve" ) );
+					ruleBook.addRule( ruleBook.newRule( "reject" ).when( ( facts ) => false ) );
+
+					ruleBook.run();
+
+					expect( ruleBook.getRuleStatusMap().keyArray() ).toHaveLength( 2 );
+					expect( ruleBook.getRuleStatus( "approve" ) ).toBe( ruleBook.RULE_STATES.EXECUTED );
+					expect( ruleBook.getRuleStatus( "reject" ) ).toBe( ruleBook.RULE_STATES.SKIPPED );
+				});
+
+				it( "does not affect unnamed rules, which each get their own audit entry", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule() );
+					ruleBook.addRule( ruleBook.newRule() );
+					ruleBook.addRule( ( rule ) => {} );
+
+					expect( ruleBook.getRules() ).toHaveLength( 3 );
+
+					ruleBook.run();
+
+					expect( ruleBook.getRuleStatusMap().keyArray() ).toHaveLength( 3 );
+				});
+
+				it( "allows the same name in different rulebooks", function(){
+					var first = getInstance( "RuleBook@rulebox" );
+					var second = getInstance( "RuleBook@rulebox" );
+
+					first.addRule( first.newRule( "approve" ) );
+					second.addRule( second.newRule( "approve" ) );
+
+					expect( first.getRules() ).toHaveLength( 1 );
+					expect( second.getRules() ).toHaveLength( 1 );
+				});
+
+				it( "allows a name to be reused after clearRules()", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "approve" ) );
+
+					ruleBook.clearRules();
+					ruleBook.addRule( ruleBook.newRule( "approve" ) );
+
+					expect( ruleBook.getRules() ).toHaveLength( 1 );
+				});
+
+			});
+
 			describe( "rule metrics", function(){
 
 				it( "returns an empty, zero-valued struct for a rule that has never been evaluated", function(){
