@@ -23,6 +23,36 @@ class {
 	this.entryPoint			= "rulebox-visualizer"
 
 	/**
+	* The default `visualizer` settings. A module is loaded once, so they live in a static struct
+	* that configure() copies and onLoad() uses to fill the keys an app's (shallow-merged)
+	* override left out. Nothing writes to it.
+	*/
+	static {
+		VISUALIZER_DEFAULTS = {
+			// Master switch. While false, the visualizer's routes 404 and no rule events are
+			// recorded or broadcast at all - flipping this on is the only thing that turns on
+			// the (small) per-rule-evaluation bookkeeping cost.
+			enabled        = false,
+			// WireBox mapping ID for the metrics persistence store. Defaults to the in-memory
+			// store (no setup, nothing survives a restart). For persistence across restarts,
+			// point this at "SQLiteMetricsStore@rulebox" - see the "Rule Visualizer" guide for
+			// what that needs (the bx-sqlite module plus a matching datasource), or implement
+			// IMetricsStore@rulebox yourself and point this at its mapping.
+			metricsStore   = "InMemoryMetricsStore@rulebox",
+			// Datasource name SQLiteMetricsStore reads/writes, if you opt into it above.
+			datasourceName = "rulebox_visualizer",
+			// SQLiteMetricsStore retention (0 disables either): prune events older than this many days...
+			retentionDays  = 30,
+			// ...and keep at most this many rows. Checked every ~500 inserts, not on every insert.
+			maxStoredEvents = 100000,
+			// SQLiteMetricsStore circuit breaker: after this many consecutive failures stop
+			// writing for the cool-down (seconds), logging one error on open and one info on recovery.
+			circuitBreakerThreshold       = 5,
+			circuitBreakerCooldownSeconds = 60
+		}
+	}
+
+	/**
 	* Configure Module
 	*/
 	function configure(){
@@ -36,7 +66,7 @@ class {
 			// The Rule Visualizer: a dashboard/dry-run/metrics/live-tracker admin UI, off by default.
 			// Secure it yourself (e.g. with cbSecurity) once enabled - RuleBox doesn't gate access on its own.
 			// See the "Rule Visualizer" guide for the full settings shape.
-			visualizer = visualizerDefaults()
+			visualizer = duplicate( static.VISUALIZER_DEFAULTS )
 		}
 	}
 
@@ -51,9 +81,8 @@ class {
 		if( !isStruct( variables.settings.visualizer ?: "" ) ){
 			invalidSetting( "visualizer", variables.settings.visualizer ?: "null", "a struct" )
 		}
-		variables.settings.visualizer = validateVisualizerSettings(
-			visualizerDefaults().append( variables.settings.visualizer, true )
-		)
+		variables.settings.visualizer.append( static.VISUALIZER_DEFAULTS, false )
+		validateVisualizerSettings( variables.settings.visualizer )
 
 		// Custom injection DSL: inject="rulebook" (the registry) / inject="rulebook:{name}" (a provider)
 		wirebox.registerDSL( namespace = "rulebook", path = "rulebox.models.RuleBookDSL" )
@@ -62,13 +91,11 @@ class {
 	/**
 	* Validate the completed visualizer settings so a bad config fails on app start, not on first use.
 	*
-	* @visualizer The visualizer settings, already merged over visualizerDefaults()
-	*
-	* @return The same, now validated, visualizer settings
+	* @visualizer The visualizer settings, already filled in from VISUALIZER_DEFAULTS
 	*
 	* @throws RuleBox.InvalidSettingException When a setting has the wrong type or an out-of-range value
 	*/
-	private struct function validateVisualizerSettings( required struct visualizer ){
+	private void function validateVisualizerSettings( required struct visualizer ){
 		if( isNull( arguments.visualizer.enabled ) || !isBoolean( arguments.visualizer.enabled ) ){
 			invalidSetting( "visualizer.enabled", arguments.visualizer.enabled ?: "null", "true or false" )
 		}
@@ -91,7 +118,6 @@ class {
 				invalidSetting( "visualizer.#key#", value, "a whole number of #minimums[ key ]# or more" )
 			}
 		}
-		return arguments.visualizer
 	}
 
 	/**
@@ -108,37 +134,6 @@ class {
 			type    = "RuleBox.InvalidSettingException",
 			message = "Invalid moduleSettings.rulebox.#arguments.key#: expected #arguments.expected#, got #( isSimpleValue( arguments.value ?: "" ) ? "'#arguments.value ?: ""#'" : "a complex value" )#."
 		)
-	}
-
-	/**
-	* The default `visualizer` settings: the single source of truth for both configure() and the
-	* onLoad() back-fill of keys an app's (shallow-merged) override left out.
-	*
-	* @return A new struct of defaults on every call, so callers can merge into it safely
-	*/
-	private static struct function visualizerDefaults(){
-		return {
-			// Master switch. While false, the visualizer's routes 404 and no rule events are
-			// recorded or broadcast at all - flipping this on is the only thing that turns on
-			// the (small) per-rule-evaluation bookkeeping cost.
-			enabled        = false,
-			// WireBox mapping ID for the metrics persistence store. Defaults to the in-memory
-			// store (no setup, nothing survives a restart). For persistence across restarts,
-			// point this at "SQLiteMetricsStore@rulebox" - see the "Rule Visualizer" guide for
-			// what that needs (the bx-sqlite module plus a matching datasource), or implement
-			// IMetricsStore@rulebox yourself and point this at its mapping.
-			metricsStore   = "InMemoryMetricsStore@rulebox",
-			// Datasource name SQLiteMetricsStore reads/writes, if you opt into it above.
-			datasourceName = "rulebox_visualizer",
-			// SQLiteMetricsStore retention (0 disables either): prune events older than this many days...
-			retentionDays  = 30,
-			// ...and keep at most this many rows. Checked every ~500 inserts, not on every insert.
-			maxStoredEvents = 100000,
-			// SQLiteMetricsStore circuit breaker: after this many consecutive failures stop
-			// writing for the cool-down (seconds), logging one error on open and one info on recovery.
-			circuitBreakerThreshold       = 5,
-			circuitBreakerCooldownSeconds = 60
-		}
 	}
 
 	/**
