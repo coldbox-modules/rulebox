@@ -148,7 +148,9 @@ moduleSettings = {
 
 `InMemoryMetricsStore@rulebox` is the default - zero setup, live broadcast
 and the dashboard/metrics screens work immediately after enabling the
-visualizer. The tradeoff: nothing survives a restart.
+visualizer. The tradeoff: nothing survives a restart. Totals and per-rule
+metrics are exact running aggregates, while the recent-activity feed keeps
+only the last 1000 events per rulebook (`maxEventsPerRulebook`).
 
 ### Persisting across restarts: SQLite
 

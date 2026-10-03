@@ -1,7 +1,11 @@
 /**
- * Default-of-last-resort IMetricsStore: keeps events in a bounded in-memory array. Nothing is
- * persisted across a restart. Useful for tests, or for apps that only care about the visualizer's
- * live tracker and don't need historical metrics to survive a redeploy.
+ * Default-of-last-resort IMetricsStore: keeps metrics in memory. Nothing is persisted across a
+ * restart. Useful for tests, or for apps that only care about the visualizer's live tracker and don't
+ * need historical metrics to survive a redeploy.
+ *
+ * Summaries (queryRuleBookSummary/queryRuleMetrics) come from exact running aggregates per rulebook and
+ * per rule that are never evicted. Only the recent-activity feed behind queryEvents() is bounded, and
+ * that bound is per rulebook so a busy rulebook cannot push a quiet one out of the feed.
  *
  * Swap it in via moduleSettings.rulebox.visualizer.metricsStore = "InMemoryMetricsStore@rulebox".
  */
@@ -10,83 +14,177 @@
 class implements="IMetricsStore"{
 
 	/**
-	 * Recorded events, oldest first. Capped at maxEvents - oldest entries fall off once full.
+	 * Recent events for the activity feed and queryEvents(), keyed by rulebook name. Each value is an
+	 * array (oldest first) of { seq, event } wrappers, capped at maxEventsPerRulebook. "seq" is a
+	 * monotonically increasing sequence number used to order events across rulebooks.
 	 */
-	property name="events" type="array";
+	property name="eventsByRulebook" type="struct";
 
-	property name="maxEvents" type="numeric" default="5000";
+	/**
+	 * Exact running aggregates, keyed by rulebook name. Updated on every recordEvent() and never evicted,
+	 * so summaries stay correct no matter how many events have rolled out of the feed. Each value is
+	 * { totals, rules } where totals and rules[ ruleName ] share the shape
+	 * { totalEvaluations, countsByState, totalDurationMs, minDurationMs, maxDurationMs, lastRunAt }.
+	 */
+	property name="aggregatesByRulebook" type="struct";
+
+	/**
+	 * Max recent events retained per rulebook for queryEvents(). Aggregates are NOT affected by this cap.
+	 */
+	property name="maxEventsPerRulebook" type="numeric" default="1000";
 
 	function init(){
-		variables.events = []
+		variables.eventsByRulebook = {}
+		variables.aggregatesByRulebook = {}
+		variables.sequence = 0
 		return this
 	}
 
 	void function recordEvent( required struct event ){
 		lock name="rulebox_inmemory_metrics" type="exclusive" timeout="5"{
-			variables.events.append( arguments.event )
-			if( variables.events.len() > variables.maxEvents ){
-				variables.events.deleteAt( 1 )
+			var rulebookName = arguments.event.rulebookName
+			var stored = arguments.event.copy()
+
+			// Recent-activity feed, bounded per rulebook
+			variables.sequence++
+			if( !variables.eventsByRulebook.keyExists( rulebookName ) ){
+				variables.eventsByRulebook[ rulebookName ] = []
 			}
+			var feed = variables.eventsByRulebook[ rulebookName ]
+			feed.append( { seq: variables.sequence, event: stored } )
+			while( feed.len() > variables.maxEventsPerRulebook ){
+				feed.deleteAt( 1 )
+			}
+
+			// Exact aggregates, never evicted
+			if( !variables.aggregatesByRulebook.keyExists( rulebookName ) ){
+				variables.aggregatesByRulebook[ rulebookName ] = { totals: newAggregate(), rules: {} }
+			}
+			var aggregates = variables.aggregatesByRulebook[ rulebookName ]
+			if( !aggregates.rules.keyExists( stored.ruleName ) ){
+				aggregates.rules[ stored.ruleName ] = newAggregate()
+			}
+			accumulate( aggregates.totals, stored )
+			accumulate( aggregates.rules[ stored.ruleName ], stored )
 		}
 	}
 
 	array function queryEvents( struct filters={}, numeric limit=50 ){
 		var requestedFilters = arguments.filters
+		var maxRows = arguments.limit
 		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
-			var matches = variables.events.filter( ( evt ) => {
-				return !requestedFilters.keyExists( "rulebookName" ) || evt.rulebookName == requestedFilters.rulebookName
-			} )
-			matches = matches.reverse()
-			return matches.len() > arguments.limit ? matches.slice( 1, arguments.limit ) : matches
+			var candidates = []
+			if( requestedFilters.keyExists( "rulebookName" ) ){
+				if( variables.eventsByRulebook.keyExists( requestedFilters.rulebookName ) ){
+					candidates = lastEntries( variables.eventsByRulebook[ requestedFilters.rulebookName ], maxRows )
+				}
+			} else {
+				// Only the newest maxRows of each rulebook can make the overall newest maxRows
+				for( var name in variables.eventsByRulebook ){
+					candidates.append( lastEntries( variables.eventsByRulebook[ name ], maxRows ), true )
+				}
+			}
+			// Newest first, by sequence number rather than by timestamp string
+			candidates.sort( ( a, b ) => a.seq == b.seq ? 0 : ( a.seq > b.seq ? -1 : 1 ) )
+			if( candidates.len() > maxRows ){
+				candidates = candidates.slice( 1, maxRows )
+			}
+			return candidates.map( ( entry ) => entry.event )
 		}
 	}
 
 	struct function queryRuleBookSummary( required string rulebookName ){
-		var matches = queryEvents( filters={ rulebookName: arguments.rulebookName }, limit=variables.maxEvents )
-		return summarize( matches, { rulebookName: arguments.rulebookName } )
+		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
+			var aggregate = variables.aggregatesByRulebook.keyExists( arguments.rulebookName )
+				? variables.aggregatesByRulebook[ arguments.rulebookName ].totals
+				: newAggregate()
+			return summarize( aggregate, { rulebookName: arguments.rulebookName } )
+		}
 	}
 
 	struct function queryRuleMetrics( required string rulebookName, required string ruleName ){
-		var requestedRuleName = arguments.ruleName
-		var matches = queryEvents( filters={ rulebookName: arguments.rulebookName }, limit=variables.maxEvents )
-			.filter( ( evt ) => evt.ruleName == requestedRuleName )
-		var summary = summarize( matches, { rulebookName: arguments.rulebookName, ruleName: arguments.ruleName } )
-		summary[ "minDurationMs" ] = matches.isEmpty() ? 0 : matches.reduce( ( min, evt ) => mathMin( min, evt.durationMs ), matches[ 1 ].durationMs )
-		summary[ "maxDurationMs" ] = matches.isEmpty() ? 0 : matches.reduce( ( max, evt ) => mathMax( max, evt.durationMs ), matches[ 1 ].durationMs )
-		summary[ "lastRunAt" ]     = matches.isEmpty() ? "" : matches[ 1 ].timestamp
-		return summary
+		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
+			var aggregate = newAggregate()
+			if(
+				variables.aggregatesByRulebook.keyExists( arguments.rulebookName )
+				&& variables.aggregatesByRulebook[ arguments.rulebookName ].rules.keyExists( arguments.ruleName )
+			){
+				aggregate = variables.aggregatesByRulebook[ arguments.rulebookName ].rules[ arguments.ruleName ]
+			}
+			var summary = summarize( aggregate, { rulebookName: arguments.rulebookName, ruleName: arguments.ruleName } )
+			summary[ "minDurationMs" ] = aggregate.minDurationMs
+			summary[ "maxDurationMs" ] = aggregate.maxDurationMs
+			summary[ "lastRunAt" ]     = aggregate.lastRunAt
+			return summary
+		}
 	}
 
 	array function queryRuleBookNames(){
 		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
-			var names = {}
-			variables.events.each( ( evt ) => names[ evt.rulebookName ] = true )
-			return names.keyArray()
+			return variables.aggregatesByRulebook.keyArray()
 		}
 	}
 
 	void function reset(){
 		lock name="rulebox_inmemory_metrics" type="exclusive" timeout="5"{
-			variables.events = []
+			variables.eventsByRulebook = {}
+			variables.aggregatesByRulebook = {}
 		}
 	}
 
 	/**
-	 * Shared aggregation for queryRuleBookSummary()/queryRuleMetrics(): counts, total/avg duration.
+	 * An empty running aggregate. minDurationMs/maxDurationMs stay 0 until the first event arrives.
 	 */
-	private struct function summarize( required array matches, required struct identity ){
-		var countsByState = {}
-		var totalDurationMs = 0
-		arguments.matches.each( ( evt ) => {
-			countsByState[ evt.state ] = ( countsByState.keyExists( evt.state ) ? countsByState[ evt.state ] : 0 ) + 1
-			totalDurationMs += evt.durationMs
-		} )
+	private struct function newAggregate(){
+		return {
+			totalEvaluations : 0,
+			countsByState    : {},
+			totalDurationMs  : 0,
+			minDurationMs    : 0,
+			maxDurationMs    : 0,
+			lastRunAt        : ""
+		}
+	}
 
+	/**
+	 * Fold one event into a running aggregate. Caller holds the exclusive lock.
+	 */
+	private void function accumulate( required struct aggregate, required struct event ){
+		var agg = arguments.aggregate
+		var duration = arguments.event.durationMs
+		var state = arguments.event.state
+		if( agg.totalEvaluations == 0 ){
+			agg.minDurationMs = duration
+			agg.maxDurationMs = duration
+		} else {
+			agg.minDurationMs = mathMin( agg.minDurationMs, duration )
+			agg.maxDurationMs = mathMax( agg.maxDurationMs, duration )
+		}
+		agg.totalEvaluations++
+		agg.totalDurationMs += duration
+		agg.countsByState[ state ] = ( agg.countsByState.keyExists( state ) ? agg.countsByState[ state ] : 0 ) + 1
+		agg.lastRunAt = arguments.event.timestamp
+	}
+
+	/**
+	 * The last "count" entries of a feed (still oldest first). Always returns a new array.
+	 */
+	private array function lastEntries( required array feed, required numeric count ){
+		return arguments.feed.len() > arguments.count
+			? arguments.feed.slice( arguments.feed.len() - arguments.count + 1, arguments.count )
+			: arguments.feed.slice( 1 )
+	}
+
+	/**
+	 * Shared shaping for queryRuleBookSummary()/queryRuleMetrics(): counts, total/avg duration.
+	 * Copies countsByState so callers can't mutate the live aggregate.
+	 */
+	private struct function summarize( required struct aggregate, required struct identity ){
 		var summary = arguments.identity.copy()
-		summary[ "totalEvaluations" ] = arguments.matches.len()
-		summary[ "countsByState" ]    = countsByState
-		summary[ "totalDurationMs" ]  = totalDurationMs
-		summary[ "avgDurationMs" ]    = arguments.matches.isEmpty() ? 0 : totalDurationMs / arguments.matches.len()
+		summary[ "totalEvaluations" ] = arguments.aggregate.totalEvaluations
+		summary[ "countsByState" ]    = arguments.aggregate.countsByState.copy()
+		summary[ "totalDurationMs" ]  = arguments.aggregate.totalDurationMs
+		summary[ "avgDurationMs" ]    = arguments.aggregate.totalEvaluations == 0 ? 0 : arguments.aggregate.totalDurationMs / arguments.aggregate.totalEvaluations
 		return summary
 	}
 
