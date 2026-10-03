@@ -96,7 +96,7 @@ class {
 	* The default `visualizer` settings: the single source of truth for both configure() and the
 	* onLoad() back-fill of keys an app's (shallow-merged) override left out.
 	*/
-	private struct function visualizerDefaults(){
+	private static struct function visualizerDefaults(){
 		return {
 			// Master switch. While false, the visualizer's routes 404 and no rule events are
 			// recorded or broadcast at all - flipping this on is the only thing that turns on
