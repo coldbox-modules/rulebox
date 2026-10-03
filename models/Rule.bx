@@ -431,4 +431,12 @@ class{
 		return this
 	}
 
+	/**
+	 * Clear the next rule in the chain, making this rule the end of the chain
+	 */
+	Rule function clearNextRule(){
+		variables.nextRule = null
+		return this
+	}
+
 }

@@ -302,6 +302,94 @@ class extends="tests.resources.BaseSpec"{
 					expect( executed ).toBe( [ "v1" ] );
 				});
 
+				describe( "stale state after clearRules()", function(){
+
+					beforeEach( function( currentSpec ){
+						setup();
+					});
+
+					it( "clearRules() leaves no chain head, tail or status entries and returns the rulebook", function(){
+						var ruleBook = getInstance( "RuleBook@rulebox" );
+						ruleBook.addRule( ruleBook.newRule( "A" ) ).addRule( ruleBook.newRule( "B" ) );
+
+						expect( ruleBook.clearRules() ).toBe( ruleBook );
+
+						expect( ruleBook.getRuleStatusMap() ).toBeEmpty();
+						expect( isNull( ruleBook.getHeadRule() ) ).toBeTrue();
+						expect( isNull( ruleBook.getTailRule() ) ).toBeTrue();
+					});
+
+					it( "clearRules() clears the nextRule link of every removed rule", function(){
+						var ruleBook = getInstance( "RuleBook@rulebox" );
+						var ruleA = ruleBook.newRule( "A" );
+						var ruleB = ruleBook.newRule( "B" );
+						var ruleC = ruleBook.newRule( "C" );
+						ruleBook.addRule( ruleA ).addRule( ruleB ).addRule( ruleC );
+						expect( ruleA.getNextRule() ).toBe( ruleB );
+
+						ruleBook.clearRules();
+
+						expect( isNull( ruleA.getNextRule() ) ).toBeTrue();
+						expect( isNull( ruleB.getNextRule() ) ).toBeTrue();
+						expect( isNull( ruleC.getNextRule() ) ).toBeTrue();
+					});
+
+					it( "a removed rule re-added alone does not run its old chain", function(){
+						var executed = [];
+						var ruleBook = getInstance( "RuleBook@rulebox" );
+						var ruleA = ruleBook.newRule( "A" ).then( ( facts ) => { executed.append( "A" ); } );
+						var ruleB = ruleBook.newRule( "B" ).then( ( facts ) => { executed.append( "B" ); } );
+						ruleBook.addRule( ruleA ).addRule( ruleB );
+
+						ruleBook.clearRules();
+						ruleBook.addRule( ruleA );
+						ruleBook.run();
+
+						expect( executed ).toBe( [ "A" ] );
+						expect( ruleBook.getRuleStatus( "B" ) ).toBe( ruleBook.RULE_STATES.NOT_AVAILABLE );
+					});
+
+					it( "re-adding a subset in a new order runs only the new chain", function(){
+						var executed = [];
+						var ruleBook = getInstance( "RuleBook@rulebox" );
+						// The guard turns a stale-link cycle into a failure instead of endless recursion
+						var capture  = ( name ) => ( facts ) => {
+							executed.append( name );
+							if( executed.len() > 10 ){
+								throw( type: "RuleBookSpec.RunawayChain", message: "Rule chain did not terminate" );
+							}
+						};
+						var ruleA = ruleBook.newRule( "A" ).then( capture( "A" ) );
+						var ruleB = ruleBook.newRule( "B" ).then( capture( "B" ) );
+						var ruleC = ruleBook.newRule( "C" ).then( capture( "C" ) );
+						ruleBook.addRule( ruleA ).addRule( ruleB ).addRule( ruleC );
+
+						ruleBook.clearRules();
+						ruleBook.addRule( ruleC ).addRule( ruleA );
+						ruleBook.run();
+
+						expect( executed ).toBe( [ "C", "A" ] );
+						expect( ruleBook.getRuleStatusMap().keyList().listSort( "text" ) ).toBe( "A,C" );
+					});
+
+					it( "a rule removed from one rulebook runs only the new chain in another", function(){
+						var executed = [];
+						var first    = getInstance( "RuleBook@rulebox" );
+						var second   = getInstance( "RuleBook@rulebox" );
+						var ruleA = first.newRule( "A" ).then( ( facts ) => { executed.append( "A" ); } );
+						var ruleB = first.newRule( "B" ).then( ( facts ) => { executed.append( "B" ); } );
+						first.addRule( ruleA ).addRule( ruleB );
+
+						first.clearRules();
+						second.addRule( ruleA );
+						second.run();
+
+						expect( executed ).toBe( [ "A" ] );
+						expect( ruleA.getRuleBook() ).toBe( second );
+					});
+
+				});
+
 			});
 
 			describe( "rule metrics", function(){
