@@ -225,6 +225,129 @@ class extends="tests.resources.BaseSpec"{
 
 			} );
 
+			describe( "DBRuleSource row mapping", function(){
+
+				// Builds a one-row, all-varchar query (as a loosely-typed legacy table would return), with overrides
+				var buildRows = function( struct overrides = {} ){
+					var row = {
+						"name"        : "r1",
+						"priority"    : "5",
+						"active_from" : "",
+						"when_json"   : '{ "eq" : [ "a", 1 ] }',
+						"except_json" : "",
+						"then_json"   : "[]",
+						"stop"        : "false"
+					};
+					row.append( overrides );
+					var rows = queryNew( "name,priority,active_from,when_json,except_json,then_json,stop" );
+					queryAddRow( rows, [ row ] );
+					return rows;
+				};
+
+				var loadFrom = function( required query rows ){
+					return getInstance( "DBRuleSource@rulebox", { query : rows } ).load();
+				};
+
+				// Returns the type/message/detail of whatever loading throws (all empty when nothing is thrown)
+				var captureError = function( required query rows ){
+					var caught = { "type" : "", "message" : "", "detail" : "" };
+					try {
+						loadFrom( rows );
+					} catch( any e ){
+						caught = { "type" : e.type, "message" : e.message, "detail" : e.detail };
+					}
+					return caught;
+				};
+
+				it( "parses lenient `stop` values (true/false, 1/0, yes/no, y/n, empty; case-insensitive)", function(){
+					[ "true", "TRUE", "1", "yes", "Yes", "y", "Y", " y " ].each( function( value ){
+						expect( loadFrom( buildRows( { "stop" : value } ) )[ 1 ].stop ).toBeTrue( "stop [#value#]" );
+					} );
+					[ "false", "False", "0", "no", "NO", "n", "N", "", "  " ].each( function( value ){
+						expect( loadFrom( buildRows( { "stop" : value } ) )[ 1 ].stop ).toBeFalse( "stop [#value#]" );
+					} );
+				} );
+
+				it( "still accepts a real boolean `stop` column", function(){
+					var rows = queryNew( "name,stop", "varchar,bit" );
+					queryAddRow( rows, [ { "name" : "yes", "stop" : true }, { "name" : "no", "stop" : false } ] );
+
+					var defs = loadFrom( rows );
+					expect( defs[ 1 ].stop ).toBeTrue();
+					expect( defs[ 2 ].stop ).toBeFalse();
+				} );
+
+				it( "throws RuleBox.InvalidRuleRowException naming the rule and column for a non-boolean `stop`", function(){
+					var caught = captureError( buildRows( { "name" : "creditCheck", "stop" : "maybe" } ) );
+
+					expect( caught.type ).toBe( "RuleBox.InvalidRuleRowException" );
+					expect( caught.message ).toInclude( "creditCheck" );
+					expect( caught.message ).toInclude( "stop" );
+					expect( caught.message ).toInclude( "maybe" );
+				} );
+
+				it( "names the 1-based row number when the rule has no name", function(){
+					var rows = buildRows();
+					queryAddRow( rows, { "name" : "", "priority" : "1", "when_json" : "", "then_json" : "", "stop" : "bogus" } );
+
+					var caught = captureError( rows );
+
+					expect( caught.type ).toBe( "RuleBox.InvalidRuleRowException" );
+					expect( caught.message ).toInclude( "row 2" );
+				} );
+
+				it( "throws RuleBox.InvalidRuleRowException naming the rule and column for invalid JSON in when_json, except_json and then_json", function(){
+					[ "when_json", "except_json", "then_json" ].each( function( column ){
+						var caught = captureError( buildRows( { "name" : "brokenRule", "#column#" : "{ not json" } ) );
+
+						expect( caught.type ).toBe( "RuleBox.InvalidRuleRowException" );
+						expect( caught.message ).toInclude( "brokenRule" );
+						expect( caught.message ).toInclude( column );
+						// the original parser error is preserved as the detail
+						expect( caught.detail ).notToBeEmpty();
+					} );
+				} );
+
+				it( "throws RuleBox.InvalidRuleRowException for an unparseable priority or date", function(){
+					expect( function(){
+						loadFrom( buildRows( { "name" : "badPriority", "priority" : "high" } ) );
+					} ).toThrow( "RuleBox.InvalidRuleRowException", "badPriority" );
+
+					expect( function(){
+						loadFrom( buildRows( { "name" : "badFrom", "active_from" : "not a date" } ) );
+					} ).toThrow( "RuleBox.InvalidRuleRowException", "active_from" );
+				} );
+
+				it( "still maps valid values, including dates and JSON columns", function(){
+					var defs = loadFrom( buildRows( { "priority" : "7", "active_from" : "2026-01-01", "except_json" : '{ "eq" : [ "b", 2 ] }' } ) );
+
+					expect( defs ).toHaveLength( 1 );
+					expect( val( defs[ 1 ].priority ) ).toBe( 7 );
+					expect( defs[ 1 ].activeFrom ).toBe( "2026-01-01" );
+					expect( defs[ 1 ].when ).toBe( { "eq" : [ "a", 1 ] } );
+					expect( defs[ 1 ].except ).toBe( { "eq" : [ "b", 2 ] } );
+					expect( defs[ 1 ].then ).toBe( [] );
+				} );
+
+				it( "treats NULL optional columns as absent", function(){
+					var rows = queryNew(
+						"name,priority,active_from,active_until,when_json,except_json,then_json,stop,using_facts",
+						"varchar,integer,timestamp,timestamp,varchar,varchar,varchar,bit,varchar"
+					);
+					queryAddRow( rows, 1 );
+					querySetCell( rows, "name", "allNulls", 1 );
+
+					var defs = loadFrom( rows );
+					expect( defs ).toHaveLength( 1 );
+					expect( defs[ 1 ].name ).toBe( "allNulls" );
+					expect( defs[ 1 ].priority ).toBe( 0 );
+					expect( defs[ 1 ].stop ).toBeFalse();
+					expect( defs[ 1 ] ).notToHaveKey( "activeFrom" );
+					expect( defs[ 1 ] ).notToHaveKey( "except" );
+				} );
+
+			} );
+
 		} );
 	}
 
