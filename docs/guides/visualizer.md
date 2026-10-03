@@ -62,7 +62,7 @@ rulebooks in this module's own `test-harness/config/rulebox` folder.
 
 ### Dashboard
 
-![The Dashboard: totals, a table of every rulebook with its outcomes, and a recent activity feed](../images/visualizer/dashboard.png)
+![The Dashboard: totals, a table of every rulebook with its outcomes, and a recent activity feed](../assets/visualizer/dashboard.png)
 
 Every declared rulebook (from `moduleSettings.rulebox.rulebooks` and/or your
 convention folder - see the "Externalized Rule Definitions" guide), with its
@@ -73,7 +73,7 @@ path, an unregistered action) is flagged with a red marker, like
 
 ### Rule Visualizer
 
-![The chain view for the loanapproval rulebook, showing priority badges, a stops-chain marker, and per-rule outcome counts](../images/visualizer/chain-loanapproval.png)
+![The chain view for the loanapproval rulebook, showing priority badges, a stops-chain marker, and per-rule outcome counts](../assets/visualizer/chain-loanapproval.png)
 
 A chosen rulebook's real execution chain, in the order the rules actually
 run. Each row shows:
@@ -85,13 +85,13 @@ run. Each row shows:
 Use the dropdown to switch rulebooks, or **Dry Run** to jump to the playground
 with this rulebook preselected.
 
-![The chain view for seasonalpromo, showing active windows on two rules](../images/visualizer/chain-seasonalpromo.png)
+![The chain view for seasonalpromo, showing active windows on two rules](../assets/visualizer/chain-seasonalpromo.png)
 
 Rules with an active window (`activeFrom` / `activeUntil`) show it inline.
 
 ### Dry Run
 
-![The Dry Run playground: a rulebook picker and JSON facts on the left, which rules would execute on the right](../images/visualizer/dryrun.png)
+![The Dry Run playground: a rulebook picker and JSON facts on the left, which rules would execute on the right](../assets/visualizer/dryrun.png)
 
 Pick a rulebook, paste facts as JSON, and press **Run dry run**. The result
 lists every rule in order and whether it **would execute** for those facts,
@@ -100,7 +100,7 @@ is recorded in your metrics.
 
 ### Metrics
 
-![The Metrics screen for loanapproval: evaluation count, average and total duration, and outcomes by state](../images/visualizer/metrics.png)
+![The Metrics screen for loanapproval: evaluation count, average and total duration, and outcomes by state](../assets/visualizer/metrics.png)
 
 Aggregated stats for one rulebook: total evaluations, average and total
 duration, and a count per outcome state. Pick a rulebook and press
@@ -108,11 +108,20 @@ duration, and a count per outcome state. Pick a rulebook and press
 
 ### Live Tracker
 
+![The Live Tracker: a Live badge and a table of rule evaluations streaming in, each with time, rulebook, rule, state and duration](../assets/visualizer/live.png)
+
 Every rule evaluation, across every rulebook, streamed to the browser as it
 happens via [BoxLang's `SSE()`](https://boxlang.ortusbooks.com/boxlang-framework/server-sent-events).
 Each row shows the time, rulebook, rule, outcome state, and duration. Use
 **Pause** to freeze the table while you read it; the table keeps the latest
 200 rows.
+
+> **Needs BoxLang 1.18.0 or later.** Earlier web runtimes apply whitespace
+> compression to `text/event-stream` responses, which strips the blank line
+> that ends each event, so the browser connects (the badge says **Live**) but
+> never receives a row. 1.18.0 never compresses SSE. On an older runtime, set
+> `whitespaceCompressionEnabled` to `false` in `boxlang.json`, keeping in mind
+> that it applies to all of your app's output.
 
 ## Metrics persistence
 
