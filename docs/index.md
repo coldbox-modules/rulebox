@@ -33,7 +33,7 @@ conditionals, no scattered business logic.
 are registered automatically - just `getInstance()` them.
 :::
 ::: card title="Fully audited" icon="phosphor-duotone:list-magnifying-glass"
-Every rule's execution is tracked in a `RuleStatusMap`, so you always know
+Every rule's execution is tracked in an audit trail, so you always know
 which rules fired, skipped, stopped, or failed.
 :::
 :::
