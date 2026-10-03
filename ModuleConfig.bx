@@ -36,20 +36,7 @@ class {
 			// The Rule Visualizer: a dashboard/dry-run/metrics/live-tracker admin UI, off by default.
 			// Secure it yourself (e.g. with cbSecurity) once enabled - RuleBox doesn't gate access on its own.
 			// See the "Rule Visualizer" guide for the full settings shape.
-			visualizer = {
-				// Master switch. While false, the visualizer's routes 404 and no rule events are
-				// recorded or broadcast at all - flipping this on is the only thing that turns on
-				// the (small) per-rule-evaluation bookkeeping cost.
-				enabled        = false,
-				// WireBox mapping ID for the metrics persistence store. Defaults to the in-memory
-				// store (no setup, nothing survives a restart). For persistence across restarts,
-				// point this at "SQLiteMetricsStore@rulebox" - see the "Rule Visualizer" guide for
-				// what that needs (the bx-sqlite module plus a matching datasource), or implement
-				// IMetricsStore@rulebox yourself and point this at its mapping.
-				metricsStore   = "InMemoryMetricsStore@rulebox",
-				// Datasource name SQLiteMetricsStore reads/writes, if you opt into it above.
-				datasourceName = "rulebox_visualizer"
-			}
+			visualizer = visualizerDefaults()
 		}
 	}
 
@@ -57,8 +44,36 @@ class {
 	* Fired when the module is registered and activated.
 	*/
 	function onLoad(){
+		// ColdBox merges an app's moduleSettings over ours with a SHALLOW append, so an app that only
+		// writes `visualizer = { enabled = true }` replaces our whole `visualizer` struct. Put the
+		// defaults back underneath whatever the app supplied (the live settings struct is shared by
+		// reference with the `coldbox:moduleSettings:rulebox` injection DSL).
+		var supplied = variables.settings.keyExists( "visualizer" ) && isStruct( variables.settings.visualizer ) ? variables.settings.visualizer : {}
+		variables.settings.visualizer = visualizerDefaults().append( supplied, true )
+
 		// Custom injection DSL: inject="rulebook" (the registry) / inject="rulebook:{name}" (a provider)
 		wirebox.registerDSL( namespace = "rulebook", path = "rulebox.models.RuleBookDSL" )
+	}
+
+	/**
+	* The default `visualizer` settings: the single source of truth for both configure() and the
+	* onLoad() back-fill of keys an app's (shallow-merged) override left out.
+	*/
+	private struct function visualizerDefaults(){
+		return {
+			// Master switch. While false, the visualizer's routes 404 and no rule events are
+			// recorded or broadcast at all - flipping this on is the only thing that turns on
+			// the (small) per-rule-evaluation bookkeeping cost.
+			enabled        = false,
+			// WireBox mapping ID for the metrics persistence store. Defaults to the in-memory
+			// store (no setup, nothing survives a restart). For persistence across restarts,
+			// point this at "SQLiteMetricsStore@rulebox" - see the "Rule Visualizer" guide for
+			// what that needs (the bx-sqlite module plus a matching datasource), or implement
+			// IMetricsStore@rulebox yourself and point this at its mapping.
+			metricsStore   = "InMemoryMetricsStore@rulebox",
+			// Datasource name SQLiteMetricsStore reads/writes, if you opt into it above.
+			datasourceName = "rulebox_visualizer"
+		}
 	}
 
 	/**

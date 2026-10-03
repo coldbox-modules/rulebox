@@ -27,7 +27,7 @@ class{
 	 * seeds prc with the settings the shared layout needs (sidebar datasource badge).
 	 */
 	function preHandler( event, rc, prc, action, eventArguments ){
-		if( !variables.settings.visualizer.enabled ){
+		if( !( variables.settings.visualizer.enabled ?: false ) ){
 			event.renderData(
 				type       = "json",
 				data       = { error: "The Rule Visualizer is disabled. Enable it via moduleSettings.rulebox.visualizer.enabled." },
@@ -36,7 +36,12 @@ class{
 			event.noExecution()
 			return
 		}
-		prc.visualizerSettings = variables.settings.visualizer
+		// Complete with defaults so the layout never reads a key an app's override left out
+		prc.visualizerSettings = {
+			enabled        : false,
+			metricsStore   : "InMemoryMetricsStore@rulebox",
+			datasourceName : "rulebox_visualizer"
+		}.append( variables.settings.visualizer ?: {}, true )
 
 		// event.buildLink( "visualizer.x" ) drops the module's entry point (-> /visualizer/x, a 500),
 		// so every layout/view link goes through this instead.
@@ -187,7 +192,7 @@ class{
 	 * keeps the handler correct even if the setting changes between requests.
 	 */
 	private any function getMetricsStore(){
-		return wirebox.getInstance( variables.settings.visualizer.metricsStore )
+		return wirebox.getInstance( variables.settings.visualizer.metricsStore ?: "InMemoryMetricsStore@rulebox" )
 	}
 
 	/**

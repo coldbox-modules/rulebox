@@ -20,7 +20,7 @@ class implements="IMetricsStore"{
 	property name="datasourceName" type="string";
 
 	function onDIComplete(){
-		variables.datasourceName = variables.settings.visualizer.datasourceName
+		variables.datasourceName = variables.settings.visualizer.datasourceName ?: "rulebox_visualizer"
 		ensureSchema()
 		return this
 	}
