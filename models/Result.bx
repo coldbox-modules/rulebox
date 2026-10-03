@@ -51,7 +51,7 @@ class{
 	 * Get the default value. This is a copy, so changing it does not change the default.
 	 */
 	function getDefaultValue(){
-		return ( isNull( variables.defaultValue ) ? javaCast( "null", "" ) : copyOf( variables.defaultValue ) )
+		return ( isNull( variables.defaultValue ) ? null : copyOf( variables.defaultValue ) )
 	}
 
 	/**
