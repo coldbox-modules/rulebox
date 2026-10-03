@@ -447,7 +447,8 @@ class{
 		// Process Facts
 		this.givenAll( argumentCollection=arguments )
 		// Reset the result for this run, just in case it was left over from a prior run
-		variables.result.ifPresent( variables.result.reset )
+		// Unconditionally: `ifPresent()` would skip the very cases that need it (no default, or default not yet applied)
+		variables.result.reset()
 
 		// Verify if rules are loaded? If not, load them via the `defineRules()` call.
 		if( !hasRules() ){

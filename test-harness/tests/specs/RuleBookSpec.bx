@@ -403,6 +403,76 @@ class extends="tests.resources.BaseSpec"{
 
 			});
 
+			describe( "result lifecycle across runs", function(){
+
+				it( "does not leak a value from a prior run when there is no default result", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule(
+						ruleBook.newRule( "setter" )
+							.when( ( facts ) => facts.go )
+							.then( ( facts, result ) => result.setValue( "set" ) )
+					);
+
+					ruleBook.run( { go : true } );
+					expect( ruleBook.getResult().isPresent() ).toBeTrue();
+					expect( ruleBook.getResult().getValue() ).toBe( "set" );
+
+					ruleBook.run( { go : false } );
+					expect( ruleBook.getResult().isPresent() ).toBeFalse();
+					expect( ruleBook.getResult().orElse( "none" ) ).toBe( "none" );
+				});
+
+				it( "returns the default result on a later run when no rule fires", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" ).withDefaultResult( "dflt" );
+					ruleBook.addRule(
+						ruleBook.newRule( "setter" )
+							.when( ( facts ) => facts.go )
+							.then( ( facts, result ) => result.setValue( "set" ) )
+					);
+
+					ruleBook.run( { go : true } );
+					expect( ruleBook.getResult().getValue() ).toBe( "set" );
+
+					ruleBook.run( { go : false } );
+					expect( ruleBook.getResult().isPresent() ).toBeTrue();
+					expect( ruleBook.getResult().getValue() ).toBe( "dflt" );
+				});
+
+				it( "yields the default result on a first run when no rule fires", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" ).withDefaultResult( "dflt" );
+					ruleBook.addRule(
+						ruleBook.newRule( "setter" )
+							.when( ( facts ) => facts.go )
+							.then( ( facts, result ) => result.setValue( "set" ) )
+					);
+
+					ruleBook.run( { go : false } );
+					expect( ruleBook.getResult().getValue() ).toBe( "dflt" );
+				});
+
+				it( "reset() on a Result with no default makes isPresent() false", function(){
+					var result = getInstance( "Result@rulebox" );
+					result.setValue( "something" );
+					expect( result.isPresent() ).toBeTrue();
+
+					expect( result.reset() ).toBe( result );
+
+					expect( result.isPresent() ).toBeFalse();
+					expect( result.orElse( "other" ) ).toBe( "other" );
+				});
+
+				it( "reset() on a Result with a default restores the default", function(){
+					var result = getInstance( "Result@rulebox" ).init( "dflt" );
+					result.setValue( "something" );
+
+					result.reset();
+
+					expect( result.isPresent() ).toBeTrue();
+					expect( result.getValue() ).toBe( "dflt" );
+				});
+
+			});
+
 		});
 	}
 
