@@ -91,11 +91,11 @@ class extends="tests.resources.BaseSpec"{
 
 		describe( "LiveStreams (the Live Tracker's stream cap and bounded queues)", function(){
 
-			function newStreams(){
+			function newLiveStreams(){
 				return new rulebox.models.metrics.LiveStreams();
 			}
 
-			function newBus(){
+			function newStreamBus(){
 				var bus = new rulebox.models.metrics.RuleEventBus();
 				bus.setWirebox( getWireBox() );
 				bus.setLogger( getController().getLogBox().getRootLogger() );
@@ -113,7 +113,7 @@ class extends="tests.resources.BaseSpec"{
 			}
 
 			it( "rejects the N+1th stream and admits one again once a slot is released", function(){
-				var streams = newStreams();
+				var streams = newLiveStreams();
 
 				expect( streams.tryAcquire( 2 ) ).toBeTrue();
 				expect( streams.tryAcquire( 2 ) ).toBeTrue();
@@ -127,7 +127,7 @@ class extends="tests.resources.BaseSpec"{
 			} );
 
 			it( "never lets release() drive the count below zero", function(){
-				var streams = newStreams();
+				var streams = newLiveStreams();
 
 				streams.release();
 
@@ -135,7 +135,7 @@ class extends="tests.resources.BaseSpec"{
 			} );
 
 			it( "never admits more than the cap under concurrent attempts", function(){
-				var streams = newStreams();
+				var streams = newLiveStreams();
 				var ids = [];
 				for( var i = 1; i <= 100; i++ ){
 					ids.append( i );
@@ -148,8 +148,8 @@ class extends="tests.resources.BaseSpec"{
 			} );
 
 			it( "serve() refuses to open a stream at the cap, without subscribing or running the opener", function(){
-				var streams = newStreams();
-				var bus     = newBus();
+				var streams = newLiveStreams();
+				var bus     = newStreamBus();
 				var opened  = false;
 				streams.tryAcquire( 1 );
 
@@ -162,8 +162,8 @@ class extends="tests.resources.BaseSpec"{
 			} );
 
 			it( "serve() runs the opener against a queue the bus feeds, then unsubscribes and frees the slot", function(){
-				var streams = newStreams();
-				var bus     = newBus();
+				var streams = newLiveStreams();
+				var bus     = newStreamBus();
 				var seen    = [];
 				var during  = -1;
 
@@ -181,8 +181,8 @@ class extends="tests.resources.BaseSpec"{
 			} );
 
 			it( "serve() releases the slot and unsubscribes when opening the stream throws", function(){
-				var streams = newStreams();
-				var bus     = newBus();
+				var streams = newLiveStreams();
+				var bus     = newStreamBus();
 				var threw   = false;
 
 				try{
@@ -199,7 +199,7 @@ class extends="tests.resources.BaseSpec"{
 			} );
 
 			it( "serve() releases the slot when subscribing itself throws", function(){
-				var streams = newStreams();
+				var streams = newLiveStreams();
 				var failingBus = {
 					subscribe  : ( listener ) => { throw( type="Test.SubscribeFailed", message="no" ) },
 					unsubscribe: ( token ) => { throw( type="Test.ShouldNotUnsubscribe", message="nothing was subscribed" ) }
@@ -217,7 +217,7 @@ class extends="tests.resources.BaseSpec"{
 			} );
 
 			it( "a full queue drops the OLDEST event instead of growing or blocking", function(){
-				var streams = newStreams();
+				var streams = newLiveStreams();
 				var queue   = streams.newQueue( 3 );
 
 				for( var n = 1; n <= 5; n++ ){
@@ -229,12 +229,12 @@ class extends="tests.resources.BaseSpec"{
 			} );
 
 			it( "bounds each stream's queue at 1000 events by default", function(){
-				expect( newStreams().newQueue().remainingCapacity() ).toBe( 1000 );
+				expect( newLiveStreams().newQueue().remainingCapacity() ).toBe( 1000 );
 			} );
 
 			it( "keeps a stalled subscriber bounded while the bus keeps publishing", function(){
-				var streams = newStreams();
-				var bus     = newBus();
+				var streams = newLiveStreams();
+				var bus     = newStreamBus();
 				var queue   = streams.newQueue( 10 );
 				var token   = bus.subscribe( ( evt ) => streams.offer( queue, evt ) );
 				getInstance( "InMemoryMetricsStore@rulebox" ).reset();

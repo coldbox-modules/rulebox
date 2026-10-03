@@ -173,6 +173,12 @@ class extends="tests.resources.BaseSpec"{
 
 			describe( "stream() connection cap", function(){
 
+				// Fresh request context per spec: execute() otherwise reuses the previous spec's
+				// (e.g. the disabled-visualizer spec's 404 renderData).
+				beforeEach( function(){
+					setup();
+				} );
+
 				// The exact settings struct and LiveStreams singleton the handler reads, so holding
 				// slots here is seen by the real stream() action.
 				function hold( required numeric count ){
