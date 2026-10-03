@@ -273,7 +273,7 @@ CDN - there's nothing to build or bundle. The screenshots below use the
 rulebooks in this module's own <code>test-harness/config/rulebox</code> folder.</p>
 <h2 id="screens"><a href="#screens" id="screens" name="screens" class="anchor"></a>Screens</h2>
 <h3 id="dashboard"><a href="#dashboard" id="dashboard" name="dashboard" class="anchor"></a>Dashboard</h3>
-<p><img src="/images/visualizer/dashboard.png"  alt="The Dashboard: totals, a table of every rulebook with its outcomes, and a recent activity feed" /></p>
+<p><picture><source type="image/webp" srcset="/assets/visualizer/dashboard-400w.0e28bfd3.webp 400w, /assets/visualizer/dashboard-800w.0e28bfd3.webp 800w, /assets/visualizer/dashboard-1200w.0e28bfd3.webp 1200w, /assets/visualizer/dashboard-1280w.0e28bfd3.webp 1280w" sizes="(min-width: 800px) 800px, 100vw"><img src="/assets/visualizer/dashboard.png" srcset="/assets/visualizer/dashboard-400w.0e28bfd3.png 400w, /assets/visualizer/dashboard-800w.0e28bfd3.png 800w, /assets/visualizer/dashboard-1200w.0e28bfd3.png 1200w" sizes="(min-width: 800px) 800px, 100vw"  alt="The Dashboard: totals, a table of every rulebook with its outcomes, and a recent activity feed" /></picture></p>
 <p>Every declared rulebook (from <code>moduleSettings.rulebox.rulebooks</code> and/or your
 convention folder - see the &quot;Externalized Rule Definitions&quot; guide), with its
 rule count, evaluation counts by state, average duration, and a
@@ -281,7 +281,7 @@ recent-activity feed on the right. A rulebook that fails to load (a bad file
 path, an unregistered action) is flagged with a red marker, like
 <code>needsaction</code> above, instead of taking the whole page down.</p>
 <h3 id="rule-visualizer-1"><a href="#rule-visualizer-1" id="rule-visualizer-1" name="rule-visualizer-1" class="anchor"></a>Rule Visualizer</h3>
-<p><img src="/images/visualizer/chain-loanapproval.png"  alt="The chain view for the loanapproval rulebook, showing priority badges, a stops-chain marker, and per-rule outcome counts" /></p>
+<p><picture><source type="image/webp" srcset="/assets/visualizer/chain-loanapproval-400w.a714f761.webp 400w, /assets/visualizer/chain-loanapproval-800w.a714f761.webp 800w, /assets/visualizer/chain-loanapproval-1200w.a714f761.webp 1200w, /assets/visualizer/chain-loanapproval-1280w.a714f761.webp 1280w" sizes="(min-width: 800px) 800px, 100vw"><img src="/assets/visualizer/chain-loanapproval.png" srcset="/assets/visualizer/chain-loanapproval-400w.a714f761.png 400w, /assets/visualizer/chain-loanapproval-800w.a714f761.png 800w, /assets/visualizer/chain-loanapproval-1200w.a714f761.png 1200w" sizes="(min-width: 800px) 800px, 100vw"  alt="The chain view for the loanapproval rulebook, showing priority badges, a stops-chain marker, and per-rule outcome counts" /></picture></p>
 <p>A chosen rulebook's real execution chain, in the order the rules actually
 run. Each row shows:</p>
 <ul>
@@ -291,25 +291,34 @@ run. Each row shows:</p>
 </ul>
 <p>Use the dropdown to switch rulebooks, or <strong>Dry Run</strong> to jump to the playground
 with this rulebook preselected.</p>
-<p><img src="/images/visualizer/chain-seasonalpromo.png"  alt="The chain view for seasonalpromo, showing active windows on two rules" /></p>
+<p><picture><source type="image/webp" srcset="/assets/visualizer/chain-seasonalpromo-400w.0e47c145.webp 400w, /assets/visualizer/chain-seasonalpromo-800w.0e47c145.webp 800w, /assets/visualizer/chain-seasonalpromo-1200w.0e47c145.webp 1200w, /assets/visualizer/chain-seasonalpromo-1280w.0e47c145.webp 1280w" sizes="(min-width: 800px) 800px, 100vw"><img src="/assets/visualizer/chain-seasonalpromo.png" srcset="/assets/visualizer/chain-seasonalpromo-400w.0e47c145.png 400w, /assets/visualizer/chain-seasonalpromo-800w.0e47c145.png 800w, /assets/visualizer/chain-seasonalpromo-1200w.0e47c145.png 1200w" sizes="(min-width: 800px) 800px, 100vw"  alt="The chain view for seasonalpromo, showing active windows on two rules" /></picture></p>
 <p>Rules with an active window (<code>activeFrom</code> / <code>activeUntil</code>) show it inline.</p>
 <h3 id="dry-run"><a href="#dry-run" id="dry-run" name="dry-run" class="anchor"></a>Dry Run</h3>
-<p><img src="/images/visualizer/dryrun.png"  alt="The Dry Run playground: a rulebook picker and JSON facts on the left, which rules would execute on the right" /></p>
+<p><picture><source type="image/webp" srcset="/assets/visualizer/dryrun-400w.38f0e82b.webp 400w, /assets/visualizer/dryrun-800w.38f0e82b.webp 800w, /assets/visualizer/dryrun-1200w.38f0e82b.webp 1200w, /assets/visualizer/dryrun-1280w.38f0e82b.webp 1280w" sizes="(min-width: 800px) 800px, 100vw"><img src="/assets/visualizer/dryrun.png" srcset="/assets/visualizer/dryrun-400w.38f0e82b.png 400w, /assets/visualizer/dryrun-800w.38f0e82b.png 800w, /assets/visualizer/dryrun-1200w.38f0e82b.png 1200w" sizes="(min-width: 800px) 800px, 100vw"  alt="The Dry Run playground: a rulebook picker and JSON facts on the left, which rules would execute on the right" /></picture></p>
 <p>Pick a rulebook, paste facts as JSON, and press <strong>Run dry run</strong>. The result
 lists every rule in order and whether it <strong>would execute</strong> for those facts,
 without running any action. It is backed by <code>RuleBook.dryRun()</code>, so nothing
 is recorded in your metrics.</p>
 <h3 id="metrics"><a href="#metrics" id="metrics" name="metrics" class="anchor"></a>Metrics</h3>
-<p><img src="/images/visualizer/metrics.png"  alt="The Metrics screen for loanapproval: evaluation count, average and total duration, and outcomes by state" /></p>
+<p><picture><source type="image/webp" srcset="/assets/visualizer/metrics-400w.a1527a8d.webp 400w, /assets/visualizer/metrics-800w.a1527a8d.webp 800w, /assets/visualizer/metrics-1200w.a1527a8d.webp 1200w, /assets/visualizer/metrics-1280w.a1527a8d.webp 1280w" sizes="(min-width: 800px) 800px, 100vw"><img src="/assets/visualizer/metrics.png" srcset="/assets/visualizer/metrics-400w.a1527a8d.png 400w, /assets/visualizer/metrics-800w.a1527a8d.png 800w, /assets/visualizer/metrics-1200w.a1527a8d.png 1200w" sizes="(min-width: 800px) 800px, 100vw"  alt="The Metrics screen for loanapproval: evaluation count, average and total duration, and outcomes by state" /></picture></p>
 <p>Aggregated stats for one rulebook: total evaluations, average and total
 duration, and a count per outcome state. Pick a rulebook and press
 <strong>Refresh</strong> to re-query.</p>
 <h3 id="live-tracker"><a href="#live-tracker" id="live-tracker" name="live-tracker" class="anchor"></a>Live Tracker</h3>
+<p><picture><source type="image/webp" srcset="/assets/visualizer/live-400w.67159e48.webp 400w, /assets/visualizer/live-800w.67159e48.webp 800w, /assets/visualizer/live-1200w.67159e48.webp 1200w, /assets/visualizer/live-1280w.67159e48.webp 1280w" sizes="(min-width: 800px) 800px, 100vw"><img src="/assets/visualizer/live.png" srcset="/assets/visualizer/live-400w.67159e48.png 400w, /assets/visualizer/live-800w.67159e48.png 800w, /assets/visualizer/live-1200w.67159e48.png 1200w" sizes="(min-width: 800px) 800px, 100vw"  alt="The Live Tracker: a Live badge and a table of rule evaluations streaming in, each with time, rulebook, rule, state and duration" /></picture></p>
 <p>Every rule evaluation, across every rulebook, streamed to the browser as it
 happens via <a href="https://boxlang.ortusbooks.com/boxlang-framework/server-sent-events">BoxLang's <code>SSE()</code></a>.
 Each row shows the time, rulebook, rule, outcome state, and duration. Use
 <strong>Pause</strong> to freeze the table while you read it; the table keeps the latest
 200 rows.</p>
+<blockquote>
+<p><strong>Needs BoxLang 1.18.0 or later.</strong> Earlier web runtimes apply whitespace
+compression to <code>text/event-stream</code> responses, which strips the blank line
+that ends each event, so the browser connects (the badge says <strong>Live</strong>) but
+never receives a row. 1.18.0 never compresses SSE. On an older runtime, set
+<code>whitespaceCompressionEnabled</code> to <code>false</code> in <code>boxlang.json</code>, keeping in mind
+that it applies to all of your app's output.</p>
+</blockquote>
 <h2 id="metrics-persistence"><a href="#metrics-persistence" id="metrics-persistence" name="metrics-persistence" class="anchor"></a>Metrics persistence</h2>
 <p>Every rule evaluation is recorded through <code>RuleEventBus@rulebox</code>, which fans
 it out to two places: the configured metrics store (for the dashboard/metrics
@@ -368,7 +377,7 @@ condition. Access control is also entirely on you; see above.</p>
 
 	
 	
-		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/visualizer.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/visualizer.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 3, 2026, 11&#x3a;03&#x3a;58 AM</span></div>
+		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/visualizer.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/visualizer.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 3, 2026, 11&#x3a;24&#x3a;02 AM</span></div>
 	
 </article>
 
