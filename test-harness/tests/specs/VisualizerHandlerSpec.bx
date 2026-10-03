@@ -11,9 +11,20 @@ class extends="tests.resources.BaseSpec"{
 	function run( testResults, testBox ){
 		describe( "Visualizer handler", function(){
 
-			// runDryRun is POST-only (this.allowedMethods). ColdBox reads the HTTP method from rc._method
-			// before the CGI one, which is how a spec - always a GET itself - sends a POST. url.* leaks
-			// between specs, so clear what the runDryRun specs set; and a rejected method flags the
+			/**
+			 * Make the next execute() look like it was sent with the given HTTP method. A spec is itself
+			 * always a GET, and runDryRun is POST-only (this.allowedMethods), so:
+			 * - newer ColdBox reads the method from getOriginalHTTPMethod() (the CGI one) and only honors an
+			 *   rc._method override on a non-GET/HEAD request, hence the mock;
+			 * - older ColdBox 8.x reads rc._method before the CGI method, hence url._method.
+			 * Doing both works on either.
+			 */
+			function sendAs( required string method ){
+				url._method = arguments.method;
+				prepareMock( getRequestContext() ).$( "getOriginalHTTPMethod", arguments.method );
+			}
+
+			// url.* leaks between specs, so clear what sendAs() set; and a rejected method flags the
 			// request context as an invalid HTTP method, which would 405 every later spec that reuses it,
 			// so each spec starts from a fresh context.
 			beforeEach( function(){
@@ -154,7 +165,7 @@ class extends="tests.resources.BaseSpec"{
 			} );
 
 			it( "runDryRun() returns a dryRun() report as JSON", function(){
-				url._method = "POST";
+				sendAs( "POST" );
 				url.name  = "testconvention";
 				url.facts = jsonSerialize( {} );
 				var event = execute( event="rulebox:visualizer.runDryRun", renderResults=true );
@@ -167,7 +178,7 @@ class extends="tests.resources.BaseSpec"{
 			} );
 
 			it( "runDryRun() 404s for an unknown rulebook", function(){
-				url._method = "POST";
+				sendAs( "POST" );
 				url.name  = "doesNotExist";
 				url.facts = jsonSerialize( {} );
 				var event = execute( event="rulebox:visualizer.runDryRun", renderResults=true );
@@ -177,7 +188,7 @@ class extends="tests.resources.BaseSpec"{
 			} );
 
 			it( "runDryRun() treats missing facts as an empty fact set", function(){
-				url._method = "POST";
+				sendAs( "POST" );
 				url.name    = "testconvention";
 				structDelete( url, "facts" );
 				var event = execute( event="rulebox:visualizer.runDryRun", renderResults=true );
@@ -188,7 +199,7 @@ class extends="tests.resources.BaseSpec"{
 			} );
 
 			it( "runDryRun() 400s with a generic JSON error when facts is not valid JSON", function(){
-				url._method = "POST";
+				sendAs( "POST" );
 				url.name    = "testconvention";
 				url.facts   = "{not";
 				var event = execute( event="rulebox:visualizer.runDryRun", renderResults=true );
@@ -201,7 +212,7 @@ class extends="tests.resources.BaseSpec"{
 			} );
 
 			it( "runDryRun() 400s when facts is valid JSON but not an object", function(){
-				url._method = "POST";
+				sendAs( "POST" );
 				url.name    = "testconvention";
 
 				for( var notAStruct in [ "[1]", "5", """text""", "null" ] ){
@@ -226,7 +237,7 @@ class extends="tests.resources.BaseSpec"{
 				registry.reload();
 
 				try{
-					url._method = "POST";
+					sendAs( "POST" );
 					url.name    = "throwsOnDryRun";
 					url.facts   = jsonSerialize( {} );
 					var event = execute( event="rulebox:visualizer.runDryRun", renderResults=true );
@@ -244,7 +255,7 @@ class extends="tests.resources.BaseSpec"{
 			} );
 
 			it( "runDryRun() 405s a GET without running the dry run", function(){
-				url._method = "GET";
+				sendAs( "GET" );
 				url.name    = "testconvention";
 				url.facts   = jsonSerialize( {} );
 				var event = execute( event="rulebox:visualizer.runDryRun", renderResults=true );
@@ -260,7 +271,7 @@ class extends="tests.resources.BaseSpec"{
 				settings.visualizer.enabled = false;
 
 				try{
-					url._method = "GET";
+					sendAs( "GET" );
 					url.name    = "testconvention";
 					var event = execute( event="rulebox:visualizer.runDryRun", renderResults=true );
 
