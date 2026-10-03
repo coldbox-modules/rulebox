@@ -41,7 +41,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup CommandBox
-        uses: ortus-boxlang/setup-boxlang@main
+        uses: ortus-boxlang/setup-boxlang@ff3947fc932eb2e0e2e44fa8e88760aa7ec5b26a # 1.5.0
         with:
           with-commandbox: true
           forgeboxAPIKey: ${{ secrets.FORGEBOX_TOKEN }}
@@ -59,11 +59,20 @@ jobs:
           box package set version=@build.version@+@build.number@
           # master or snapshot
           echo "Github Ref is $GITHUB_REF"
-          echo "BRANCH=master" >> $GITHUB_ENV
-          if [ $GITHUB_REF == 'refs/heads/development' ]
-          then
-            echo "BRANCH=development" >> $GITHUB_ENV
-          fi
+          # Only development (snapshot) and master/main (stable) are valid build refs.
+          # Fail on anything else so a manual run on another branch can't publish a stable-style build.
+          case "$GITHUB_REF" in
+            refs/heads/development)
+              echo "BRANCH=development" >> $GITHUB_ENV
+              ;;
+            refs/heads/master|refs/heads/main)
+              echo "BRANCH=master" >> $GITHUB_ENV
+              ;;
+            *)
+              echo "::error::Unsupported ref '$GITHUB_REF'. Builds are only allowed from development, master or main."
+              exit 1
+              ;;
+          esac
 
       - name: Update changelog [unreleased] with latest version
         uses: thomaseizinger/keep-a-changelog-new-release@3.1.0
@@ -106,7 +115,7 @@ jobs:
             changelog.md
 
       - name: Upload Binaries to S3
-        uses: jakejarvis/s3-sync-action@master
+        uses: jakejarvis/s3-sync-action@7ed8b112447abb09f1da74f3466e4194fc7a6311 # master as of 2026-10-03 (no release tag includes it; v0.5.1 is the latest tag)
         with:
           args: --acl public-read
         env:
@@ -117,7 +126,7 @@ jobs:
           DEST_DIR: "ortussolutions/coldbox-modules/${{ env.MODULE_ID }}"
 
       - name: Upload API Docs to S3
-        uses: jakejarvis/s3-sync-action@master
+        uses: jakejarvis/s3-sync-action@7ed8b112447abb09f1da74f3466e4194fc7a6311 # master as of 2026-10-03 (no release tag includes it; v0.5.1 is the latest tag)
         with:
           args: --acl public-read
         env:
@@ -176,7 +185,7 @@ jobs:
           ref: development
 
       - name: Setup CommandBox
-        uses: ortus-boxlang/setup-boxlang@main
+        uses: ortus-boxlang/setup-boxlang@ff3947fc932eb2e0e2e44fa8e88760aa7ec5b26a # 1.5.0
         with:
           with-commandbox: true
           forgeboxAPIKey: ${{ secrets.FORGEBOX_TOKEN }}

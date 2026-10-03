@@ -58,7 +58,7 @@ jobs:
           printf "DB_CLASS=com.mysql.cj.jdbc.Driver\n" >> .env
 
       - name: Setup CommandBox CLI
-        uses: ortus-boxlang/setup-boxlang@main
+        uses: ortus-boxlang/setup-boxlang@ff3947fc932eb2e0e2e44fa8e88760aa7ec5b26a # 1.5.0
         with:
           with-commandbox: true
 
@@ -113,7 +113,7 @@ jobs:
 
       - name: Slack Notifications
         # Only on failures and NOT in pull requests
-        if: ${{ failure() && !startsWith( 'pull_request', github.event_name ) }}
+        if: ${{ failure() && !startsWith( github.event_name, 'pull_request' ) }}
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_CHANNEL: coding
