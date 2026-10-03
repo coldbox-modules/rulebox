@@ -109,6 +109,7 @@ class{
 		variables.predicateRegistry = {}
 		variables.ruleMetricsMap 	= {}
 		variables.conditionEvaluator = new ConditionEvaluator()
+		variables.conditionValidator = new ConditionValidator()
 
 		// Expose the static rule states enum on the instance for external access
 		this.RULE_STATES = static.RULE_STATES
@@ -328,12 +329,23 @@ class{
 	 * Each definition struct may contain: name, priority, activeFrom, activeUntil, when, except, then,
 	 * stop, using. See the "Externalized Rules" guide for the full schema.
 	 *
+	 * Every definition is validated as it is built (condition-tree shape, operators, operand types and
+	 * activeFrom/activeUntil dates), and a malformed one throws RuleBox.InvalidRuleDefinitionException
+	 * naming the rule and the offending path. All definitions are built before any is added, so if any
+	 * definition fails to validate or resolve, no rule from this source is added to the book.
+	 *
 	 * @source An object exposing array function load()
 	 *
 	 * @return This RuleBook instance, to allow for chaining of calls
 	 */
 	RuleBook function loadRules( required any source ){
+		var builtRules = []
+		var index      = 0
+
 		for( var def in arguments.source.load() ){
+			index++
+			variables.conditionValidator.validate( def, index )
+
 			var rule = def.keyExists( "name" ) ? newRule( def.name ) : newRule()
 
 			if( def.keyExists( "priority" ) ){
@@ -367,8 +379,11 @@ class{
 				rule.stop()
 			}
 
-			addRule( rule )
+			builtRules.append( rule )
 		}
+
+		// Only now that every definition built cleanly do we touch the book
+		builtRules.each( ( builtRule ) => addRule( builtRule ) )
 
 		return this
 	}
