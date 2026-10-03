@@ -32,8 +32,13 @@
 
 	
 	
+		<meta property="og:image" content="/assets/video/rulebox-visualizer-intro-poster.png">
+		<meta name="twitter:card" content="summary_large_image">
+	
 
 	
+	
+		<link rel="icon" href="/assets/rulebox-icon.svg">
 	
 
 	
@@ -55,22 +60,9 @@
 	<link rel="stylesheet" href="/assets/theme/style.de0a3c16.css">
 
 	
-	
+	<link rel="stylesheet" href="/assets/bundle.f640fb16.css">
 
 	
-	
-		<style>
-			
-			
-				:root {
-					--bxsites-accent: #CC3300;
-					--bxsites-link: #CC3300;
-					--bxsites-link-hover: color-mix( in srgb, #CC3300 85%, black );
-				}
-			
-			
-			
-		</style>
 	
 
 	
@@ -118,7 +110,7 @@
 			</button>
 
 			
-			<a class="navbar-brand brand-mark" href="/">⚡ RuleBox</a>
+			<a class="navbar-brand brand-mark" href="/"><img class="brand-logo" src="/assets/rulebox-icon.svg" alt=""><span class="brand-name">RuleBox</span></a>
 
 			
 			<div class="navbar-controls">
@@ -260,24 +252,25 @@ block:</p>
 rule) before you turn it on anywhere that is not your own machine.</p>
 </blockquote>
 <h2 id="a-tour"><a href="#a-tour" id="a-tour" name="a-tour" class="anchor"></a>A tour</h2>
+<figure class="rb-video">
+<video controls preload="metadata" playsinline poster="../../assets/video/rulebox-visualizer-intro-poster.png" aria-label="A one-minute tour of the RuleBox Visualizer">
+<source src="../../assets/video/rulebox-visualizer-intro.mp4" type="video/mp4">
+</video>
+</figure>
+<div class="bxsites-image-gallery bxsites-image-gallery--cols-3"><figure class="bxsites-image-gallery__item"><picture><source type="image/webp" srcset="/assets/visualizer/dashboard-400w.0e28bfd3.webp 400w, /assets/visualizer/dashboard-800w.0e28bfd3.webp 800w, /assets/visualizer/dashboard-1200w.0e28bfd3.webp 1200w, /assets/visualizer/dashboard-1280w.0e28bfd3.webp 1280w" sizes="(min-width: 800px) 800px, 100vw"><img src="/assets/visualizer/dashboard.png" srcset="/assets/visualizer/dashboard-400w.0e28bfd3.png 400w, /assets/visualizer/dashboard-800w.0e28bfd3.png 800w, /assets/visualizer/dashboard-1200w.0e28bfd3.png 1200w" sizes="(min-width: 800px) 800px, 100vw" class="bxsites-image-gallery__image"  alt="The Dashboard: totals, a table of every rulebook with its outcomes, and a recent activity feed" data-bxsites-lightbox loading="lazy"></picture><figcaption class="bxsites-image-gallery__caption">Dashboard</figcaption></figure><figure class="bxsites-image-gallery__item"><picture><source type="image/webp" srcset="/assets/visualizer/chain-loanapproval-400w.a714f761.webp 400w, /assets/visualizer/chain-loanapproval-800w.a714f761.webp 800w, /assets/visualizer/chain-loanapproval-1200w.a714f761.webp 1200w, /assets/visualizer/chain-loanapproval-1280w.a714f761.webp 1280w" sizes="(min-width: 800px) 800px, 100vw"><img src="/assets/visualizer/chain-loanapproval.png" srcset="/assets/visualizer/chain-loanapproval-400w.a714f761.png 400w, /assets/visualizer/chain-loanapproval-800w.a714f761.png 800w, /assets/visualizer/chain-loanapproval-1200w.a714f761.png 1200w" sizes="(min-width: 800px) 800px, 100vw" class="bxsites-image-gallery__image"  alt="The chain view for a rulebook, showing priority badges, a stops-chain marker and per-rule outcome counts" data-bxsites-lightbox loading="lazy"></picture><figcaption class="bxsites-image-gallery__caption">Rule Visualizer</figcaption></figure><figure class="bxsites-image-gallery__item"><picture><source type="image/webp" srcset="/assets/visualizer/dryrun-400w.38f0e82b.webp 400w, /assets/visualizer/dryrun-800w.38f0e82b.webp 800w, /assets/visualizer/dryrun-1200w.38f0e82b.webp 1200w, /assets/visualizer/dryrun-1280w.38f0e82b.webp 1280w" sizes="(min-width: 800px) 800px, 100vw"><img src="/assets/visualizer/dryrun.png" srcset="/assets/visualizer/dryrun-400w.38f0e82b.png 400w, /assets/visualizer/dryrun-800w.38f0e82b.png 800w, /assets/visualizer/dryrun-1200w.38f0e82b.png 1200w" sizes="(min-width: 800px) 800px, 100vw" class="bxsites-image-gallery__image"  alt="The Dry Run screen: facts as JSON on the left, which rules would execute on the right" data-bxsites-lightbox loading="lazy"></picture><figcaption class="bxsites-image-gallery__caption">Dry Run</figcaption></figure><figure class="bxsites-image-gallery__item"><picture><source type="image/webp" srcset="/assets/visualizer/metrics-400w.a1527a8d.webp 400w, /assets/visualizer/metrics-800w.a1527a8d.webp 800w, /assets/visualizer/metrics-1200w.a1527a8d.webp 1200w, /assets/visualizer/metrics-1280w.a1527a8d.webp 1280w" sizes="(min-width: 800px) 800px, 100vw"><img src="/assets/visualizer/metrics.png" srcset="/assets/visualizer/metrics-400w.a1527a8d.png 400w, /assets/visualizer/metrics-800w.a1527a8d.png 800w, /assets/visualizer/metrics-1200w.a1527a8d.png 1200w" sizes="(min-width: 800px) 800px, 100vw" class="bxsites-image-gallery__image"  alt="The Metrics screen: evaluation count, average duration and outcomes by state" data-bxsites-lightbox loading="lazy"></picture><figcaption class="bxsites-image-gallery__caption">Metrics</figcaption></figure><figure class="bxsites-image-gallery__item"><picture><source type="image/webp" srcset="/assets/visualizer/live-400w.67159e48.webp 400w, /assets/visualizer/live-800w.67159e48.webp 800w, /assets/visualizer/live-1200w.67159e48.webp 1200w, /assets/visualizer/live-1280w.67159e48.webp 1280w" sizes="(min-width: 800px) 800px, 100vw"><img src="/assets/visualizer/live.png" srcset="/assets/visualizer/live-400w.67159e48.png 400w, /assets/visualizer/live-800w.67159e48.png 800w, /assets/visualizer/live-1200w.67159e48.png 1200w" sizes="(min-width: 800px) 800px, 100vw" class="bxsites-image-gallery__image"  alt="The Live Tracker: rule evaluations streaming in as they run" data-bxsites-lightbox loading="lazy"></picture><figcaption class="bxsites-image-gallery__caption">Live Tracker</figcaption></figure></div>
 <p>The sidebar links the five screens.</p>
 <p><strong>Dashboard.</strong> Every rulebook you declared, with its rule count, results and
 a feed of recent activity. Your <code>loan</code> rulebook is here.</p>
-<p><picture><source type="image/webp" srcset="/assets/visualizer/dashboard-400w.0e28bfd3.webp 400w, /assets/visualizer/dashboard-800w.0e28bfd3.webp 800w, /assets/visualizer/dashboard-1200w.0e28bfd3.webp 1200w, /assets/visualizer/dashboard-1280w.0e28bfd3.webp 1280w" sizes="(min-width: 800px) 800px, 100vw"><img src="/assets/visualizer/dashboard.png" srcset="/assets/visualizer/dashboard-400w.0e28bfd3.png 400w, /assets/visualizer/dashboard-800w.0e28bfd3.png 800w, /assets/visualizer/dashboard-1200w.0e28bfd3.png 1200w" sizes="(min-width: 800px) 800px, 100vw"  alt="The Dashboard: totals, a table of every rulebook with its outcomes, and a recent activity feed" /></picture></p>
 <p><strong>Rule Visualizer.</strong> Click <strong>View chain</strong> on a rulebook to see its rules in
 the order they really run, with their priorities and which ones stop the
 chain. This is lesson 4 as a picture.</p>
-<p><picture><source type="image/webp" srcset="/assets/visualizer/chain-loanapproval-400w.a714f761.webp 400w, /assets/visualizer/chain-loanapproval-800w.a714f761.webp 800w, /assets/visualizer/chain-loanapproval-1200w.a714f761.webp 1200w, /assets/visualizer/chain-loanapproval-1280w.a714f761.webp 1280w" sizes="(min-width: 800px) 800px, 100vw"><img src="/assets/visualizer/chain-loanapproval.png" srcset="/assets/visualizer/chain-loanapproval-400w.a714f761.png 400w, /assets/visualizer/chain-loanapproval-800w.a714f761.png 800w, /assets/visualizer/chain-loanapproval-1200w.a714f761.png 1200w" sizes="(min-width: 800px) 800px, 100vw"  alt="The chain view for a rulebook, showing priority badges, a stops-chain marker and per-rule outcome counts" /></picture></p>
 <p><strong>Dry Run.</strong> Pick a rulebook, type facts as JSON, such as
 <code>{ &quot;creditScore&quot;: 640 }</code>, and press <strong>Run dry run</strong>. It is <code>dryRun()</code> from
 lesson 5 with a button. Nothing is executed or recorded.</p>
-<p><picture><source type="image/webp" srcset="/assets/visualizer/dryrun-400w.38f0e82b.webp 400w, /assets/visualizer/dryrun-800w.38f0e82b.webp 800w, /assets/visualizer/dryrun-1200w.38f0e82b.webp 1200w, /assets/visualizer/dryrun-1280w.38f0e82b.webp 1280w" sizes="(min-width: 800px) 800px, 100vw"><img src="/assets/visualizer/dryrun.png" srcset="/assets/visualizer/dryrun-400w.38f0e82b.png 400w, /assets/visualizer/dryrun-800w.38f0e82b.png 800w, /assets/visualizer/dryrun-1200w.38f0e82b.png 1200w" sizes="(min-width: 800px) 800px, 100vw"  alt="The Dry Run screen: facts as JSON on the left, which rules would execute on the right" /></picture></p>
 <p><strong>Metrics.</strong> Totals and averages per rulebook, gathered across every run, not
 just one RuleBook instance.</p>
-<p><picture><source type="image/webp" srcset="/assets/visualizer/metrics-400w.a1527a8d.webp 400w, /assets/visualizer/metrics-800w.a1527a8d.webp 800w, /assets/visualizer/metrics-1200w.a1527a8d.webp 1200w, /assets/visualizer/metrics-1280w.a1527a8d.webp 1280w" sizes="(min-width: 800px) 800px, 100vw"><img src="/assets/visualizer/metrics.png" srcset="/assets/visualizer/metrics-400w.a1527a8d.png 400w, /assets/visualizer/metrics-800w.a1527a8d.png 800w, /assets/visualizer/metrics-1200w.a1527a8d.png 1200w" sizes="(min-width: 800px) 800px, 100vw"  alt="The Metrics screen: evaluation count, average duration and outcomes by state" /></picture></p>
 <p><strong>Live Tracker.</strong> Every rule evaluation, as it happens. Run your handler
 from lesson 7 in another tab and watch the rows arrive.</p>
-<p><picture><source type="image/webp" srcset="/assets/visualizer/live-400w.67159e48.webp 400w, /assets/visualizer/live-800w.67159e48.webp 800w, /assets/visualizer/live-1200w.67159e48.webp 1200w, /assets/visualizer/live-1280w.67159e48.webp 1280w" sizes="(min-width: 800px) 800px, 100vw"><img src="/assets/visualizer/live.png" srcset="/assets/visualizer/live-400w.67159e48.png 400w, /assets/visualizer/live-800w.67159e48.png 800w, /assets/visualizer/live-1200w.67159e48.png 1200w" sizes="(min-width: 800px) 800px, 100vw"  alt="The Live Tracker: rule evaluations streaming in as they run" /></picture></p>
 <blockquote>
 <p>The Live Tracker needs BoxLang <strong>1.18.0 or later</strong>. The other four screens
 work on older versions.</p>
@@ -296,7 +289,7 @@ including a SQLite store that keeps metrics across restarts.</p>
 
 	
 	
-		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/course/09-the-visualizer.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/course/09-the-visualizer.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 3, 2026, 12&#x3a;40&#x3a;40 PM</span></div>
+		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/course/09-the-visualizer.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/course/09-the-visualizer.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 3, 2026, 8&#x3a;14&#x3a;33 PM</span></div>
 	
 </article>
 
@@ -408,6 +401,8 @@ including a SQLite store that keeps metrics across restarts.</p>
 	
 
 	
+	
+		<script src="/assets/image-gallery-init.js" defer></script>
 	
 
 	
