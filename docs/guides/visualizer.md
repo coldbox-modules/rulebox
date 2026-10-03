@@ -123,6 +123,31 @@ Each row shows the time, rulebook, rule, outcome state, and duration. Use
 > `whitespaceCompressionEnabled` to `false` in `boxlang.json`, keeping in mind
 > that it applies to all of your app's output.
 
+#### Limiting live connections
+
+Each open Live Tracker tab holds a stream open, and that pins two server
+threads for as long as it stays connected. RuleBox therefore caps how many
+streams can be open at once with `visualizer.maxStreams` (default `25`):
+
+```cfc
+moduleSettings = {
+	rulebox = {
+		visualizer = {
+			enabled    = true,
+			maxStreams = 10
+		}
+	}
+}
+```
+
+Once the cap is reached, further requests to `stream` get an HTTP `503` with
+`{ "error": "Too many live tracker connections" }` instead of a new stream, and
+a slot frees up as soon as a tab closes or its connection drops. Keep the cap
+comfortably below your servlet container's worker thread count so the tracker
+can never starve the rest of your application. Each stream also buffers at
+most 1000 events; if a browser stalls and falls behind, its oldest unsent
+events are dropped rather than letting memory grow.
+
 ## Metrics persistence
 
 Every rule evaluation is recorded through `RuleEventBus@rulebox`, which fans

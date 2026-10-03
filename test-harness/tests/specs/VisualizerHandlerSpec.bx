@@ -171,6 +171,73 @@ class extends="tests.resources.BaseSpec"{
 				expect( summary ).toHaveKey( "countsByState" );
 			} );
 
+			describe( "stream() connection cap", function(){
+
+				// The exact settings struct and LiveStreams singleton the handler reads, so holding
+				// slots here is seen by the real stream() action.
+				function hold( required numeric count ){
+					var streams = getWireBox().getInstance( "LiveStreams@rulebox" );
+					for( var i = 1; i <= arguments.count; i++ ){
+						streams.tryAcquire( 1000 );
+					}
+				}
+
+				function releaseAll(){
+					var streams = getWireBox().getInstance( "LiveStreams@rulebox" );
+					while( streams.activeCount() > 0 ){
+						streams.release();
+					}
+				}
+
+				it( "answers 503 JSON instead of opening a stream once visualizer.maxStreams are open", function(){
+					var settings = getWireBox().getInstance( dsl="coldbox:moduleSettings:rulebox" );
+					settings.visualizer.maxStreams = 2;
+					hold( 2 );
+
+					try{
+						var event = execute( event="rulebox:visualizer.stream", renderResults=true );
+
+						expect( event.getRenderData().statusCode ).toBe( 503 );
+						expect( jsonDeserialize( event.getRenderedContent() ).error ).toBe( "Too many live tracker connections" );
+						// A rejected request must not hold a slot of its own
+						expect( getWireBox().getInstance( "LiveStreams@rulebox" ).activeCount() ).toBe( 2 );
+					} finally {
+						releaseAll();
+						settings.visualizer.delete( "maxStreams" );
+					}
+				} );
+
+				it( "falls back to a cap of 25 when visualizer.maxStreams is not set", function(){
+					var settings = getWireBox().getInstance( dsl="coldbox:moduleSettings:rulebox" );
+					settings.visualizer.delete( "maxStreams" );
+					hold( 25 );
+
+					try{
+						var event = execute( event="rulebox:visualizer.stream", renderResults=true );
+
+						expect( event.getRenderData().statusCode ).toBe( 503 );
+					} finally {
+						releaseAll();
+					}
+				} );
+
+				it( "ignores an unusable visualizer.maxStreams and uses the default cap", function(){
+					var settings = getWireBox().getInstance( dsl="coldbox:moduleSettings:rulebox" );
+					settings.visualizer.maxStreams = "lots";
+					hold( 25 );
+
+					try{
+						var event = execute( event="rulebox:visualizer.stream", renderResults=true );
+
+						expect( event.getRenderData().statusCode ).toBe( 503 );
+					} finally {
+						releaseAll();
+						settings.visualizer.delete( "maxStreams" );
+					}
+				} );
+
+			} );
+
 			it( "404s every action while the visualizer is disabled", function(){
 				// Same DSL the handler/RuleEventBus are injected with, so this is guaranteed to be
 				// the exact same live settings struct they read from.

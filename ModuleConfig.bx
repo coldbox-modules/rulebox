@@ -48,7 +48,9 @@ class {
 				// IMetricsStore@rulebox yourself and point this at its mapping.
 				metricsStore   = "InMemoryMetricsStore@rulebox",
 				// Datasource name SQLiteMetricsStore reads/writes, if you opt into it above.
-				datasourceName = "rulebox_visualizer"
+				datasourceName = "rulebox_visualizer",
+				// Max live-tracker (SSE) connections open at once; each pins two server threads. Over the cap, stream() answers 503.
+				maxStreams     = 25
 			}
 		}
 	}
