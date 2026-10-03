@@ -8,6 +8,22 @@
 		]
 	},
 	{
+		"title": "Tutorial Course",
+		"children": [
+			"course/index.md",
+			"course/01-what-is-rulebox.md",
+			"course/02-your-first-rule.md",
+			"course/03-facts-and-results.md",
+			"course/04-more-rules.md",
+			"course/05-see-what-happened.md",
+			"course/06-rules-from-json.md",
+			"course/07-rulebooks-in-coldbox.md",
+			"course/08-when-things-go-wrong.md",
+			"course/09-the-visualizer.md",
+			"course/10-where-to-go-next.md"
+		]
+	},
+	{
 		"title": "Guides",
 		"children": [
 			"guides/index.md",

@@ -1,0 +1,14 @@
+tutorial:
+  title: "Tutorial Course"
+  description: "Ten short lessons that take you from your first rule to a loan-approval rule engine running inside a ColdBox app."
+  lessons:
+    - course/01-what-is-rulebox.md
+    - course/02-your-first-rule.md
+    - course/03-facts-and-results.md
+    - course/04-more-rules.md
+    - course/05-see-what-happened.md
+    - course/06-rules-from-json.md
+    - course/07-rulebooks-in-coldbox.md
+    - course/08-when-things-go-wrong.md
+    - course/09-the-visualizer.md
+    - course/10-where-to-go-next.md
