@@ -60,7 +60,13 @@ class {
 	}
 
 	/**
-	* Fail fast on app start for a visualizer setting of the wrong shape.
+	* Validate the completed visualizer settings so a bad config fails on app start, not on first use.
+	*
+	* @visualizer The visualizer settings, already merged over visualizerDefaults()
+	*
+	* @return The same, now validated, visualizer settings
+	*
+	* @throws RuleBox.InvalidSettingException When a setting has the wrong type or an out-of-range value
 	*/
 	private struct function validateVisualizerSettings( required struct visualizer ){
 		if( isNull( arguments.visualizer.enabled ) || !isBoolean( arguments.visualizer.enabled ) ){
@@ -88,6 +94,15 @@ class {
 		return arguments.visualizer
 	}
 
+	/**
+	* Throw the exception every visualizer setting check uses, naming the key and the bad value.
+	*
+	* @key The setting path under moduleSettings.rulebox, such as "visualizer.enabled"
+	* @value The value the app supplied
+	* @expected A short description of what the setting accepts
+	*
+	* @throws RuleBox.InvalidSettingException Always
+	*/
 	private void function invalidSetting( required string key, any value, required string expected ){
 		throw(
 			type    = "RuleBox.InvalidSettingException",
@@ -98,6 +113,8 @@ class {
 	/**
 	* The default `visualizer` settings: the single source of truth for both configure() and the
 	* onLoad() back-fill of keys an app's (shallow-merged) override left out.
+	*
+	* @return A new struct of defaults on every call, so callers can merge into it safely
 	*/
 	private static struct function visualizerDefaults(){
 		return {
