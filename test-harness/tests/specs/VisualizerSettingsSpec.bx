@@ -88,31 +88,33 @@ class extends="tests.resources.BaseSpec"{
 				}
 			} );
 
-			it( "RuleEventBus tolerates missing keys even if the settings were never completed", function(){
-				var store = getInstance( "InMemoryMetricsStore@rulebox" );
-				var bus   = newBus( { visualizer: { enabled: true } } );
-
-				// Used to throw "The key [metricsStore] was not found in the struct"
-				bus.onDIComplete();
-
-				bus.publish( { rulebookName: "tolerantBus", ruleName: "r1", state: "EXECUTED", durationMs: 1, timestamp: "2026-01-01T00:00:00.000" } );
-				expect( store.queryEvents( filters={ rulebookName: "tolerantBus" } ) ).toHaveLength( 1 );
-			} );
-
-			it( "RuleEventBus treats a missing visualizer struct as disabled", function(){
-				var received = [];
-				var bus      = newBus( {} );
-				bus.subscribe( ( evt ) => received.append( evt ) );
-
-				bus.onDIComplete();
-				bus.publish( { rulebookName: "rb", ruleName: "r1", state: "EXECUTED", durationMs: 1, timestamp: "2026-01-01T00:00:00.000" } );
-
-				expect( received ).toBeEmpty();
+			it( "ModuleConfig.onLoad() throws RuleBox.InvalidSettingException naming the bad key", function(){
+				var settings = liveSettings();
+				var original = settings.visualizer;
+				var badShapes = [
+					{ setting: { enabled: "maybe" }, key: "visualizer.enabled" },
+					{ setting: { enabled: true, metricsStore: "  " }, key: "visualizer.metricsStore" },
+					{ setting: { enabled: true, datasourceName: {} }, key: "visualizer.datasourceName" }
+				];
+				try{
+					for( var bad in badShapes ){
+						settings.visualizer = bad.setting;
+						expect( function(){
+							getController().getModuleService().getModuleConfigCache()[ "rulebox" ].onLoad();
+						} ).toThrow( type="RuleBox.InvalidSettingException", regex=bad.key );
+					}
+					settings.visualizer = true;
+					expect( function(){
+						getController().getModuleService().getModuleConfigCache()[ "rulebox" ].onLoad();
+					} ).toThrow( type="RuleBox.InvalidSettingException", regex="visualizer" );
+				} finally {
+					settings.visualizer = original;
+				}
 			} );
 
 			it( "RuleEventBus survives an unresolvable metrics store without throwing from its own catch block", function(){
 				var received = [];
-				var bus      = newBus( { visualizer: { enabled: true, metricsStore: "DoesNotExist@rulebox" } } );
+				var bus      = newBus( { visualizer: { enabled: true, metricsStore: "DoesNotExist@rulebox", datasourceName: "rulebox_visualizer" } } );
 				bus.subscribe( ( evt ) => received.append( evt ) );
 
 				bus.onDIComplete();
@@ -123,6 +125,7 @@ class extends="tests.resources.BaseSpec"{
 
 			it( "a RuleBook run still succeeds and publishes an event under the minimal settings", function(){
 				var original = applyMinimalOverride();
+				getController().getModuleService().getModuleConfigCache()[ "rulebox" ].onLoad();
 				var bus      = getInstance( "RuleEventBus@rulebox" );
 				var received = [];
 				var token    = bus.subscribe( ( evt ) => received.append( evt ) );

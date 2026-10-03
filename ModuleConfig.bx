@@ -46,13 +46,40 @@ class {
 	function onLoad(){
 		// ColdBox merges an app's moduleSettings over ours with a SHALLOW append, so an app that only
 		// writes `visualizer = { enabled = true }` replaces our whole `visualizer` struct. Put the
-		// defaults back underneath whatever the app supplied (the live settings struct is shared by
-		// reference with the `coldbox:moduleSettings:rulebox` injection DSL).
-		var supplied = variables.settings.keyExists( "visualizer" ) && isStruct( variables.settings.visualizer ) ? variables.settings.visualizer : {}
-		variables.settings.visualizer = visualizerDefaults().append( supplied, true )
+		// defaults back underneath whatever the app supplied, then validate. This is the one place
+		// the visualizer settings are completed and checked: every reader trusts them as-is.
+		if( !isStruct( variables.settings.visualizer ?: "" ) ){
+			invalidSetting( "visualizer", variables.settings.visualizer ?: "null", "a struct" )
+		}
+		variables.settings.visualizer = validateVisualizerSettings(
+			visualizerDefaults().append( variables.settings.visualizer, true )
+		)
 
 		// Custom injection DSL: inject="rulebook" (the registry) / inject="rulebook:{name}" (a provider)
 		wirebox.registerDSL( namespace = "rulebook", path = "rulebox.models.RuleBookDSL" )
+	}
+
+	/**
+	* Fail fast on app start for a visualizer setting of the wrong shape.
+	*/
+	private struct function validateVisualizerSettings( required struct visualizer ){
+		if( isNull( arguments.visualizer.enabled ) || !isBoolean( arguments.visualizer.enabled ) ){
+			invalidSetting( "visualizer.enabled", arguments.visualizer.enabled ?: "null", "true or false" )
+		}
+		for( var key in [ "metricsStore", "datasourceName" ] ){
+			var value = arguments.visualizer[ key ] ?: ""
+			if( !isSimpleValue( value ) || !len( trim( value ) ) ){
+				invalidSetting( "visualizer.#key#", value, "a non-blank WireBox mapping or name" )
+			}
+		}
+		return arguments.visualizer
+	}
+
+	private void function invalidSetting( required string key, any value, required string expected ){
+		throw(
+			type    = "RuleBox.InvalidSettingException",
+			message = "Invalid moduleSettings.rulebox.#arguments.key#: expected #arguments.expected#, got #( isSimpleValue( arguments.value ?: "" ) ? "'#arguments.value ?: ""#'" : "a complex value" )#."
+		)
 	}
 
 	/**

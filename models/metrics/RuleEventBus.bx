@@ -33,7 +33,7 @@ class{
 	}
 
 	function onDIComplete(){
-		if( visualizerSetting( "enabled", false ) ){
+		if( variables.settings.visualizer.enabled ){
 			resolveMetricsStore()
 		}
 		return this
@@ -73,7 +73,7 @@ class{
 	 * @event { rulebookName, ruleName, state, durationMs, timestamp }
 	 */
 	void function publish( required struct event ){
-		if( !visualizerSetting( "enabled", false ) ){
+		if( !variables.settings.visualizer.enabled ){
 			return
 		}
 
@@ -109,25 +109,14 @@ class{
 	 * when bx-sqlite isn't installed.
 	 */
 	private void function resolveMetricsStore(){
-		// Read once, outside the try: the catch block below must never be able to throw on its own.
-		var mapping = visualizerSetting( "metricsStore", "InMemoryMetricsStore@rulebox" )
 		try{
-			variables.metricsStore = wirebox.getInstance( mapping )
+			variables.metricsStore = wirebox.getInstance( variables.settings.visualizer.metricsStore )
 		} catch( any e ){
 			variables.metricsStoreFailed = true
 			logger.error(
-				"RuleBox visualizer could not resolve its configured metricsStore '#mapping#'. Events will still broadcast live, but nothing will be persisted. #e.message# #e.detail#"
+				"RuleBox visualizer could not resolve its configured metricsStore '#variables.settings.visualizer.metricsStore#'. Events will still broadcast live, but nothing will be persisted. #e.message# #e.detail#"
 			)
 		}
-	}
-
-	/**
-	 * Read one key of the visualizer settings, tolerating a missing struct or key (e.g. an app that
-	 * overrode moduleSettings.rulebox.visualizer wholesale) by falling back to the module default.
-	 */
-	private any function visualizerSetting( required string key, required any defaultValue ){
-		var viz = variables.settings.keyExists( "visualizer" ) ? variables.settings.visualizer : {}
-		return isStruct( viz ) && viz.keyExists( arguments.key ) ? viz[ arguments.key ] : arguments.defaultValue
 	}
 
 }
