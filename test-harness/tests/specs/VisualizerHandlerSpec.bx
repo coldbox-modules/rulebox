@@ -53,6 +53,93 @@ class extends="tests.resources.BaseSpec"{
 				expect( content ).toInclude( "&lt;b" );
 			} );
 
+			/**
+			 * Rule/rulebook names (and, via a SQLite replay, event states) come from JSON/YAML/DB
+			 * sources, so every one of them must be HTML-encoded wherever the views print it.
+			 */
+			function hostile(){
+				return {
+					rulebook : "<img src=x onerror=alert(1)>",
+					rule     : "<img src=y onerror=alert(2)>",
+					state    : """><img src=z onerror=alert(3)>"
+				};
+			}
+
+			/**
+			 * Declare a rulebook (with one rule) under a hostile name in the live registry and
+			 * record a hostile recent-activity event, without touching the fixture files.
+			 */
+			function seedHostile( required struct names ){
+				var settings = getWireBox().getInstance( dsl="coldbox:moduleSettings:rulebox" );
+				if( !settings.keyExists( "rulebooks" ) ){
+					settings.rulebooks = {};
+				}
+				settings.rulebooks[ arguments.names.rulebook ] = [ { "name" : arguments.names.rule } ];
+				getInstance( "RuleBookRegistry@rulebox" ).reload();
+
+				getInstance( "RuleEventBus@rulebox" ).publish( {
+					rulebookName : arguments.names.rulebook,
+					ruleName     : arguments.names.rule,
+					state        : arguments.names.state,
+					durationMs   : 1,
+					timestamp    : "2026-01-01T00:00:00.000"
+				} );
+			}
+
+			function cleanHostile( required struct names ){
+				var settings = getWireBox().getInstance( dsl="coldbox:moduleSettings:rulebox" );
+				settings.rulebooks.delete( arguments.names.rulebook );
+				getInstance( "RuleBookRegistry@rulebox" ).reload();
+				getInstance( "InMemoryMetricsStore@rulebox" ).reset();
+				structDelete( url, "name" );
+			}
+
+			it( "HTML-encodes hostile rulebook, rule and state values on the dashboard and recent activity", function(){
+				var names = hostile();
+				seedHostile( names );
+				try{
+					var content = execute( event="rulebox:visualizer.index", renderResults=true ).getRenderedContent();
+
+					expect( content ).toInclude( "&lt;img src=x" );
+					expect( content ).toInclude( "&lt;img src=y" );
+					expect( content ).toInclude( "&lt;img src=z" );
+					expect( content ).notToInclude( "<img" );
+				} finally {
+					cleanHostile( names );
+				}
+			} );
+
+			it( "HTML-encodes a hostile rulebook name and rule name in the chain view, heading and selector", function(){
+				var names = hostile();
+				seedHostile( names );
+				try{
+					url.name = names.rulebook;
+					var content = execute( event="rulebox:visualizer.chain", renderResults=true ).getRenderedContent();
+
+					expect( content ).toInclude( "&lt;img src=x" );
+					expect( content ).toInclude( "&lt;img src=y" );
+					expect( content ).toInclude( "&lt;img src=z" );
+					expect( content ).toInclude( 'value="&lt;img src=x' );
+					expect( content ).notToInclude( "<img" );
+				} finally {
+					cleanHostile( names );
+				}
+			} );
+
+			it( "HTML-encodes a hostile rulebook name in the dry run and metrics selectors", function(){
+				var names = hostile();
+				seedHostile( names );
+				try{
+					var dryRun  = execute( event="rulebox:visualizer.dryrun", renderResults=true ).getRenderedContent();
+					var metrics = execute( event="rulebox:visualizer.metrics", renderResults=true ).getRenderedContent();
+
+					expect( dryRun ).notToInclude( "<img" );
+					expect( metrics ).notToInclude( "<img" );
+				} finally {
+					cleanHostile( names );
+				}
+			} );
+
 			it( "runDryRun() returns a dryRun() report as JSON", function(){
 				url.name  = "testconvention";
 				url.facts = jsonSerialize( {} );

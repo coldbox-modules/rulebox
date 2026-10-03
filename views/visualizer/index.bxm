@@ -52,7 +52,7 @@
 						<bx:output>
 							<tr>
 								<td class="fw-medium">
-									#rb.rulebookName#
+									#htmlEditFormat( rb.rulebookName )#
 									<bx:if rb.keyExists( "loadError" )>
 										<i class="ph ph-warning-circle text-danger" title="#htmlEditFormat( rb.loadError )#"></i>
 									</bx:if>
@@ -62,7 +62,7 @@
 								<td>
 									<bx:loop collection="#rb.countsByState#" item="state">
 									<bx:output>
-										<span class="badge border rb-badge-#state# me-1">#state#: #rb.countsByState[ state ]#</span>
+										<span class="badge border rb-badge-#htmlEditFormat( state )# me-1">#htmlEditFormat( state )#: #htmlEditFormat( rb.countsByState[ state ] )#</span>
 									</bx:output>
 									</bx:loop>
 									<bx:if rb.countsByState.isEmpty()>
@@ -93,10 +93,10 @@
 				<bx:loop array="#prc.recentEvents#" index="evt">
 				<bx:output>
 					<li class="list-group-item bg-transparent d-flex align-items-center gap-2">
-						<span class="rb-state-dot rb-state-#evt.state#"></span>
+						<span class="rb-state-dot rb-state-#htmlEditFormat( evt.state )#"></span>
 						<div class="flex-grow-1">
-							<div class="small">#evt.rulebookName# &middot; #evt.ruleName#</div>
-							<div class="text-secondary" style="font-size:.75rem">#evt.state# &middot; #numberFormat( evt.durationMs, "0.00" )#ms</div>
+							<div class="small">#htmlEditFormat( evt.rulebookName )# &middot; #htmlEditFormat( evt.ruleName )#</div>
+							<div class="text-secondary" style="font-size:.75rem">#htmlEditFormat( evt.state )# &middot; #numberFormat( evt.durationMs, "0.00" )#ms</div>
 						</div>
 					</li>
 				</bx:output>
