@@ -100,6 +100,364 @@ class extends="tests.resources.BaseSpec"{
 			} );
 
 		} );
+
+		/**
+		 * Pure-logic specs: the SQL runner and the clock are injected, so none of this needs a database
+		 * (and therefore always runs, even where the bx-sqlite driver isn't registered).
+		 */
+		describe( "SQLiteMetricsStore hardening (no database)", function(){
+
+			// Build a store wired to a recording fake runner, a controllable clock and a recording logger
+			function newUnit( struct visualizer={}, boolean failAtStartup=false ){
+				var ctx = { fail: failAtStartup, failDeletes: false, now: 1000000, sql: [], logs: { error: [], warn: [], info: [], debug: [] } };
+				var fakeLogger = {
+					error : ( m ) => ctx.logs.error.append( m ),
+					warn  : ( m ) => ctx.logs.warn.append( m ),
+					info  : ( m ) => ctx.logs.info.append( m ),
+					debug : ( m ) => ctx.logs.debug.append( m )
+				};
+				var settings = { visualizer: { datasourceName: "unit_ds" } };
+				settings.visualizer.append( visualizer );
+
+				var store = new rulebox.models.metrics.SQLiteMetricsStore();
+				store.setLogger( fakeLogger );
+				store.setSettings( settings );
+				store.setClock( () => ctx.now );
+				store.setSqlRunner( ( sql, params, options ) => {
+					ctx.sql.append( { sql: sql, params: params } );
+					if( ctx.fail || ( ctx.failDeletes && left( trim( sql ), 6 ) == "DELETE" ) ){
+						throw( type="UnitTest", message="simulated database failure" );
+					}
+				} );
+				store.onDIComplete();
+				return { store: store, ctx: ctx };
+			}
+
+			function countSql( ctx, verb ){
+				return ctx.sql.filter( ( c ) => left( trim( c.sql ), len( verb ) ) == verb ).len();
+			}
+
+			function anUnitEvent( ruleName="r1" ){
+				return { rulebookName: "unit", ruleName: ruleName, state: "EXECUTED", durationMs: 1, timestamp: "2026-01-01T00:00:00" };
+			}
+
+			it( "creates the table and the (rulebookName, ruleName, id) index on startup", function(){
+				var u = newUnit();
+
+				expect( u.store.isSchemaReady() ).toBeTrue();
+				expect( u.ctx.sql ).toHaveLength( 2 );
+				expect( u.ctx.sql[ 1 ].sql ).toInclude( "CREATE TABLE IF NOT EXISTS rulebox_events" );
+				expect( u.ctx.sql[ 2 ].sql ).toInclude( "CREATE INDEX IF NOT EXISTS" );
+				expect( u.ctx.sql[ 2 ].sql ).toInclude( "rulebox_events ( rulebookName, ruleName, id )" );
+			} );
+
+			it( "remembers a failed schema create and re-attempts it before the first insert", function(){
+				var u = newUnit( failAtStartup=true );
+				expect( u.store.isSchemaReady() ).toBeFalse();
+				expect( u.ctx.logs.warn ).toHaveLength( 1 );
+
+				u.ctx.fail = false;
+				u.ctx.sql  = [];
+				u.store.recordEvent( anUnitEvent() );
+
+				expect( u.store.isSchemaReady() ).toBeTrue();
+				expect( u.ctx.sql[ 1 ].sql ).toInclude( "CREATE TABLE IF NOT EXISTS" );
+				expect( u.ctx.sql[ u.ctx.sql.len() ].sql ).toInclude( "INSERT INTO rulebox_events" );
+				expect( countSql( u.ctx, "INSERT" ) ).toBe( 1 );
+			} );
+
+			it( "never lets a database failure escape recordEvent", function(){
+				var u = newUnit();
+				u.ctx.fail = true;
+
+				for( var i = 1; i <= 20; i++ ){
+					u.store.recordEvent( anUnitEvent() );
+				}
+
+				expect( true ).toBeTrue();
+			} );
+
+			it( "opens the circuit after N consecutive failures and logs exactly one error", function(){
+				var u = newUnit( { circuitBreakerThreshold: 3 } );
+				u.ctx.fail = true;
+
+				u.store.recordEvent( anUnitEvent() );
+				u.store.recordEvent( anUnitEvent() );
+				expect( u.store.isCircuitOpen() ).toBeFalse();
+				expect( u.ctx.logs.error ).toBeEmpty();
+
+				u.store.recordEvent( anUnitEvent() );
+				expect( u.store.isCircuitOpen() ).toBeTrue();
+				expect( u.ctx.logs.error ).toHaveLength( 1 );
+				expect( u.ctx.logs.error[ 1 ] ).toInclude( "simulated database failure" );
+			} );
+
+			it( "is a no-op against the database while the circuit is open", function(){
+				var u = newUnit( { circuitBreakerThreshold: 2 } );
+				u.ctx.fail = true;
+				u.store.recordEvent( anUnitEvent() );
+				u.store.recordEvent( anUnitEvent() );
+				expect( u.store.isCircuitOpen() ).toBeTrue();
+				var attempts = u.ctx.sql.len();
+
+				for( var i = 1; i <= 50; i++ ){
+					u.store.recordEvent( anUnitEvent() );
+				}
+
+				expect( u.ctx.sql ).toHaveLength( attempts );
+				expect( u.ctx.logs.error ).toHaveLength( 1 );
+			} );
+
+			it( "stays shut until the cool-down elapses, then recovers on a successful trial with one info log", function(){
+				var u = newUnit( { circuitBreakerThreshold: 2, circuitBreakerCooldownSeconds: 60 } );
+				u.ctx.fail = true;
+				u.store.recordEvent( anUnitEvent() );
+				u.store.recordEvent( anUnitEvent() );
+				expect( u.store.isCircuitOpen() ).toBeTrue();
+
+				u.ctx.fail = false;
+				u.ctx.now += 59999;
+				var before = u.ctx.sql.len();
+				u.store.recordEvent( anUnitEvent() );
+				expect( u.ctx.sql ).toHaveLength( before );
+				expect( u.store.isCircuitOpen() ).toBeTrue();
+
+				u.ctx.now += 1;
+				u.store.recordEvent( anUnitEvent() );
+				expect( countSql( u.ctx, "INSERT" ) ).toBe( 3 );
+				expect( u.store.isCircuitOpen() ).toBeFalse();
+				expect( u.ctx.logs.info ).toHaveLength( 1 );
+
+				u.store.recordEvent( anUnitEvent() );
+				expect( countSql( u.ctx, "INSERT" ) ).toBe( 4 );
+				expect( u.ctx.logs.info ).toHaveLength( 1 );
+			} );
+
+			it( "lets only one trial through per cool-down and stays open (quietly) when the trial fails", function(){
+				var u = newUnit( { circuitBreakerThreshold: 2, circuitBreakerCooldownSeconds: 60 } );
+				u.ctx.fail = true;
+				u.store.recordEvent( anUnitEvent() );
+				u.store.recordEvent( anUnitEvent() );
+				var attempts = u.ctx.sql.len();
+
+				u.ctx.now += 60000;
+				u.store.recordEvent( anUnitEvent() );
+				u.store.recordEvent( anUnitEvent() );
+				u.store.recordEvent( anUnitEvent() );
+
+				expect( u.ctx.sql ).toHaveLength( attempts + 1 );
+				expect( u.store.isCircuitOpen() ).toBeTrue();
+				expect( u.ctx.logs.error ).toHaveLength( 1 );
+
+				u.ctx.now += 60000;
+				u.store.recordEvent( anUnitEvent() );
+				expect( u.ctx.sql ).toHaveLength( attempts + 2 );
+			} );
+
+			it( "only counts consecutive failures: a success resets the count", function(){
+				var u = newUnit( { circuitBreakerThreshold: 3 } );
+
+				u.ctx.fail = true;
+				u.store.recordEvent( anUnitEvent() );
+				u.store.recordEvent( anUnitEvent() );
+				u.ctx.fail = false;
+				u.store.recordEvent( anUnitEvent() );
+				u.ctx.fail = true;
+				u.store.recordEvent( anUnitEvent() );
+				u.store.recordEvent( anUnitEvent() );
+
+				expect( u.store.isCircuitOpen() ).toBeFalse();
+				expect( u.ctx.logs.error ).toBeEmpty();
+			} );
+
+			it( "defaults to a threshold of 5 when the setting is absent or invalid", function(){
+				var u = newUnit( { circuitBreakerThreshold: "lots" } );
+				u.ctx.fail = true;
+
+				for( var i = 1; i <= 4; i++ ){
+					u.store.recordEvent( anUnitEvent() );
+				}
+				expect( u.store.isCircuitOpen() ).toBeFalse();
+
+				u.store.recordEvent( anUnitEvent() );
+				expect( u.store.isCircuitOpen() ).toBeTrue();
+			} );
+
+			it( "tolerates a settings struct with no visualizer key at all", function(){
+				var store = new rulebox.models.metrics.SQLiteMetricsStore();
+				store.setLogger( { error: ( m ) => {}, warn: ( m ) => {}, info: ( m ) => {}, debug: ( m ) => {} } );
+				store.setSettings( {} );
+				store.setSqlRunner( ( sql, params, options ) => {} );
+				store.onDIComplete();
+
+				expect( store.isSchemaReady() ).toBeTrue();
+				expect( store.buildPruneStatements() ).toHaveLength( 2 );
+			} );
+
+			it( "does not throw or log per event when the datasource does not exist (real queryExecute path)", function(){
+				var logs = { error: [] };
+				var store = new rulebox.models.metrics.SQLiteMetricsStore();
+				store.setLogger( {
+					error : ( m ) => logs.error.append( m ),
+					warn  : ( m ) => {},
+					info  : ( m ) => {},
+					debug : ( m ) => {}
+				} );
+				store.setSettings( { visualizer: { datasourceName: "rulebox_no_such_datasource" } } );
+				store.onDIComplete();
+
+				for( var i = 1; i <= 25; i++ ){
+					store.recordEvent( anUnitEvent() );
+				}
+
+				expect( store.isCircuitOpen() ).toBeTrue();
+				expect( logs.error ).toHaveLength( 1 );
+			} );
+
+			it( "prunes once per pruneEvery inserts, not on every insert", function(){
+				var u = newUnit( { retentionDays: 0, maxStoredEvents: 10 } );
+				u.store.setPruneEvery( 5 );
+
+				for( var i = 1; i <= 4; i++ ){
+					u.store.recordEvent( anUnitEvent() );
+				}
+				expect( countSql( u.ctx, "DELETE" ) ).toBe( 0 );
+
+				u.store.recordEvent( anUnitEvent() );
+				expect( countSql( u.ctx, "DELETE" ) ).toBe( 1 );
+
+				for( i = 1; i <= 5; i++ ){
+					u.store.recordEvent( anUnitEvent() );
+				}
+				expect( countSql( u.ctx, "DELETE" ) ).toBe( 2 );
+				expect( countSql( u.ctx, "INSERT" ) ).toBe( 10 );
+			} );
+
+			it( "never prunes when both retentionDays and maxStoredEvents are 0", function(){
+				var u = newUnit( { retentionDays: 0, maxStoredEvents: 0 } );
+				u.store.setPruneEvery( 2 );
+
+				for( var i = 1; i <= 20; i++ ){
+					u.store.recordEvent( anUnitEvent() );
+				}
+
+				expect( countSql( u.ctx, "DELETE" ) ).toBe( 0 );
+			} );
+
+			it( "builds a retention DELETE per enabled limit", function(){
+				var u = newUnit( { retentionDays: 30, maxStoredEvents: 500 } );
+
+				var statements = u.store.buildPruneStatements( createDateTime( 2026, 2, 1, 12, 0, 0 ) );
+
+				expect( statements ).toHaveLength( 2 );
+				expect( statements[ 1 ].sql ).toInclude( "DELETE FROM rulebox_events WHERE id <=" );
+				expect( statements[ 1 ].params.maxEvents.value ).toBe( 500 );
+				expect( statements[ 2 ].sql ).toInclude( "DELETE FROM rulebox_events WHERE timestamp <" );
+				expect( statements[ 2 ].params.cutoff.value ).toBe( "2026-01-02T12:00:00" );
+
+				var onlyDays = newUnit( { retentionDays: 7, maxStoredEvents: 0 } ).store.buildPruneStatements();
+				expect( onlyDays ).toHaveLength( 1 );
+				expect( onlyDays[ 1 ].sql ).toInclude( "timestamp <" );
+			} );
+
+			it( "treats a failing prune as non-fatal and does not trip the breaker", function(){
+				var u = newUnit( { retentionDays: 0, maxStoredEvents: 10, circuitBreakerThreshold: 2 } );
+				u.store.setPruneEvery( 1 );
+				u.ctx.failDeletes = true;
+
+				for( var i = 1; i <= 10; i++ ){
+					u.store.recordEvent( anUnitEvent() );
+				}
+
+				expect( u.store.isCircuitOpen() ).toBeFalse();
+				expect( countSql( u.ctx, "INSERT" ) ).toBe( 10 );
+				expect( u.ctx.logs.error ).toBeEmpty();
+				expect( u.ctx.logs.warn ).toHaveLength( 10 );
+			} );
+
+		} );
+
+		/**
+		 * Real bx-sqlite round trips for the new behavior; skipped, like the specs above, where the
+		 * driver isn't registered.
+		 */
+		describe( "SQLiteMetricsStore hardening (SQLite)", function(){
+
+			function newTunedStore( struct visualizer ){
+				var settings = { visualizer: { datasourceName: "rulebox_visualizer" } };
+				settings.visualizer.append( arguments.visualizer );
+				var store = new rulebox.models.metrics.SQLiteMetricsStore();
+				store.setLogger( getController().getLogBox().getRootLogger() );
+				store.setSettings( settings );
+				store.onDIComplete();
+				store.reset();
+				return store;
+			}
+
+			beforeEach( function(){
+				variables.storeUnavailable = "";
+				try{
+					newTunedStore( {} );
+				} catch( any e ){
+					variables.storeUnavailable = "bx-sqlite driver is not registered with BoxLang's DatasourceService in this environment: #e.message#"
+				}
+			} );
+
+			it( "creates the (rulebookName, ruleName, id) index", function(){
+				if( len( variables.storeUnavailable ) ){
+					skip( variables.storeUnavailable );
+					return;
+				}
+				newTunedStore( {} );
+
+				var indexes = queryExecute(
+					"SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'rulebox_events'",
+					{},
+					{ datasource: "rulebox_visualizer", returnType: "array" }
+				).map( ( row ) => row.name );
+
+				expect( indexes ).toInclude( "idx_rulebox_events_rule" );
+			} );
+
+			it( "keeps only the newest maxStoredEvents rows once the prune cadence is reached", function(){
+				if( len( variables.storeUnavailable ) ){
+					skip( variables.storeUnavailable );
+					return;
+				}
+				var store = newTunedStore( { retentionDays: 0, maxStoredEvents: 3 } );
+				store.setPruneEvery( 5 );
+
+				for( var i = 1; i <= 5; i++ ){
+					store.recordEvent( { rulebookName: "sqliteTest", ruleName: "r#i#", state: "EXECUTED", durationMs: 1, timestamp: "2026-01-01T00:00:0#i#" } );
+				}
+
+				var events = store.queryEvents( filters={ rulebookName: "sqliteTest" } );
+				expect( events ).toHaveLength( 3 );
+				expect( events.map( ( e ) => e.ruleName ).toList() ).toBe( "r5,r4,r3" );
+			} );
+
+			it( "deletes events older than retentionDays on the prune cadence", function(){
+				if( len( variables.storeUnavailable ) ){
+					skip( variables.storeUnavailable );
+					return;
+				}
+				var store = newTunedStore( { retentionDays: 30, maxStoredEvents: 0 } );
+				store.setPruneEvery( 5 );
+				var recent = dateTimeFormat( now(), "yyyy-MM-dd'T'HH:mm:ss" );
+
+				for( var i = 1; i <= 3; i++ ){
+					store.recordEvent( { rulebookName: "sqliteTest", ruleName: "old#i#", state: "EXECUTED", durationMs: 1, timestamp: "2000-01-01T00:00:00" } );
+				}
+				for( i = 1; i <= 2; i++ ){
+					store.recordEvent( { rulebookName: "sqliteTest", ruleName: "new#i#", state: "EXECUTED", durationMs: 1, timestamp: recent } );
+				}
+
+				var events = store.queryEvents( filters={ rulebookName: "sqliteTest" } );
+				expect( events ).toHaveLength( 2 );
+				expect( events.map( ( e ) => e.ruleName ).toList() ).toBe( "new2,new1" );
+			} );
+
+		} );
 	}
 
 }

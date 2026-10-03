@@ -176,6 +176,33 @@ you opt into this store, you set these up yourself. If `bx-sqlite` or the
 datasource isn't available, RuleBox logs it and keeps going: live broadcast
 still works, nothing gets persisted.
 
+#### Retention, indexing and the circuit breaker
+
+The SQLite store is hardened for long-running apps. All of these settings live
+under `visualizer` and are optional:
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `retentionDays` | `30` | Delete events older than this many days. `0` disables. |
+| `maxStoredEvents` | `100000` | Keep at most this many rows (the newest). `0` disables. |
+| `circuitBreakerThreshold` | `5` | Consecutive failed writes before the store stops trying. |
+| `circuitBreakerCooldownSeconds` | `60` | How long it stays idle before a single trial write. |
+
+- Retention is enforced by a cheap `DELETE` once every 500 inserts, never on
+  every insert, so the table can briefly exceed the limits between prunes.
+- The `rulebox_events` table has an index on `(rulebookName, ruleName, id)` for
+  the per-rule metrics queries (created automatically; existing tables get it
+  on the next startup).
+- If writes keep failing (a missing datasource, a locked or full database), the
+  store logs **one** error when the breaker opens, skips persistence for the
+  cool-down (live broadcast keeps working), then retries once and logs **one**
+  info line when it recovers. A failed schema create is retried on the next
+  event rather than being swallowed for good.
+- Each recorded event is still a synchronous `INSERT` on the thread that
+  evaluated the rule. That is a deliberate trade-off for simplicity; if it is
+  too slow for your traffic, use the in-memory store or implement
+  `IMetricsStore@rulebox` with a queue.
+
 ### Swapping it out
 
 Implement `IMetricsStore@rulebox` (`recordEvent`, `queryEvents`,

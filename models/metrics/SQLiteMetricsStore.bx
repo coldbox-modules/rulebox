@@ -1,10 +1,21 @@
 /**
- * Default IMetricsStore for the Rule Visualizer: persists rule-evaluation events to a SQLite
- * table via the bx-sqlite module, so metrics/stats survive a restart.
+ * Opt-in persistent IMetricsStore for the Rule Visualizer: persists rule-evaluation events to a
+ * SQLite table via the bx-sqlite module, so metrics/stats survive a restart. (The default store is
+ * InMemoryMetricsStore@rulebox; point visualizer.metricsStore at "SQLiteMetricsStore@rulebox" to opt in.)
  *
  * Requires the bx-sqlite BoxLang module and a datasource registered under
  * moduleSettings.rulebox.visualizer.datasourceName (default "rulebox_visualizer"). Neither is
  * installed/declared by RuleBox itself - see the "Rule Visualizer" guide for setup.
+ *
+ * Hardening:
+ * - Circuit breaker: after visualizer.circuitBreakerThreshold (5) consecutive failures the store
+ *   stops touching the database for visualizer.circuitBreakerCooldownSeconds (60), logging ONE error
+ *   when it opens and one info line when it recovers. While open, recordEvent() is a cheap no-op.
+ * - Schema: a failed schema create is remembered and re-attempted by the next recordEvent().
+ *   An index on (rulebookName, ruleName, id) backs the per-rule metrics queries.
+ * - Retention: visualizer.retentionDays (30) and visualizer.maxStoredEvents (100000) are enforced
+ *   by a cheap DELETE every pruneEvery (500) inserts - never on every insert. 0 disables either.
+ * - recordEvent() still performs a synchronous INSERT on the calling thread (a documented trade-off).
  *
  * Swap this out entirely via moduleSettings.rulebox.visualizer.metricsStore.
  */
@@ -19,47 +30,284 @@ class implements="IMetricsStore"{
 
 	property name="datasourceName" type="string";
 
+	// Resolved from settings (defensively, with defaults) in onDIComplete()
+	variables.breakerThreshold       = 5
+	variables.breakerCooldownMs      = 60000
+	variables.retentionDays          = 30
+	variables.maxStoredEvents        = 100000
+	// Run the retention DELETE once per this many successful inserts
+	variables.pruneEvery             = 500
+
+	// Breaker / schema state
+	variables.schemaReady            = false
+	variables.consecutiveFailures    = 0
+	variables.circuitOpen            = false
+	variables.circuitOpenedAt        = 0
+	variables.insertsSincePrune      = 0
+	variables.lastError              = ""
+
 	function onDIComplete(){
-		variables.datasourceName = variables.settings.visualizer.datasourceName
-		ensureSchema()
+		var viz = ( isStruct( variables.settings ) && variables.settings.keyExists( "visualizer" ) && isStruct( variables.settings.visualizer ) )
+			? variables.settings.visualizer
+			: {}
+		variables.datasourceName    = viz.keyExists( "datasourceName" ) ? viz.datasourceName : "rulebox_visualizer"
+		variables.breakerThreshold  = numericSetting( viz, "circuitBreakerThreshold", 5, 1 )
+		variables.breakerCooldownMs = numericSetting( viz, "circuitBreakerCooldownSeconds", 60, 0 ) * 1000
+		variables.retentionDays     = numericSetting( viz, "retentionDays", 30, 0 )
+		variables.maxStoredEvents   = numericSetting( viz, "maxStoredEvents", 100000, 0 )
+		ensureSchema( true )
 		return this
 	}
 
-	private void function ensureSchema(){
-		try{
-			queryExecute(
-				"
-				CREATE TABLE IF NOT EXISTS rulebox_events (
-					id INTEGER PRIMARY KEY AUTOINCREMENT,
-					rulebookName TEXT NOT NULL,
-					ruleName TEXT NOT NULL,
-					state TEXT NOT NULL,
-					durationMs REAL NOT NULL,
-					timestamp TEXT NOT NULL
+	/**
+	 * Inject the function that executes SQL: ( sql, params, options ) => result. Defaults to
+	 * queryExecute() against the configured datasource. Exists so the breaker/retention logic is unit-testable.
+	 */
+	function setSqlRunner( required function runner ){
+		variables.sqlRunner = arguments.runner
+		return this
+	}
+
+	/**
+	 * Inject the clock used by the circuit breaker: () => epoch milliseconds. Defaults to getTickCount().
+	 */
+	function setClock( required function clock ){
+		variables.clock = arguments.clock
+		return this
+	}
+
+	function setPruneEvery( required numeric every ){
+		variables.pruneEvery = arguments.every
+		return this
+	}
+
+	/**
+	 * Is the circuit currently open (tripped and not yet recovered)? Stays true through the cool-down
+	 * and until a trial insert succeeds.
+	 */
+	boolean function isCircuitOpen(){
+		return variables.circuitOpen
+	}
+
+	boolean function isSchemaReady(){
+		return variables.schemaReady
+	}
+
+	/**
+	 * May we touch the database right now? Always true while closed. While open it is false until the
+	 * cool-down elapses, then true for exactly one caller (which becomes the trial) per cool-down.
+	 */
+	boolean function canAttempt(){
+		if( !variables.circuitOpen ){
+			return true
+		}
+		var allowed = false
+		lock name="rulebox_sqlite_store_state" type="exclusive" timeout="5"{
+			var now = nowMillis()
+			if( variables.circuitOpen && ( now - variables.circuitOpenedAt ) >= variables.breakerCooldownMs ){
+				// Claim the trial; others stay shut out until the next cool-down or until we close it
+				variables.circuitOpenedAt = now
+				allowed = true
+			} else {
+				allowed = !variables.circuitOpen
+			}
+		}
+		return allowed
+	}
+
+	/**
+	 * Count one failure; opens the circuit (logging ONE error) at the threshold.
+	 */
+	void function recordFailure( required string message ){
+		lock name="rulebox_sqlite_store_state" type="exclusive" timeout="5"{
+			variables.consecutiveFailures++
+			variables.lastError = arguments.message
+			if( variables.circuitOpen ){
+				// A failed trial: stay open for another cool-down, quietly
+				variables.circuitOpenedAt = nowMillis()
+			} else if( variables.consecutiveFailures >= variables.breakerThreshold ){
+				variables.circuitOpen     = true
+				variables.circuitOpenedAt = nowMillis()
+				logger.error(
+					"RuleBox SQLiteMetricsStore: #variables.consecutiveFailures# consecutive failures on datasource '#variables.datasourceName#'; pausing metric persistence for #variables.breakerCooldownMs / 1000# seconds (live broadcast is unaffected). Last error: #arguments.message#"
 				)
-				",
-				{},
-				{ datasource: variables.datasourceName }
+			} else {
+				logger.debug( "RuleBox SQLiteMetricsStore failure #variables.consecutiveFailures#/#variables.breakerThreshold#: #arguments.message#" )
+			}
+		}
+	}
+
+	/**
+	 * Reset the failure count; closes the circuit (logging one info line) if it was open.
+	 */
+	void function recordSuccess(){
+		if( variables.consecutiveFailures == 0 && !variables.circuitOpen ){
+			return
+		}
+		lock name="rulebox_sqlite_store_state" type="exclusive" timeout="5"{
+			var wasOpen = variables.circuitOpen
+			variables.consecutiveFailures = 0
+			variables.circuitOpen         = false
+			variables.lastError           = ""
+			if( wasOpen ){
+				logger.info( "RuleBox SQLiteMetricsStore recovered on datasource '#variables.datasourceName#'; resuming metric persistence." )
+			}
+		}
+	}
+
+	/**
+	 * Count one successful insert and report whether the retention prune is due (every pruneEvery
+	 * inserts). Always false when both retention limits are disabled.
+	 */
+	boolean function shouldPrune(){
+		if( variables.retentionDays <= 0 && variables.maxStoredEvents <= 0 ){
+			return false
+		}
+		var due = false
+		lock name="rulebox_sqlite_store_state" type="exclusive" timeout="5"{
+			variables.insertsSincePrune++
+			if( variables.insertsSincePrune >= variables.pruneEvery ){
+				variables.insertsSincePrune = 0
+				due = true
+			}
+		}
+		return due
+	}
+
+	/**
+	 * The DDL ensureSchema() runs: the table, then the index backing queryRuleMetrics().
+	 */
+	array function getSchemaStatements(){
+		return [
+			"
+			CREATE TABLE IF NOT EXISTS rulebox_events (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				rulebookName TEXT NOT NULL,
+				ruleName TEXT NOT NULL,
+				state TEXT NOT NULL,
+				durationMs REAL NOT NULL,
+				timestamp TEXT NOT NULL
 			)
+			",
+			"CREATE INDEX IF NOT EXISTS idx_rulebox_events_rule ON rulebox_events ( rulebookName, ruleName, id )"
+		]
+	}
+
+	/**
+	 * The retention DELETEs for the configured limits, as [ { sql, params } ].
+	 *
+	 * @asOf The reference "now" for retentionDays (injectable for tests)
+	 */
+	array function buildPruneStatements( date asOf=now() ){
+		var statements = []
+		if( variables.maxStoredEvents > 0 ){
+			// ids only grow, so "everything older than the newest N ids" is a cheap primary-key range delete
+			statements.append( {
+				sql    : "DELETE FROM rulebox_events WHERE id <= ( SELECT MAX( id ) FROM rulebox_events ) - :maxEvents",
+				params : { maxEvents: { value: variables.maxStoredEvents, cfsqltype: "integer" } }
+			} )
+		}
+		if( variables.retentionDays > 0 ){
+			var cutoff = dateTimeFormat( dateAdd( "d", -variables.retentionDays, arguments.asOf ), "yyyy-MM-dd'T'HH:mm:ss" )
+			statements.append( {
+				sql    : "DELETE FROM rulebox_events WHERE timestamp < :cutoff",
+				params : { cutoff: { value: cutoff, cfsqltype: "varchar" } }
+			} )
+		}
+		return statements
+	}
+
+	/**
+	 * Run the retention DELETEs. A prune failure is logged but never trips the breaker.
+	 */
+	void function prune(){
+		try{
+			var statements = buildPruneStatements()
+			for( var stmt in statements ){
+				runSql( stmt.sql, stmt.params )
+			}
 		} catch( any e ){
-			logger.error(
-				"RuleBox visualizer could not create/verify its SQLite schema on datasource '#variables.datasourceName#'. Is the bx-sqlite module installed and is that datasource registered? #e.message# #e.detail#"
-			)
+			logger.warn( "RuleBox SQLiteMetricsStore could not prune old events: #e.message# #e.detail#" )
+		}
+	}
+
+	/**
+	 * Create the table/index if needed. A failure is remembered (schemaReady=false) and counts toward
+	 * the breaker; recordEvent() re-attempts it before inserting.
+	 *
+	 * @initial True from onDIComplete(): log a warning (later retries stay quiet until the breaker opens)
+	 */
+	private boolean function ensureSchema( boolean initial=false ){
+		try{
+			var statements = getSchemaStatements()
+			for( var sql in statements ){
+				runSql( sql )
+			}
+			variables.schemaReady = true
+			return true
+		} catch( any e ){
+			variables.schemaReady = false
+			var msg = "#e.message# #e.detail#"
+			if( arguments.initial ){
+				logger.warn(
+					"RuleBox visualizer could not create/verify its SQLite schema on datasource '#variables.datasourceName#'; will retry when the next event is recorded. Is the bx-sqlite module installed and is that datasource registered? #msg#"
+				)
+			}
+			recordFailure( msg )
+			return false
 		}
 	}
 
 	void function recordEvent( required struct event ){
-		queryExecute(
-			"INSERT INTO rulebox_events ( rulebookName, ruleName, state, durationMs, timestamp ) VALUES ( :rulebookName, :ruleName, :state, :durationMs, :timestamp )",
-			{
-				rulebookName : { value: arguments.event.rulebookName, cfsqltype: "varchar" },
-				ruleName     : { value: arguments.event.ruleName, cfsqltype: "varchar" },
-				state        : { value: arguments.event.state, cfsqltype: "varchar" },
-				durationMs   : { value: arguments.event.durationMs, cfsqltype: "double" },
-				timestamp    : { value: arguments.event.timestamp, cfsqltype: "varchar" }
-			},
-			{ datasource: variables.datasourceName }
-		)
+		if( !canAttempt() ){
+			return
+		}
+
+		if( !variables.schemaReady && !ensureSchema() ){
+			return
+		}
+
+		try{
+			runSql(
+				"INSERT INTO rulebox_events ( rulebookName, ruleName, state, durationMs, timestamp ) VALUES ( :rulebookName, :ruleName, :state, :durationMs, :timestamp )",
+				{
+					rulebookName : { value: arguments.event.rulebookName, cfsqltype: "varchar" },
+					ruleName     : { value: arguments.event.ruleName, cfsqltype: "varchar" },
+					state        : { value: arguments.event.state, cfsqltype: "varchar" },
+					durationMs   : { value: arguments.event.durationMs, cfsqltype: "double" },
+					timestamp    : { value: arguments.event.timestamp, cfsqltype: "varchar" }
+				}
+			)
+		} catch( any e ){
+			recordFailure( "#e.message# #e.detail#" )
+			return
+		}
+
+		recordSuccess()
+		if( shouldPrune() ){
+			prune()
+		}
+	}
+
+	private numeric function nowMillis(){
+		return structKeyExists( variables, "clock" ) ? variables.clock() : getTickCount()
+	}
+
+	private any function runSql( required string sql, struct params={}, struct options={} ){
+		if( structKeyExists( variables, "sqlRunner" ) ){
+			return variables.sqlRunner( arguments.sql, arguments.params, arguments.options )
+		}
+		return queryExecute( arguments.sql, arguments.params, { datasource: variables.datasourceName } )
+	}
+
+	/**
+	 * Read a numeric visualizer setting, falling back to a default if it is absent or not numeric.
+	 */
+	private numeric function numericSetting( required struct viz, required string key, required numeric defaultValue, required numeric min ){
+		if( arguments.viz.keyExists( arguments.key ) && isNumeric( arguments.viz[ arguments.key ] ) && arguments.viz[ arguments.key ] >= arguments.min ){
+			return arguments.viz[ arguments.key ]
+		}
+		return arguments.defaultValue
 	}
 
 	array function queryEvents( struct filters={}, numeric limit=50 ){

@@ -48,7 +48,15 @@ class {
 				// IMetricsStore@rulebox yourself and point this at its mapping.
 				metricsStore   = "InMemoryMetricsStore@rulebox",
 				// Datasource name SQLiteMetricsStore reads/writes, if you opt into it above.
-				datasourceName = "rulebox_visualizer"
+				datasourceName = "rulebox_visualizer",
+				// SQLiteMetricsStore retention (0 disables either): prune events older than this many days...
+				retentionDays  = 30,
+				// ...and keep at most this many rows. Checked every ~500 inserts, not on every insert.
+				maxStoredEvents = 100000,
+				// SQLiteMetricsStore circuit breaker: after this many consecutive failures stop
+				// writing for the cool-down (seconds), logging one error on open and one info on recovery.
+				circuitBreakerThreshold       = 5,
+				circuitBreakerCooldownSeconds = 60
 			}
 		}
 	}
