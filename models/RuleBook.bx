@@ -354,6 +354,12 @@ class{
 			}
 
 			var factNames = def.keyExists( "using" ) ? def.using : []
+			// A comma-delimited string is accepted too: trim each name and drop empty ones
+			if( isSimpleValue( factNames ) ){
+				factNames = listToArray( factNames )
+					.map( ( name ) => trim( name ) )
+					.filter( ( name ) => len( name ) )
+			}
 
 			for( var actionClosure in resolveActions( def.keyExists( "then" ) ? def.then : [] ) ){
 				// using() pegs to the *next* then() call only, so re-apply it before each one

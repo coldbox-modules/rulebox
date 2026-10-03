@@ -61,7 +61,10 @@ class{
 			}
 
 			if( row.keyExists( "using_facts" ) && len( row.using_facts ) ){
+				// trim each fact name so "name, age" yields [ "name", "age" ]
 				def[ "using" ] = listToArray( row.using_facts )
+					.map( ( name ) => trim( name ) )
+					.filter( ( name ) => len( name ) )
 			}
 
 			definitions.append( def )

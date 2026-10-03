@@ -404,10 +404,14 @@ class{
 	Rule function using( required factNames ){
 		var consumerIndex = variables.consumers.len() + 1
 
-		// Build up to an array if a simple list is used.
+		// Build up to an array if a simple list is used, then trim every name and drop empty ones.
+		// This always produces a new array, so we never alias (or later append to) the caller's array.
 		if( isSimpleValue( arguments.factNames ) ){
-			arguments.factNames = listToArray( arguments.factnames )
+			arguments.factNames = listToArray( arguments.factNames )
 		}
+		arguments.factNames = arguments.factNames
+			.map( ( name ) => trim( name ) )
+			.filter( ( name ) => len( name ) )
 
 		// Do we already have this consumer pegged? In case of multiple: using().using() calls
 		if( variables.factsNameMap.keyExists( consumerIndex ) ){
