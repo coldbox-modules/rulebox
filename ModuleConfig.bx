@@ -9,7 +9,7 @@ class {
 	this.title 				= "rulebox"
 	this.author 			= "Ortus Solutions"
 	this.webURL 			= "https://www.ortussolutions.com"
-	this.description 		= "A natuarl language rule engine for ColdBox apps"
+	this.description 		= "A natural language rule engine for ColdBox apps"
 	// Model Namespace
 	this.modelNamespace		= "rulebox"
 	// Class Mapping
