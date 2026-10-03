@@ -1,0 +1,165 @@
+<bx:script>
+	/**
+	 * Renders a Bootstrap breadcrumb <nav>/<ol>. Each crumb (a struct with
+	 * `title` + `url`) becomes a linked item except the last one, which is
+	 * rendered as the `active` item with `aria-current="page"`. Returns ""
+	 * when there are no crumbs (page.bxm only calls this with > 1 crumb).
+	 */
+	function renderBreadcrumbs( required array crumbs ) {
+		if ( !arguments.crumbs.len() ) {
+			return ""
+		}
+		var html = sb{ '<nav class="breadcrumb-nav mb-3" aria-label="breadcrumb"><ol class="breadcrumb">' }
+		for ( var i = 1; i <= arguments.crumbs.len(); i++ ) {
+			var crumb = arguments.crumbs[ i ]
+			if ( i == arguments.crumbs.len() ) {
+				html &= '<li class="breadcrumb-item active" aria-current="page">' & encodeForHTML( crumb.title ) & '</li>'
+			} else {
+				html &= '<li class="breadcrumb-item"><a href="' & variables.basePath & crumb.url & '">' & encodeForHTML( crumb.title ) & '</a></li>'
+			}
+		}
+		html &= '</ol></nav>'
+		return html
+	}
+
+	/**
+	 * Renders the "Page actions" disclosure dropdown (a <details>/<summary>
+	 * with the list built into the `items` buffer and a `C` keyboard hint).
+	 * Individual items are gated on what the current page actually has:
+	 * copy/view raw Markdown (markdownUrl), copy link + Share on
+	 * X/LinkedIn/Facebook (canonicalUrl), open in ChatGPT/Claude
+	 * (canonicalUrl), report an issue (repoUrl), and export to PDF (always).
+	 * page-actions-init.js wires the copy buttons up client-side.
+	 */
+	function renderPageActions() {
+		var markdownHref = len( variables.page.markdownUrl ?: "" ) ? variables.basePath & variables.page.markdownUrl : ""
+		var canonicalUrl = trim( variables.page.canonicalUrl ?: "" )
+		var repoUrl = trim( variables.repoUrl ?: "" )
+
+		var items = sb{ "" }
+		if ( len( markdownHref ) ) {
+			items &= '<button type="button" class="bxsites-page-actions__item" data-bxsites-action="copy-markdown" data-bxsites-markdown-url="' & bxsitesUrlAttr( markdownHref ) & '">' & bxsitesIcon( "copy" ) & '<span>' & encodeForHTML( variables.strings.copyPageMarkdown ) & '</span></button>'
+		}
+		if ( len( canonicalUrl ) ) {
+			items &= '<button type="button" class="bxsites-page-actions__item" data-bxsites-action="copy-link" data-bxsites-page-url="' & bxsitesUrlAttr( canonicalUrl ) & '">' & bxsitesIcon( "link" ) & '<span>' & encodeForHTML( variables.strings.copyPageLink ) & '</span></button>'
+		}
+		if ( len( markdownHref ) ) {
+			items &= '<a class="bxsites-page-actions__item" href="' & bxsitesUrlAttr( markdownHref ) & '" target="_blank" rel="noopener noreferrer">' & bxsitesIcon( "markdown" ) & '<span>' & encodeForHTML( variables.strings.viewAsMarkdown ) & '</span></a>'
+		}
+		if ( len( canonicalUrl ) ) {
+			items &= '<div class="bxsites-page-actions__divider" role="separator"></div>'
+			items &= '<a class="bxsites-page-actions__item" href="' & bxsitesUrlAttr( "https://chatgpt.com/?q=" & urlEncodedFormat( "Read " & canonicalUrl & " so I can ask questions about it." ) ) & '" target="_blank" rel="noopener noreferrer">' & bxsitesIcon( "sparkle" ) & '<span>' & encodeForHTML( variables.strings.openInChatGPT ) & '</span></a>'
+			items &= '<a class="bxsites-page-actions__item" href="' & bxsitesUrlAttr( "https://claude.ai/new?q=" & urlEncodedFormat( "Read " & canonicalUrl & " so I can ask questions about it." ) ) & '" target="_blank" rel="noopener noreferrer">' & bxsitesIcon( "sparkle" ) & '<span>' & encodeForHTML( variables.strings.openInClaude ) & '</span></a>'
+			items &= '<div class="bxsites-page-actions__divider" role="separator"></div>'
+		}
+		items &= '<button type="button" class="bxsites-page-actions__item" data-bxsites-action="print">' & bxsitesIcon( "print" ) & '<span>' & encodeForHTML( variables.strings.exportAsPdf ) & '</span></button>'
+		if ( len( repoUrl ) ) {
+			var issueUrl = repoUrl & "/issues/new?title=" & urlEncodedFormat( "Issue with: " & variables.page.title ) & ( len( canonicalUrl ) ? "&body=" & urlEncodedFormat( "Found on: " & canonicalUrl ) : "" )
+			items &= '<a class="bxsites-page-actions__item" href="' & bxsitesUrlAttr( issueUrl ) & '" target="_blank" rel="noopener noreferrer">' & bxsitesIcon( "flag" ) & '<span>' & encodeForHTML( variables.strings.reportIssue ) & '</span></a>'
+		}
+		if ( len( canonicalUrl ) ) {
+			items &= '<div class="bxsites-page-actions__divider" role="separator"></div>'
+			items &= '<a class="bxsites-page-actions__item" href="' & bxsitesUrlAttr( "https://x.com/intent/tweet?url=" & urlEncodedFormat( canonicalUrl ) & "&text=" & urlEncodedFormat( variables.page.title ) ) & '" target="_blank" rel="noopener noreferrer">' & bxsitesIcon( "x" ) & '<span>' & encodeForHTML( variables.strings.shareOnX ) & '</span></a>'
+			items &= '<a class="bxsites-page-actions__item" href="' & bxsitesUrlAttr( "https://www.linkedin.com/sharing/share-offsite/?url=" & urlEncodedFormat( canonicalUrl ) ) & '" target="_blank" rel="noopener noreferrer">' & bxsitesIcon( "linkedin" ) & '<span>' & encodeForHTML( variables.strings.shareOnLinkedIn ) & '</span></a>'
+			items &= '<a class="bxsites-page-actions__item" href="' & bxsitesUrlAttr( "https://www.facebook.com/sharer/sharer.php?u=" & urlEncodedFormat( canonicalUrl ) ) & '" target="_blank" rel="noopener noreferrer">' & bxsitesIcon( "facebook" ) & '<span>' & encodeForHTML( variables.strings.shareOnFacebook ) & '</span></a>'
+		}
+
+		return '<div class="bxsites-page-actions">'
+			& '<details class="bxsites-page-actions__disclosure">'
+			& '<summary class="bxsites-page-actions__button" aria-label="' & encodeForHTML( variables.strings.pageActionsAriaLabel ) & '">'
+			& '<span>' & encodeForHTML( variables.strings.pageActionsButton ) & '</span>' & bxsitesIcon( "chevron-down" )
+			& '<kbd class="bxsites-page-actions__kbd" aria-hidden="true">C</kbd>'
+			& '</summary>'
+			& '<div class="bxsites-page-actions__panel">' & items & '</div>'
+			& '</details>'
+			& '</div>'
+	}
+
+	/**
+	 * Renders the page-meta strip ("Edit this page" link, "Download
+	 * markdown" link, and/or a last-updated timestamp) inside a
+	 * `.page-meta` div. Any one of editUrl/markdownUrl/lastUpdated being
+	 * non-empty is enough to emit the strip - page.bxm's own caller check
+	 * handles that. URLs are escaped char-by-char (&amp; / &quot; / &lt;)
+	 * instead of encodeForHTML() so multi-param edit links keep working.
+	 * Position (top/bottom of the page) is the caller's choice.
+	 */
+	function renderPageMeta( required string editUrl, required string lastUpdated, required string markdownUrl ) {
+		var html = sb{ '<div class="page-meta">' }
+		if ( len( arguments.editUrl ) ) {
+			var escapedEditUrl = arguments.editUrl.replace( "&", "&amp;", "all" ).replace( '"', "&quot;", "all" ).replace( "<", "&lt;", "all" )
+			html &= '<a href="' & escapedEditUrl & '" target="_blank" rel="noopener noreferrer">' & bxsitesIcon( "edit" ) & ' ' & encodeForHTML( variables.strings.editThisPage ) & '</a>'
+		}
+		if ( len( arguments.markdownUrl ) ) {
+			var escapedMarkdownUrl = arguments.markdownUrl.replace( "&", "&amp;", "all" ).replace( '"', "&quot;", "all" ).replace( "<", "&lt;", "all" )
+			html &= '<a href="' & variables.basePath & escapedMarkdownUrl & '" download>' & bxsitesIcon( "markdown" ) & ' ' & encodeForHTML( variables.strings.downloadMarkdown ) & '</a>'
+		}
+		if ( len( arguments.lastUpdated ) ) {
+			html &= '<span class="page-meta__item">' & bxsitesIcon( "clock" ) & ' ' & encodeForHTML( variables.strings.lastUpdated ) & ' ' & encodeForHTML( dateTimeFormat( arguments.lastUpdated, "medium" ) ) & '</span>'
+		}
+		html &= '</div>'
+		return html
+	}
+
+	/**
+	 * Renders a page's own "On this page" table of contents - a flat <ul>
+	 * of anchor links with `toc-level-N` classes (the margin comes from
+	 * CSS). The `hideAtXl` variant wraps the same list in a
+	 * <details>/<summary> that only shows below the xl breakpoint - used
+	 * for "sticky" TOC mode, where the aside rail owns the list on wide
+	 * screens and the mobile dropdown takes over on narrow ones.
+	 */
+	function renderToc( required array toc, boolean hideAtXl = false ) {
+		var listHtml = sb{ '<ul class="list-unstyled">' }
+		for ( var item in arguments.toc ) {
+			listHtml &= '<li class="toc-level-' & item.level & '"><a href="##' & item.id & '">' & encodeForHTML( item.text ) & '</a></li>'
+		}
+		listHtml &= '</ul>'
+
+		if ( arguments.hideAtXl ) {
+			return '<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">' & encodeForHTML( variables.strings.onThisPage ) & '</summary>' & listHtml & '</details>'
+		}
+
+		return '<nav class="toc mb-4" aria-label="' & encodeForHTML( variables.strings.onThisPage ) & '"><div class="toc-title">' & encodeForHTML( variables.strings.onThisPage ) & '</div>' & listHtml & '</nav>'
+	}
+
+	/**
+	 * Turns a tag label into the slug used in the anchor of the generated
+	 * `tags/index.html` page - Unicode-aware (keeps \p{L} letters and \p{N}
+	 * digits, lowercases first), collapsing any other run to a single "-"
+	 * and trimming leading/trailing dashes. Must stay in sync with the
+	 * same slugging the tags index page itself does at build time.
+	 */
+	function tagSlug( required string tag ) {
+		var slug = createObject( "java", "java.util.regex.Pattern" ).compile( "[^\p{L}\p{N}]+" ).matcher( lCase( trim( arguments.tag ) ) ).replaceAll( "-" )
+		return slug.reReplace( "(^-|-$)", "", "all" )
+	}
+
+	/**
+	 * Renders a page's own tag chips - one anchor per tag pointing at the
+	 * matching `#tag-<slug>` anchor of the single generated tags index
+	 * (tags/index.html). Returns "" for an empty list so page.bxm doesn't
+	 * emit an empty container.
+	 */
+	function renderTags( required array tags ) {
+		if ( !arguments.tags.len() ) {
+			return ""
+		}
+		var html = sb{ '<div class="page-tags mb-3">' }
+		for ( var tag in arguments.tags ) {
+			html &= '<a class="page-tag" href="' & variables.basePath & 'tags/index.html##tag-' & tagSlug( tag ) & '">' & encodeForHTML( tag ) & '</a>'
+		}
+		html &= '</div>'
+		return html
+	}
+
+	/**
+	 * The display label of the site's own default locale (always the first
+	 * entry in `variables.locales`) - used in the fallback notice shown on
+	 * untranslated pages ("not yet available in <label>"). Returns "" for
+	 * a single-/non-locale site, where the notice can't render anyway.
+	 */
+	function defaultLocaleLabel() {
+		return variables.locales.len() ? variables.locales[ 1 ].label : ""
+	}
+</bx:script>
