@@ -127,7 +127,7 @@ class{
 	RuleBook function withDefaultResult( required result ){
 		variables.defaultResult = arguments.result
 		variables.result.setDefaultValue( arguments.result )
-		variables.result.setValue( arguments.result )
+		variables.result.reset()
 		return this
 	}
 

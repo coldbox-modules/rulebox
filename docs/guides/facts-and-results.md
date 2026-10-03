@@ -53,7 +53,7 @@ the chain runs. Pre-set a default value on a `RuleBook` via
 |---|---|
 | `setValue( value )` | Set the value in the result |
 | `getValue()` | Get the value |
-| `isPresent()` | `true` if the value has been set, `false` if it's still `null` |
+| `isPresent()` | `true` if a value has been set or defaulted (falsy values like `0`, `""`, `false` and empty structs count), `false` if nothing is set |
 | `ifPresent( closure )` | Invoke `closure( value )`, but only if the value is **not** `null` |
 | `orElse( other )` | Return the value, or `other` if it isn't present |
 | `orElseGet( closure )` | Return the value, or invoke `closure()` and return its result if it isn't present |
@@ -69,4 +69,7 @@ rulebook.getResult().ifPresent( ( value ) => println( "The value produced is #va
 
 `RuleBook.run()` calls `reset()` on the result at the start of every run,
 so a `RuleBook` instance re-run with fresh facts doesn't inherit a value
-left over from a previous run.
+left over from a previous run. A struct, array or query default is deep
+copied when it is set, and `reset()` hands back a fresh copy each time, so a
+rule that mutates the value never changes the default. Objects and closures
+are never copied.
