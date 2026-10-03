@@ -11,6 +11,19 @@ class extends="tests.resources.BaseSpec"{
 	function run( testResults, testBox ){
 		describe( "Visualizer handler", function(){
 
+			// runDryRun is POST-only (this.allowedMethods). ColdBox reads the HTTP method from rc._method
+			// before the CGI one, which is how a spec - always a GET itself - sends a POST. url.* leaks
+			// between specs, so clear what the runDryRun specs set; and a rejected method flags the
+			// request context as an invalid HTTP method, which would 405 every later spec that reuses it,
+			// so each spec starts from a fresh context.
+			beforeEach( function(){
+				setup();
+			} );
+
+			afterEach( function(){
+				structDelete( url, "_method" );
+			} );
+
 			it( "renders the dashboard with every declared rulebook, even one that fails to load", function(){
 				var event   = execute( event="rulebox:visualizer.index", renderResults=true );
 				var content = event.getRenderedContent();
@@ -141,6 +154,7 @@ class extends="tests.resources.BaseSpec"{
 			} );
 
 			it( "runDryRun() returns a dryRun() report as JSON", function(){
+				url._method = "POST";
 				url.name  = "testconvention";
 				url.facts = jsonSerialize( {} );
 				var event = execute( event="rulebox:visualizer.runDryRun", renderResults=true );
@@ -153,12 +167,107 @@ class extends="tests.resources.BaseSpec"{
 			} );
 
 			it( "runDryRun() 404s for an unknown rulebook", function(){
+				url._method = "POST";
 				url.name  = "doesNotExist";
 				url.facts = jsonSerialize( {} );
 				var event = execute( event="rulebox:visualizer.runDryRun", renderResults=true );
 
 				var body = jsonDeserialize( event.getRenderedContent() );
 				expect( body ).toHaveKey( "error" );
+			} );
+
+			it( "runDryRun() treats missing facts as an empty fact set", function(){
+				url._method = "POST";
+				url.name    = "testconvention";
+				structDelete( url, "facts" );
+				var event = execute( event="rulebox:visualizer.runDryRun", renderResults=true );
+
+				var report = jsonDeserialize( event.getRenderedContent() );
+				expect( report ).toHaveLength( 1 );
+				expect( report[ 1 ].wouldExecute ).toBeTrue();
+			} );
+
+			it( "runDryRun() 400s with a generic JSON error when facts is not valid JSON", function(){
+				url._method = "POST";
+				url.name    = "testconvention";
+				url.facts   = "{not";
+				var event = execute( event="rulebox:visualizer.runDryRun", renderResults=true );
+
+				expect( event.getRenderData().statusCode ).toBe( 400 );
+				var body = jsonDeserialize( event.getRenderedContent() );
+				expect( body ).toHaveKey( "error" );
+				expect( body.error ).notToInclude( "Failed to parse" );
+				expect( body.error ).notToInclude( "{not" );
+			} );
+
+			it( "runDryRun() 400s when facts is valid JSON but not an object", function(){
+				url._method = "POST";
+				url.name    = "testconvention";
+
+				for( var notAStruct in [ "[1]", "5", """text""", "null" ] ){
+					url.facts = notAStruct;
+					var event = execute( event="rulebox:visualizer.runDryRun", renderResults=true );
+
+					expect( event.getRenderData().statusCode ).toBe( 400 );
+					expect( jsonDeserialize( event.getRenderedContent() ) ).toHaveKey( "error" );
+				}
+			} );
+
+			it( "runDryRun() 422s with a generic message, naming the rulebook but no internals, when a predicate throws", function(){
+				var settings = getWireBox().getInstance( dsl="coldbox:moduleSettings:rulebox" );
+				var registry = getWireBox().getInstance( "RuleBookRegistry@rulebox" );
+
+				settings.rulebooks[ "throwsOnDryRun" ] = {
+					"source"     : [ { "name" : "boomRule", "when" : { "predicate" : "boom" } } ],
+					"predicates" : {
+						"boom" : ( facts ) => { throw( message="SECRET internal detail", type="Internal.Boom" ); }
+					}
+				};
+				registry.reload();
+
+				try{
+					url._method = "POST";
+					url.name    = "throwsOnDryRun";
+					url.facts   = jsonSerialize( {} );
+					var event = execute( event="rulebox:visualizer.runDryRun", renderResults=true );
+
+					expect( event.getRenderData().statusCode ).toBe( 422 );
+					var content = event.getRenderedContent();
+					expect( jsonDeserialize( content ) ).toHaveKey( "error" );
+					expect( content ).toInclude( "throwsOnDryRun" );
+					expect( content ).notToInclude( "SECRET" );
+					expect( content ).notToInclude( "Internal.Boom" );
+				} finally {
+					structDelete( settings.rulebooks, "throwsOnDryRun" );
+					registry.reload();
+				}
+			} );
+
+			it( "runDryRun() 405s a GET without running the dry run", function(){
+				url._method = "GET";
+				url.name    = "testconvention";
+				url.facts   = jsonSerialize( {} );
+				var event = execute( event="rulebox:visualizer.runDryRun", renderResults=true );
+
+				expect( event.getRenderData().statusCode ).toBe( 405 );
+				var body = jsonDeserialize( event.getRenderedContent() );
+				expect( body ).toHaveKey( "error" );
+				expect( body ).notToHaveKey( "name" );
+			} );
+
+			it( "runDryRun() keeps 404ing a GET while the visualizer is disabled", function(){
+				var settings = getWireBox().getInstance( dsl="coldbox:moduleSettings:rulebox" );
+				settings.visualizer.enabled = false;
+
+				try{
+					url._method = "GET";
+					url.name    = "testconvention";
+					var event = execute( event="rulebox:visualizer.runDryRun", renderResults=true );
+
+					expect( event.getRenderData().statusCode ).toBe( 404 );
+				} finally {
+					settings.visualizer.enabled = true;
+				}
 			} );
 
 			it( "apiMetrics() returns a rulebook summary as JSON", function(){

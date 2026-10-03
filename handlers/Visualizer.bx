@@ -20,7 +20,17 @@ class{
 	@inject( "RuleEventBus@rulebox" )
 	property name="eventBus";
 
+	@inject( "logbox:logger:{this}" )
+	property name="logger";
+
 	this.layout = "Visualizer"
+
+	/**
+	 * ColdBox's per-action HTTP method whitelist. runDryRun evaluates user-defined predicates with
+	 * caller-chosen facts, so it must not be triggerable by a plain link/image GET (CSRF).
+	 * A disallowed method is routed to onInvalidHTTPMethod() below.
+	 */
+	this.allowedMethods = { runDryRun : "POST" }
 
 	/**
 	 * Runs before every action in this handler: 404s the whole visualizer while it's disabled, and
@@ -111,20 +121,73 @@ class{
 
 	/**
 	 * JSON action backing the dry-run playground: POST { name, facts } -> RuleBook.dryRun() report.
+	 *
+	 * POST only (see this.allowedMethods). Answers 400 when rc.facts is not a JSON object, 404 for an
+	 * unknown rulebook and 422 when a rule's predicate throws while evaluating the supplied facts -
+	 * always with a generic message; the details are logged server-side, never returned.
 	 */
 	function runDryRun( event, rc, prc ){
 		param name="rc.name" default=""
-		param name="rc.facts" default="{}"
 
 		if( !rc.name.len() || !registry.getRuleBookNames().contains( rc.name ) ){
 			event.renderData( data={ error: "Unknown rulebook '#rc.name#'." }, statusCode=404, type="json" )
 			return
 		}
 
-		var facts = isStruct( rc.facts ) ? rc.facts : jsonDeserialize( rc.facts )
+		// No facts at all means "no facts" (param default="{}" is not applied reliably for a missing rc key)
+		var facts = rc.keyExists( "facts" ) ? rc.facts : {}
+		if( isSimpleValue( facts ) ){
+			try{
+				facts = jsonDeserialize( facts )
+			} catch( any e ){
+				facts = javaCast( "null", "" )
+			}
+		}
+
+		if( isNull( facts ) || !isStruct( facts ) ){
+			event.renderData( data={ error: "'facts' must be a JSON object." }, statusCode=400, type="json" )
+			return
+		}
+
 		var ruleBook = registry.getRuleBook( rc.name )
 
-		event.renderData( data=ruleBook.dryRun( facts ), type="json" )
+		try{
+			var report = ruleBook.dryRun( facts )
+		} catch( any e ){
+			if( !isNull( variables.logger ) ){
+				variables.logger.error(
+					"Dry run of rulebook '#rc.name#' failed: #e.message#",
+					{ type: e.type, detail: e.detail }
+				)
+			}
+			event.renderData(
+				data       = { error: "The dry run of rulebook '#rc.name#' failed: a rule could not be evaluated with the supplied facts." },
+				statusCode = 422,
+				type       = "json"
+			)
+			return
+		}
+
+		event.renderData( data=report, type="json" )
+	}
+
+	/**
+	 * ColdBox calls this (instead of throwing a 500) when an action's this.allowedMethods whitelist
+	 * rejects the request's HTTP method.
+	 */
+	function onInvalidHTTPMethod( event, rc, prc, faultAction, eventArguments ){
+		// Same gate as preHandler(), which does not run for a rejected method: a disabled
+		// visualizer must keep 404ing rather than reveal that the action exists.
+		if( !variables.settings.visualizer.enabled ){
+			event.renderData( data={ error: "The Rule Visualizer is disabled." }, statusCode=404, type="json" )
+			return
+		}
+		event.setHTTPHeader( name="Allow", value="POST" )
+		event.renderData(
+			data       = { error: "Method not allowed: this action only accepts POST." },
+			statusCode = 405,
+			type       = "json"
+		)
 	}
 
 	/**
