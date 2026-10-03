@@ -310,7 +310,7 @@ class extends="tests.resources.BaseSpec"{
 
 			it( "validates when reload() runs, not at the first getRuleBook()", function(){
 				var registry = buildRegistry( { rulebooks : { "ok" : [ { "name" : "r1" } ] } } );
-				registry.setSettings( { rulebooks : { "ok" : [ { "name" : "r1" } ], "broken" : 42 } } );
+				registry.setSettings( { rulebooks : { "ok" : [ { "name" : "r1" } ], "broken" : () => 42 } } );
 
 				var e = caught( function(){
 					registry.reload();
