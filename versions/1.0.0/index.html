@@ -4,6 +4,8 @@
 
 
 
+
+
 <!doctype html>
 <html lang="en" dir="ltr">
 <head>
@@ -13,16 +15,28 @@
 	<meta property="og:type" content="website">
 	<meta property="og:site_name" content="RuleBox">
 	<meta property="og:title" content="RuleBox 1.0.0">
+
+	
 	
 
-	<link rel="canonical" href="https&#x3a;&#x2f;&#x2f;rulebox.coldbox.org&#x2f;versions&#x2f;1.0.0&#x2f;index.html">
+	
+	
+		<link rel="canonical" href="https&#x3a;&#x2f;&#x2f;rulebox.coldbox.org&#x2f;versions&#x2f;1.0.0&#x2f;index.html">
+	
 
+	
+	
+		<meta name="description" content="Archived documentation for RuleBox 1.0.0, frozen as it shipped in 2018.">
+		<meta property="og:description" content="Archived documentation for RuleBox 1.0.0, frozen as it shipped in 2018.">
+	
 
-	<meta name="description" content="Archived documentation for RuleBox 1.0.0, frozen as it shipped in 2018.">
-	<meta property="og:description" content="Archived documentation for RuleBox 1.0.0, frozen as it shipped in 2018.">
+	
+	
 
+	
+	
 
-
+	
 	<script>
 		( function () {
 			var configuredMode = "auto";
@@ -34,102 +48,184 @@
 			}
 		} )();
 	</script>
+
+	
 	<link rel="stylesheet" href="/versions/1.0.0/assets/vendor/bootstrap/bootstrap.min.css">
 	<link rel="stylesheet" href="/versions/1.0.0/assets/vendor/highlight/github.min.css">
 	<link rel="stylesheet" href="/versions/1.0.0/assets/theme/style.de0a3c16.css">
+
+	
 	
 
-	<style>
+	
+	
+		<style>
+			
+			
+				:root {
+					--bxsites-accent: #CC3300;
+					--bxsites-link: #CC3300;
+					--bxsites-link-hover: color-mix( in srgb, #CC3300 85%, black );
+				}
+			
+			
+			
+		</style>
+	
 
-		:root {
-			--bxsites-accent: #CC3300;
-			--bxsites-link: #CC3300;
-			--bxsites-link-hover: color-mix( in srgb, #CC3300 85%, black );
-		}
+	
+	
 
+	
+	
 
-	</style>
+	
+	
 
+	
+	
+		<script>window.__BXSITES_BASE_PATH__ = "/versions/1.0.0/";</script>
+		<script>window.__BXSITES_SEARCH_NO_RESULTS__ = "No\x20results\x20found.";</script>
+		<script src="/versions/1.0.0/assets/vendor/minisearch/minisearch.js"></script>
+		<script src="/versions/1.0.0/assets/search.js" defer></script>
+	
 
+	
+	
 
-
-
-	<script>window.__BXSITES_BASE_PATH__ = "/versions/1.0.0/";</script>
-	<script>window.__BXSITES_SEARCH_NO_RESULTS__ = "No\x20results\x20found.";</script>
-	<script src="/versions/1.0.0/assets/vendor/minisearch/minisearch.js"></script>
-	<script src="/versions/1.0.0/assets/search.js" defer></script>
-
-
+	
+	
 
 	<script src="/versions/1.0.0/assets/vendor/alpine/cdn.min.js" defer></script>
 </head>
-<body x-data="{ dark: document.documentElement.getAttribute( 'data-theme' ) === 'dark', navOpen: window.matchMedia( '(min-width: 992px)' ).matches ? ( localStorage.getItem( 'bxsites-nav-open' ) !== null ? localStorage.getItem( 'bxsites-nav-open' ) === 'true' : true ) : false }" x-init="$watch( 'dark', v => { document.documentElement.setAttribute( 'data-theme', v ? 'dark' : 'light' ); localStorage.setItem( 'bxsites-theme', v ? 'dark' : 'light' ) } ); $watch( 'navOpen', v => { if ( window.matchMedia( '(min-width: 992px)' ).matches ) localStorage.setItem( 'bxsites-nav-open', v ) } )">
+
+
+<body
+	x-data="{ dark: document.documentElement.getAttribute( 'data-theme' ) === 'dark', navOpen: window.matchMedia( '(min-width: 992px)' ).matches ? ( localStorage.getItem( 'bxsites-nav-open' ) !== null ? localStorage.getItem( 'bxsites-nav-open' ) === 'true' : true ) : false }"
+	x-init="$watch( 'dark', v => { document.documentElement.setAttribute( 'data-theme', v ? 'dark' : 'light' ); localStorage.setItem( 'bxsites-theme', v ? 'dark' : 'light' ) } ); $watch( 'navOpen', v => { if ( window.matchMedia( '(min-width: 992px)' ).matches ) localStorage.setItem( 'bxsites-nav-open', v ) } )">
+	
 	<nav class="navbar navbar-expand-lg brand-navbar">
 		<div class="container-fluid navbar-row">
-			<button class="navbar-toggler" type="button" @click="navOpen = !navOpen" :aria-expanded="navOpen.toString()" aria-controls="bxsites-sidebar" aria-label="Toggle navigation">
+			
+			<button
+				class="navbar-toggler"
+				type="button"
+				@click="navOpen = !navOpen"
+				:aria-expanded="navOpen.toString()"
+				aria-controls="bxsites-sidebar"
+				aria-label="Toggle navigation">
 				<span class="navbar-toggler-icon"></span>
 			</button>
+
+			
 			<a class="navbar-brand brand-mark" href="/versions/1.0.0/">⚡ RuleBox</a>
+
+			
 			<div class="navbar-controls">
-
-	
-
-
-
+				
+				
+					
 
 	<div class="bxsites-search position-relative">
-	<input type="search" id="bxsites-search-input" class="form-control" placeholder="Search..." aria-label="Search">
-	<kbd class="bxsites-search-kbd" aria-hidden="true">Ctrl K</kbd>
-	<ul id="bxsites-search-results" class="bxsites-search-results list-unstyled"></ul>
-</div>
+		<input
+			type="search"
+			id="bxsites-search-input"
+			class="form-control"
+			placeholder="Search..."
+			aria-label="Search">
+		<kbd class="bxsites-search-kbd" aria-hidden="true">Ctrl K</kbd>
+		<ul id="bxsites-search-results" class="bxsites-search-results list-unstyled"></ul>
+	</div>
 
 
 
+				
 
+				
+				
+					<select class="version-switcher form-select form-select-sm" onchange="location.href=this.value" aria-label="Version"><option value="/">Latest</option><option value="/versions/1.0.0/" selected>1.0.0</option></select>
+				
 
+				
+				
 
+				
+				
+					<a
+						class="repo-link"
+						href="https://github.com/coldbox-modules/rulebox"
+						target="_blank"
+						rel="noopener noreferrer"
+						aria-label="Repository"
+						title="Repository">
+						<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.333-1.754-1.333-1.754-1.089-.744.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.303-5.467-1.332-5.467-5.93 0-1.31.468-2.38 1.235-3.22-.123-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23A11.5 11.5 0 0 1 12 5.803c1.02.005 2.045.138 3.003.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.118 3.176.77.84 1.235 1.91 1.235 3.22 0 4.61-2.807 5.625-5.48 5.92.43.372.823 1.102.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .322.216.694.825.576C20.565 21.795 24 17.298 24 12c0-6.63-5.37-12-12-12"/></svg>
+					</a>
+				
 
-				<select class="version-switcher form-select form-select-sm" onchange="location.href=this.value" aria-label="Version"><option value="/">Latest</option><option value="/versions/1.0.0/" selected>1.0.0</option></select>
-
-
-
-				<a class="repo-link" href="https://github.com/coldbox-modules/rulebox" target="_blank" rel="noopener noreferrer" aria-label="Repository" title="Repository"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.333-1.754-1.333-1.754-1.089-.744.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.303-5.467-1.332-5.467-5.93 0-1.31.468-2.38 1.235-3.22-.123-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23A11.5 11.5 0 0 1 12 5.803c1.02.005 2.045.138 3.003.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.118 3.176.77.84 1.235 1.91 1.235 3.22 0 4.61-2.807 5.625-5.48 5.92.43.372.823 1.102.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .322.216.694.825.576C20.565 21.795 24 17.298 24 12c0-6.63-5.37-12-12-12"/></svg></a>
-
-				<button type="button" class="theme-toggle" @click="dark = !dark" aria-label="Toggle dark mode">
+				
+				<button
+					type="button"
+					class="theme-toggle"
+					@click="dark = !dark"
+					aria-label="Toggle dark mode">
 					<span x-show="!dark"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg></span>
 					<span x-show="dark" x-cloak><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg></span>
 				</button>
 			</div>
+			
 		</div>
+		
 	</nav>
+
+	
 	<div class="container-fluid">
+		
 		<div class="row" :class="{ 'bxsites-nav-collapsed' : !navOpen }">
+			
 			<aside class="col-lg-3 col-xl-2 sidebar" id="bxsites-sidebar" x-show="navOpen" x-cloak>
 				<ul class="nav flex-column"><li class="nav-item"><a class="nav-link active" href="/versions/1.0.0/index.html"><svg class="bxsites-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M216,96v96a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V96Z" opacity="0.2"/><path d="M224,48H32A16,16,0,0,0,16,64V88a16,16,0,0,0,16,16v88a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V104a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48ZM208,192H48V104H208ZM224,88H32V64H224V88ZM96,136a8,8,0,0,1,8-8h48a8,8,0,0,1,0,16H104A8,8,0,0,1,96,136Z"/></svg> RuleBox 1.0.0</a></li></ul>
-				<a class="bxsites-powered-by" href="https://bxsites.io" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg> <span>Powered by BxSites</span></a>
+				<a class="bxsites-powered-by" href="https://bxsites.io" target="_blank" rel="noopener noreferrer">
+					<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg> <span>Powered by BxSites</span>
+				</a>
 			</aside>
+
+			
 			<main class="col-lg-9 col-xl-8 content">
+					
 
+	
+	<article class="page-content">
+		
+		
+		
+		
+		
+		
+		
+		<h1 class="page-title" id="page-title">
+			<a href="#page-title" id="page-title" class="anchor"></a>
+			
+				<span class="page-icon"><svg class="bxsites-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M216,96v96a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V96Z" opacity="0.2"/><path d="M224,48H32A16,16,0,0,0,16,64V88a16,16,0,0,0,16,16v88a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V104a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48ZM208,192H48V104H208ZM224,88H32V64H224V88ZM96,136a8,8,0,0,1,8-8h48a8,8,0,0,1,0,16H104A8,8,0,0,1,96,136Z"/></svg></span>
+			
+			RuleBox 1.0.0
+		</h1>
+		
+		
+			<p class="page-summary">Archived documentation for RuleBox 1.0.0, frozen as it shipped in 2018.</p>
+		
+		
+		
+		
+		
+		
+		
+		
+		
+			<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#requirements">Requirements</a></li><li class="toc-level-2"><a href="#installation">Installation</a></li><li class="toc-level-2"><a href="#usage">Usage</a></li><li class="toc-level-3"><a href="#defining-rules">Defining Rules</a></li><li class="toc-level-3"><a href="#a-helloworld-example">A HelloWorld Example</a></li><li class="toc-level-3"><a href="#the-above-example-using-facts">The Above Example Using Facts</a></li><li class="toc-level-3"><a href="#a-more-complex-scenario">A More Complex Scenario</a></li><li class="toc-level-3"><a href="#thread-safety">Thread Safety</a></li><li class="toc-level-2"><a href="#the-rulebook-domain-specific-language-explained">The RuleBook Domain Specific Language Explained</a></li><li class="toc-level-3"><a href="#given-when-then-the-basis-of-the-rulebook-language">Given-When-Then&#x3a; The Basis of the RuleBook Language</a></li><li class="toc-level-3"><a href="#the-using-method">The Using Method</a></li><li class="toc-level-3"><a href="#the-stop-method">The Stop Method</a></li><li class="toc-level-3"><a href="#working-with-facts">Working With Facts</a></li><li class="toc-level-3"><a href="#auditing-rules">Auditing Rules</a></li></ul></details>
+		
 
-				<article class="page-content">
-
-
-
-					<h1 class="page-title" id="page-title"><a href="#page-title" id="page-title" class="anchor"></a>
-
-	<span class="page-icon"><svg class="bxsites-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M216,96v96a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V96Z" opacity="0.2"/><path d="M224,48H32A16,16,0,0,0,16,64V88a16,16,0,0,0,16,16v88a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V104a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48ZM208,192H48V104H208ZM224,88H32V64H224V88ZM96,136a8,8,0,0,1,8-8h48a8,8,0,0,1,0,16H104A8,8,0,0,1,96,136Z"/></svg></span>
-
-RuleBox 1.0.0</h1>
-
-	<p class="page-summary">Archived documentation for RuleBox 1.0.0, frozen as it shipped in 2018.</p>
-
-
-
-
-
-	<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#requirements">Requirements</a></li><li class="toc-level-2"><a href="#installation">Installation</a></li><li class="toc-level-2"><a href="#usage">Usage</a></li><li class="toc-level-3"><a href="#defining-rules">Defining Rules</a></li><li class="toc-level-3"><a href="#a-helloworld-example">A HelloWorld Example</a></li><li class="toc-level-3"><a href="#the-above-example-using-facts">The Above Example Using Facts</a></li><li class="toc-level-3"><a href="#a-more-complex-scenario">A More Complex Scenario</a></li><li class="toc-level-3"><a href="#thread-safety">Thread Safety</a></li><li class="toc-level-2"><a href="#the-rulebook-domain-specific-language-explained">The RuleBook Domain Specific Language Explained</a></li><li class="toc-level-3"><a href="#given-when-then-the-basis-of-the-rulebook-language">Given-When-Then&#x3a; The Basis of the RuleBook Language</a></li><li class="toc-level-3"><a href="#the-using-method">The Using Method</a></li><li class="toc-level-3"><a href="#the-stop-method">The Stop Method</a></li><li class="toc-level-3"><a href="#working-with-facts">Working With Facts</a></li><li class="toc-level-3"><a href="#auditing-rules">Auditing Rules</a></li></ul></details>
-
-					<h1 id="rulebox-100"><a href="#rulebox-100" id="rulebox-100" name="rulebox-100" class="anchor"></a>RuleBox 1.0.0</h1>
+		
+		<h1 id="rulebox-100"><a href="#rulebox-100" id="rulebox-100" name="rulebox-100" class="anchor"></a>RuleBox 1.0.0</h1>
 <blockquote>
 <p><strong>Archived version.</strong> This page preserves the RuleBox 1.0.0 docs as
 originally written. For the current release, see the
@@ -625,10 +721,17 @@ status = ruleBook.getRuleStatus(&quot;rule2&quot;)
 <pre><code class="language-js">writeDump(ruleBook.getRuleStatusMap())
 </code></pre>
 
+	
 
-	<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/versions/1.0.0/index.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/versions/1.0.0/index.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Sep 18, 2026, 12&#x3a;55&#x3a;33 PM</span></div>
+	
+	
+		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/versions/1.0.0/index.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/versions/1.0.0/index.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 3, 2026, 11&#x3a;03&#x3a;58 AM</span></div>
+	
+</article>
 
-				</article>
+
+
+
 
 
 
@@ -638,23 +741,34 @@ status = ruleBook.getRuleStatus(&quot;rule2&quot;)
 
 			</main>
 
-			<aside class="col-xl-2 toc-sidebar d-none d-xl-block">
-				<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#requirements">Requirements</a></li><li class="toc-level-2"><a href="#installation">Installation</a></li><li class="toc-level-2"><a href="#usage">Usage</a></li><li class="toc-level-3"><a href="#defining-rules">Defining Rules</a></li><li class="toc-level-3"><a href="#a-helloworld-example">A HelloWorld Example</a></li><li class="toc-level-3"><a href="#the-above-example-using-facts">The Above Example Using Facts</a></li><li class="toc-level-3"><a href="#a-more-complex-scenario">A More Complex Scenario</a></li><li class="toc-level-3"><a href="#thread-safety">Thread Safety</a></li><li class="toc-level-2"><a href="#the-rulebook-domain-specific-language-explained">The RuleBook Domain Specific Language Explained</a></li><li class="toc-level-3"><a href="#given-when-then-the-basis-of-the-rulebook-language">Given-When-Then&#x3a; The Basis of the RuleBook Language</a></li><li class="toc-level-3"><a href="#the-using-method">The Using Method</a></li><li class="toc-level-3"><a href="#the-stop-method">The Stop Method</a></li><li class="toc-level-3"><a href="#working-with-facts">Working With Facts</a></li><li class="toc-level-3"><a href="#auditing-rules">Auditing Rules</a></li></ul></nav>
-			</aside>
-
+			
+			
+				<aside class="col-xl-2 toc-sidebar d-none d-xl-block">
+					<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#requirements">Requirements</a></li><li class="toc-level-2"><a href="#installation">Installation</a></li><li class="toc-level-2"><a href="#usage">Usage</a></li><li class="toc-level-3"><a href="#defining-rules">Defining Rules</a></li><li class="toc-level-3"><a href="#a-helloworld-example">A HelloWorld Example</a></li><li class="toc-level-3"><a href="#the-above-example-using-facts">The Above Example Using Facts</a></li><li class="toc-level-3"><a href="#a-more-complex-scenario">A More Complex Scenario</a></li><li class="toc-level-3"><a href="#thread-safety">Thread Safety</a></li><li class="toc-level-2"><a href="#the-rulebook-domain-specific-language-explained">The RuleBook Domain Specific Language Explained</a></li><li class="toc-level-3"><a href="#given-when-then-the-basis-of-the-rulebook-language">Given-When-Then&#x3a; The Basis of the RuleBook Language</a></li><li class="toc-level-3"><a href="#the-using-method">The Using Method</a></li><li class="toc-level-3"><a href="#the-stop-method">The Stop Method</a></li><li class="toc-level-3"><a href="#working-with-facts">Working With Facts</a></li><li class="toc-level-3"><a href="#auditing-rules">Auditing Rules</a></li></ul></nav>
+				</aside>
+			
 		</div>
+		
 	</div>
+	
 
-	<footer class="bxsites-footer">
-		<div class="container-fluid bxsites-footer__inner">
-			<div class="bxsites-footer__copy">&copy; 2026 RuleBox</div>
+	
+	
+		<footer class="bxsites-footer">
+			<div class="container-fluid bxsites-footer__inner">
+				
+				<div class="bxsites-footer__copy">&copy; 2026 RuleBox</div>
+				
+				
+					<div class="bxsites-footer__social"><a class="social-link" href="https://github.com/coldbox-modules/rulebox" target="_blank" rel="noopener noreferrer" aria-label="RuleBox on GitHub" title="RuleBox on GitHub"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.333-1.754-1.333-1.754-1.089-.744.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.303-5.467-1.332-5.467-5.93 0-1.31.468-2.38 1.235-3.22-.123-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23A11.5 11.5 0 0 1 12 5.803c1.02.005 2.045.138 3.003.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.118 3.176.77.84 1.235 1.91 1.235 3.22 0 4.61-2.807 5.625-5.48 5.92.43.372.823 1.102.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .322.216.694.825.576C20.565 21.795 24 17.298 24 12c0-6.63-5.37-12-12-12"/></svg></a><a class="social-link" href="https://www.ortussolutions.com/community/slack" target="_blank" rel="noopener noreferrer" aria-label="Slack Community" title="Slack Community"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52ZM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313ZM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834ZM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312ZM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834ZM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312ZM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52ZM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313Z"/></svg></a><a class="social-link" href="https://community.ortussolutions.com/" target="_blank" rel="noopener noreferrer" aria-label="Community Forum" title="Community Forum"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg></a></div>
+				
+				
+				<div class="bxsites-footer__credit">Built with <a href="https://bxsites.io" target="_blank" rel="noopener noreferrer">BxSites</a></div>
+			</div>
+		</footer>
+	
 
-			<div class="bxsites-footer__social"><a class="social-link" href="https://github.com/coldbox-modules/rulebox" target="_blank" rel="noopener noreferrer" aria-label="RuleBox on GitHub" title="RuleBox on GitHub"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.333-1.754-1.333-1.754-1.089-.744.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.303-5.467-1.332-5.467-5.93 0-1.31.468-2.38 1.235-3.22-.123-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23A11.5 11.5 0 0 1 12 5.803c1.02.005 2.045.138 3.003.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.118 3.176.77.84 1.235 1.91 1.235 3.22 0 4.61-2.807 5.625-5.48 5.92.43.372.823 1.102.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .322.216.694.825.576C20.565 21.795 24 17.298 24 12c0-6.63-5.37-12-12-12"/></svg></a><a class="social-link" href="https://www.ortussolutions.com/community/slack" target="_blank" rel="noopener noreferrer" aria-label="Slack Community" title="Slack Community"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52ZM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313ZM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834ZM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312ZM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834ZM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312ZM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52ZM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313Z"/></svg></a><a class="social-link" href="https://community.ortussolutions.com/" target="_blank" rel="noopener noreferrer" aria-label="Community Forum" title="Community Forum"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg></a></div>
-
-			<div class="bxsites-footer__credit">Built with <a href="https://bxsites.io" target="_blank" rel="noopener noreferrer">BxSites</a></div>
-		</div>
-	</footer>
-
+	
 	<script src="/versions/1.0.0/assets/vendor/bootstrap/bootstrap.bundle.min.js"></script>
 	<script src="/versions/1.0.0/assets/vendor/highlight/highlight.min.js"></script>
 	<script src="/versions/1.0.0/assets/highlight-boxlang.js"></script>
@@ -670,18 +784,35 @@ status = ruleBook.getRuleStatus(&quot;rule2&quot;)
 	<script src="/versions/1.0.0/assets/prompt-init.js" defer></script>
 	<script src="/versions/1.0.0/assets/contact-form-init.js" defer></script>
 
+	
+	
 
-	<script src="/versions/1.0.0/assets/vendor/mermaid/mermaid.min.js"></script>
-	<script src="/versions/1.0.0/assets/mermaid-init.js"></script>
+	
+	
+		<script src="/versions/1.0.0/assets/vendor/mermaid/mermaid.min.js"></script>
+		<script src="/versions/1.0.0/assets/mermaid-init.js"></script>
+	
 
+	
+	
 
+	
+	
 
+	
+	
 
+	
+	
 
+	
+	
 
+	
+	
+
+	
 	
 </body>
 </html>
-
-
 
