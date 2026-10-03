@@ -14,7 +14,7 @@
 				</bx:loop>
 			</select>
 		</form>
-		<a class="btn btn-sm btn-primary" href="#event.buildLink( 'visualizer.dryrun' )#?name=#urlEncodedFormat( prc.rulebookName )#">
+		<a class="btn btn-sm btn-primary" href="#prc.vizLink( 'dryrun' )#?name=#urlEncodedFormat( prc.rulebookName )#">
 			<i class="ph ph-flask"></i> Dry Run
 		</a>
 	</div>

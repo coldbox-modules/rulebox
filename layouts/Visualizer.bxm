@@ -50,27 +50,27 @@
 			</div>
 			<ul class="nav nav-pills flex-column gap-1 mb-auto">
 				<li class="nav-item">
-					<a class="nav-link d-flex align-items-center gap-2 #( event.getCurrentAction() == 'index' ? 'active' : '' )#" href="#event.buildLink( 'visualizer.index' )#">
+					<a class="nav-link d-flex align-items-center gap-2 #( event.getCurrentAction() == 'index' ? 'active' : '' )#" href="#prc.vizLink( 'index' )#">
 						<i class="ph ph-squares-four"></i> Dashboard
 					</a>
 				</li>
 				<li class="nav-item">
-					<a class="nav-link d-flex align-items-center gap-2 #( event.getCurrentAction() == 'chain' ? 'active' : '' )#" href="#event.buildLink( 'visualizer.index' )#">
+					<a class="nav-link d-flex align-items-center gap-2 #( event.getCurrentAction() == 'chain' ? 'active' : '' )#" href="#prc.vizLink( 'index' )#">
 						<i class="ph ph-tree-structure"></i> Rule Visualizer
 					</a>
 				</li>
 				<li class="nav-item">
-					<a class="nav-link d-flex align-items-center gap-2 #( event.getCurrentAction() == 'dryrun' ? 'active' : '' )#" href="#event.buildLink( 'visualizer.dryrun' )#">
+					<a class="nav-link d-flex align-items-center gap-2 #( event.getCurrentAction() == 'dryrun' ? 'active' : '' )#" href="#prc.vizLink( 'dryrun' )#">
 						<i class="ph ph-flask"></i> Dry Run
 					</a>
 				</li>
 				<li class="nav-item">
-					<a class="nav-link d-flex align-items-center gap-2 #( event.getCurrentAction() == 'metrics' ? 'active' : '' )#" href="#event.buildLink( 'visualizer.metrics' )#">
+					<a class="nav-link d-flex align-items-center gap-2 #( event.getCurrentAction() == 'metrics' ? 'active' : '' )#" href="#prc.vizLink( 'metrics' )#">
 						<i class="ph ph-chart-line"></i> Metrics
 					</a>
 				</li>
 				<li class="nav-item">
-					<a class="nav-link d-flex align-items-center gap-2 #( event.getCurrentAction() == 'live' ? 'active' : '' )#" href="#event.buildLink( 'visualizer.live' )#">
+					<a class="nav-link d-flex align-items-center gap-2 #( event.getCurrentAction() == 'live' ? 'active' : '' )#" href="#prc.vizLink( 'live' )#">
 						<i class="ph ph-broadcast"></i> Live Tracker
 					</a>
 				</li>
@@ -78,7 +78,7 @@
 			<div class="small text-secondary px-2 pt-3 border-top border-secondary-subtle">
 				<div class="d-flex align-items-center gap-2 mb-1">
 					<i class="ph ph-database"></i>
-					<span>#listLast( prc.visualizerSettings.metricsStore, '@' )#</span>
+					<span>#listFirst( prc.visualizerSettings.metricsStore, '@' )#</span>
 				</div>
 				<div class="d-flex align-items-center gap-2">
 					<span class="rb-state-dot rb-state-EXECUTED"></span>

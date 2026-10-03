@@ -2,13 +2,13 @@
 <h1 class="h3 mb-4">Metrics</h1>
 
 <div
-	x-data="rbMetrics( #jsonSerialize( prc.rulebookNames )#, '#event.buildLink( 'visualizer.apiMetrics' )#' )"
+	x-data="rbMetrics( #htmlEditFormat( jsonSerialize( prc.rulebookNames ) )#, '#prc.vizLink( 'apiMetrics' )#' )"
 	x-init="load()"
 >
 	<div class="d-flex align-items-center gap-2 mb-4">
 		<select class="form-select form-select-sm w-auto" x-model="rulebookName" @change="load()">
 			<template x-for="n in rulebookNames" :key="n">
-				<option :value="n" x-text="n"></option>
+				<option :value="n" :selected="n === rulebookName" x-text="n"></option>
 			</template>
 		</select>
 		<button class="btn btn-sm btn-outline-light" @click="load()"><i class="ph ph-arrow-clockwise"></i> Refresh</button>

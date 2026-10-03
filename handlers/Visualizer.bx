@@ -38,6 +38,10 @@ class{
 		}
 		prc.visualizerSettings = variables.settings.visualizer
 
+		// event.buildLink( "visualizer.x" ) drops the module's entry point (-> /visualizer/x, a 500),
+		// so every layout/view link goes through this instead.
+		prc.vizLink = ( required string target ) => event.buildLink( "rulebox-visualizer/visualizer/#target#" )
+
 		// this.layout is not reliably picked up as a handler convention in every environment
 		// this module runs in (seen in this repo's own test-harness) - setting it explicitly at
 		// request time is the documented, always-supported way to select a module layout.

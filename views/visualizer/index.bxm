@@ -71,7 +71,7 @@
 								</td>
 								<td>#numberFormat( rb.avgDurationMs, "0.00" )#ms</td>
 								<td class="text-end">
-									<a class="btn btn-sm btn-outline-light" href="#event.buildLink( 'visualizer.chain' )#?name=#urlEncodedFormat( rb.rulebookName )#">
+									<a class="btn btn-sm btn-outline-light" href="#prc.vizLink( 'chain' )#?name=#urlEncodedFormat( rb.rulebookName )#">
 										<i class="ph ph-tree-structure"></i> View chain
 									</a>
 								</td>

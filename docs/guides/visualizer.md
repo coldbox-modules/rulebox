@@ -39,16 +39,80 @@ turns on the (small) per-rule-evaluation bookkeeping cost.
 visualizer, wrap `/rulebox-visualizer` with a cbSecurity rule (or your own
 auth interceptor) the same way you would any other admin UI.
 
-## Screens
+## Opening the UI
 
-- **Dashboard** - every declared rulebook (from `moduleSettings.rulebox.rulebooks` and/or your convention folder - see the "Externalized Rule Definitions" guide), its rule count, evaluation counts by state, and a recent-activity feed
-- **Rule Visualizer** - a chosen rulebook's real execution chain (priority order, `stop()` points, active windows), with per-rule metrics
-- **Dry Run** - pick a rulebook, paste facts as JSON, and see which rules would fire without executing anything - backed by `RuleBook.dryRun()`
-- **Metrics** - aggregated stats per rulebook: evaluation counts by state, average/total duration
-- **Live Tracker** - every rule evaluation, across every rulebook, streamed to the browser in real time via [BoxLang's `SSE()`](https://boxlang.ortusbooks.com/boxlang-framework/server-sent-events)
+With `enabled = true`, browse to your app's `/rulebox-visualizer` entry point:
+
+| Screen | URL |
+|--------|-----|
+| Dashboard | `/rulebox-visualizer/visualizer/index` |
+| Rule Visualizer (chain) | `/rulebox-visualizer/visualizer/chain?name={rulebook}` |
+| Dry Run | `/rulebox-visualizer/visualizer/dryrun` |
+| Metrics | `/rulebox-visualizer/visualizer/metrics` |
+| Live Tracker | `/rulebox-visualizer/visualizer/live` |
+
+The left sidebar links between the screens. The footer shows the metrics
+store in use and confirms the visualizer is enabled.
 
 The UI itself is Bootstrap 5, Alpine.js, and Phosphor Icons, loaded from a
-CDN - there's nothing to build or bundle.
+CDN - there's nothing to build or bundle. The screenshots below use the
+rulebooks in this module's own `test-harness/config/rulebox` folder.
+
+## Screens
+
+### Dashboard
+
+![The Dashboard: totals, a table of every rulebook with its outcomes, and a recent activity feed](../images/visualizer/dashboard.png)
+
+Every declared rulebook (from `moduleSettings.rulebox.rulebooks` and/or your
+convention folder - see the "Externalized Rule Definitions" guide), with its
+rule count, evaluation counts by state, average duration, and a
+recent-activity feed on the right. A rulebook that fails to load (a bad file
+path, an unregistered action) is flagged with a red marker, like
+`needsaction` above, instead of taking the whole page down.
+
+### Rule Visualizer
+
+![The chain view for the loanapproval rulebook, showing priority badges, a stops-chain marker, and per-rule outcome counts](../images/visualizer/chain-loanapproval.png)
+
+A chosen rulebook's real execution chain, in the order the rules actually
+run. Each row shows:
+
+- the rule's **priority** (`P20`, `P10`, `P0`)
+- a **stops chain** marker for rules that call `stop()`
+- the rule's **evaluation count, average duration, and outcomes by state** (`EXECUTED`, `SKIPPED`, `STOPPED`)
+
+Use the dropdown to switch rulebooks, or **Dry Run** to jump to the playground
+with this rulebook preselected.
+
+![The chain view for seasonalpromo, showing active windows on two rules](../images/visualizer/chain-seasonalpromo.png)
+
+Rules with an active window (`activeFrom` / `activeUntil`) show it inline.
+
+### Dry Run
+
+![The Dry Run playground: a rulebook picker and JSON facts on the left, which rules would execute on the right](../images/visualizer/dryrun.png)
+
+Pick a rulebook, paste facts as JSON, and press **Run dry run**. The result
+lists every rule in order and whether it **would execute** for those facts,
+without running any action. It is backed by `RuleBook.dryRun()`, so nothing
+is recorded in your metrics.
+
+### Metrics
+
+![The Metrics screen for loanapproval: evaluation count, average and total duration, and outcomes by state](../images/visualizer/metrics.png)
+
+Aggregated stats for one rulebook: total evaluations, average and total
+duration, and a count per outcome state. Pick a rulebook and press
+**Refresh** to re-query.
+
+### Live Tracker
+
+Every rule evaluation, across every rulebook, streamed to the browser as it
+happens via [BoxLang's `SSE()`](https://boxlang.ortusbooks.com/boxlang-framework/server-sent-events).
+Each row shows the time, rulebook, rule, outcome state, and duration. Use
+**Pause** to freeze the table while you read it; the table keeps the latest
+200 rows.
 
 ## Metrics persistence
 

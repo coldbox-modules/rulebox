@@ -2,7 +2,7 @@
 <h1 class="h3 mb-4">Dry Run</h1>
 
 <div
-	x-data="rbDryRun( #jsonSerialize( prc.rulebookNames )#, '#event.buildLink( 'visualizer.runDryRun' )#', '#event.getValue( 'name', '' )#' )"
+	x-data="rbDryRun( #htmlEditFormat( jsonSerialize( prc.rulebookNames ) )#, '#prc.vizLink( 'runDryRun' )#', '#htmlEditFormat( jsStringFormat( event.getValue( 'name', '' ) ) )#' )"
 	class="row g-3"
 >
 	<div class="col-lg-6">
@@ -10,7 +10,7 @@
 			<div class="card-header d-flex align-items-center justify-content-between">
 				<select class="form-select form-select-sm w-auto" x-model="rulebookName">
 					<template x-for="n in rulebookNames" :key="n">
-						<option :value="n" x-text="n"></option>
+						<option :value="n" :selected="n === rulebookName" x-text="n"></option>
 					</template>
 				</select>
 				<button class="btn btn-sm btn-primary" @click="run()" :disabled="running">

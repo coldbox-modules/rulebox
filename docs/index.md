@@ -44,6 +44,7 @@ which rules fired, skipped, stopped, or failed.
 - [Defining RuleBooks](guides/defining-rulebooks.md) - your first rules
 - [The RuleBook DSL](guides/the-dsl.md) - `given`/`when`/`except`/`then`/`using`/`stop`
 - [A Complex Example](guides/complex-example.md) - a full, real-world walkthrough
+- [Rule Visualizer](guides/visualizer.md) - an admin UI to browse rulebooks, dry-run them, and watch metrics
 
 ## Requirements
 
