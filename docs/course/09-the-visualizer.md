@@ -45,34 +45,43 @@ Restart your app, then open:
 
 ## A tour
 
+<figure class="rb-video">
+<video controls preload="metadata" playsinline poster="../../assets/video/rulebox-visualizer-intro-poster.png" aria-label="A one-minute tour of the RuleBox Visualizer">
+<source src="../../assets/video/rulebox-visualizer-intro.mp4" type="video/mp4">
+</video>
+</figure>
+
+::: image-gallery columns="3"
+::: image src="../assets/visualizer/dashboard.png" alt="The Dashboard: totals, a table of every rulebook with its outcomes, and a recent activity feed" caption="Dashboard"
+:::
+::: image src="../assets/visualizer/chain-loanapproval.png" alt="The chain view for a rulebook, showing priority badges, a stops-chain marker and per-rule outcome counts" caption="Rule Visualizer"
+:::
+::: image src="../assets/visualizer/dryrun.png" alt="The Dry Run screen: facts as JSON on the left, which rules would execute on the right" caption="Dry Run"
+:::
+::: image src="../assets/visualizer/metrics.png" alt="The Metrics screen: evaluation count, average duration and outcomes by state" caption="Metrics"
+:::
+::: image src="../assets/visualizer/live.png" alt="The Live Tracker: rule evaluations streaming in as they run" caption="Live Tracker"
+:::
+:::
+
 The sidebar links the five screens.
 
 **Dashboard.** Every rulebook you declared, with its rule count, results and
 a feed of recent activity. Your `loan` rulebook is here.
 
-![The Dashboard: totals, a table of every rulebook with its outcomes, and a recent activity feed](../assets/visualizer/dashboard.png)
-
 **Rule Visualizer.** Click **View chain** on a rulebook to see its rules in
 the order they really run, with their priorities and which ones stop the
 chain. This is lesson 4 as a picture.
-
-![The chain view for a rulebook, showing priority badges, a stops-chain marker and per-rule outcome counts](../assets/visualizer/chain-loanapproval.png)
 
 **Dry Run.** Pick a rulebook, type facts as JSON, such as
 `{ "creditScore": 640 }`, and press **Run dry run**. It is `dryRun()` from
 lesson 5 with a button. Nothing is executed or recorded.
 
-![The Dry Run screen: facts as JSON on the left, which rules would execute on the right](../assets/visualizer/dryrun.png)
-
 **Metrics.** Totals and averages per rulebook, gathered across every run, not
 just one RuleBook instance.
 
-![The Metrics screen: evaluation count, average duration and outcomes by state](../assets/visualizer/metrics.png)
-
 **Live Tracker.** Every rule evaluation, as it happens. Run your handler
 from lesson 7 in another tab and watch the rows arrive.
-
-![The Live Tracker: rule evaluations streaming in as they run](../assets/visualizer/live.png)
 
 > The Live Tracker needs BoxLang **1.18.0 or later**. The other four screens
 > work on older versions.

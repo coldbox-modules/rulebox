@@ -40,6 +40,15 @@ class{
 			)
 		}
 
+		// keyArray()[ 1 ] would silently pick whichever key the struct happens to hash first
+		if( arguments.node.len() != 1 ){
+			throw(
+				type    = "RuleBox.UnknownConditionOperatorException",
+				message = "A condition node must have exactly one operator key, found #arguments.node.len()#: #arguments.node.keyArray().toList()#",
+				detail  = "Supported operators: eq, neq, lt, lte, gt, gte, in, and, or, not"
+			)
+		}
+
 		var operator = arguments.node.keyArray()[ 1 ]
 		var operand  = arguments.node[ operator ]
 		// Captured into a local var: a nested `=>` closure below gets its own `arguments` scope, so
@@ -61,20 +70,20 @@ class{
 		if( operator == "neq" ){
 			return resolvePath( operand[ 1 ], facts ) != operand[ 2 ]
 		}
-		if( operator == "lt" ){
-			return resolvePath( operand[ 1 ], facts ) < operand[ 2 ]
-		}
-		if( operator == "lte" ){
-			return resolvePath( operand[ 1 ], facts ) <= operand[ 2 ]
-		}
-		if( operator == "gt" ){
-			return resolvePath( operand[ 1 ], facts ) > operand[ 2 ]
-		}
-		if( operator == "gte" ){
-			return resolvePath( operand[ 1 ], facts ) >= operand[ 2 ]
+		if( operator == "lt" || operator == "lte" || operator == "gt" || operator == "gte" ){
+			return compareOrdered( operator, resolvePath( operand[ 1 ], facts ), operand[ 2 ] )
 		}
 		if( operator == "in" ){
-			return operand[ 2 ].contains( resolvePath( operand[ 1 ], facts ) )
+			if( !isArray( operand ) || operand.len() < 2 || !isArray( operand[ 2 ] ) ){
+				throw(
+					type    = "RuleBox.InvalidConditionException",
+					message = "The 'in' operator requires [ factPath, [ values ] ]: the second operand must be an array.",
+					detail  = "Received: #jsonSerialize( operand )#"
+				)
+			}
+			var needle = resolvePath( operand[ 1 ], facts )
+			// Same comparison as eq (loose, case-insensitive), never substring matching
+			return operand[ 2 ].some( ( candidate ) => needle == candidate )
 		}
 
 		throw(
@@ -82,6 +91,37 @@ class{
 			message = "Unknown condition operator: '#operator#'",
 			detail  = "Supported operators: eq, neq, lt, lte, gt, gte, in, and, or, not"
 		)
+	}
+
+	/**
+	 * Ordering comparison (lt, lte, gt, gte). Returns false whenever either side is null (e.g. a
+	 * missing fact) or the two sides are not comparable, so absent data never satisfies a bound.
+	 * Two numeric values compare numerically; two non-numeric simple values (strings, date strings)
+	 * compare as the language compares them. Anything else (struct, array, boolean, number vs text)
+	 * is not comparable.
+	 */
+	private boolean function compareOrdered( required string operator, any left, any right ){
+		if( isNull( arguments.left ) || isNull( arguments.right ) ){
+			return false
+		}
+		var l = arguments.left
+		var r = arguments.right
+		if( !isSimpleValue( l ) || !isSimpleValue( r ) || isBoolean( l ) && !isNumeric( l ) || isBoolean( r ) && !isNumeric( r ) ){
+			return false
+		}
+		if( isNumeric( l ) != isNumeric( r ) ){
+			return false
+		}
+		switch( arguments.operator ){
+			case "lt":
+				return l < r
+			case "lte":
+				return l <= r
+			case "gt":
+				return l > r
+			default:
+				return l >= r
+		}
 	}
 
 	/**
