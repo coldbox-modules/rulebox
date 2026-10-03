@@ -180,7 +180,7 @@ class extends="tests.resources.BaseSpec"{
 					} catch( any e ){
 						caught = e;
 					}
-					expect( caught ).notToBe( "" );
+					expect( isSimpleValue( caught ) ).toBeFalse( "expected an exception to be thrown" );
 					expect( caught.type ).toBe( "RuleBox.DuplicateRuleBookException" );
 					expect( caught.message ).toInclude( "a.json" );
 					expect( caught.message ).toInclude( "a.yaml" );
