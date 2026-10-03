@@ -23,10 +23,34 @@ class{
 	}
 
 	/**
+	 * @throws RuleBox.RuleSourceParseException If the file is not valid YAML. The message names the file
+	 *         and the parse position only - never the file's content.
+	 *
 	 * @return An array of rule-definition structs
 	 */
 	array function load(){
-		return yamlDeserializeFile( variables.filePath )
+		try{
+			return yamlDeserializeFile( variables.filePath )
+		} catch( any e ){
+			// A missing YAML module / unreadable file is not a parse error: surface it untouched
+			if( e.message.reFindNoCase( "^Function \[.*\] not found" ) || !fileExists( variables.filePath ) ){
+				rethrow
+			}
+			// Deliberately NOT including e.message: parsers can echo the file's content
+			var position = ""
+			try{
+				var located = ( e.getCause().getMessage() ?: e.message ).reMatch( "line:?\s*\d+,?\s*column:?\s*\d+" )
+				if( located.len() ){
+					position = " (#located.last()#)"
+				}
+			} catch( any ignored ){
+				// position is best-effort only
+			}
+			throw(
+				type    = "RuleBox.RuleSourceParseException",
+				message = "Could not parse the YAML rule file [#variables.filePath#]#position#."
+			)
+		}
 	}
 
 }

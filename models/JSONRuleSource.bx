@@ -19,10 +19,31 @@ class{
 	}
 
 	/**
+	 * @throws RuleBox.RuleSourceParseException If the file is not valid JSON. The message names the file
+	 *         and the parse position only - never the file's content.
+	 *
 	 * @return An array of rule-definition structs
 	 */
 	array function load(){
-		return jsonDeserialize( fileRead( variables.filePath ) )
+		var content = fileRead( variables.filePath )
+		try{
+			return jsonDeserialize( content )
+		} catch( any e ){
+			// Deliberately NOT rethrowing/including e.message: the parser echoes the file's content
+			var position = ""
+			try{
+				var located = ( e.getCause().getMessage() ?: "" ).reMatch( "line:\s*\d+,\s*column:\s*\d+" )
+				if( located.len() ){
+					position = " (#located.last()#)"
+				}
+			} catch( any ignored ){
+				// position is best-effort only
+			}
+			throw(
+				type    = "RuleBox.RuleSourceParseException",
+				message = "Could not parse the JSON rule file [#variables.filePath#]#position#."
+			)
+		}
 	}
 
 }
