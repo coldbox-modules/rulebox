@@ -166,7 +166,7 @@ class{
 		// in LiveStreams; serve() releases the slot and unsubscribes even if SSE() itself throws.
 		var served = variables.liveStreams.serve(
 			bus        : variables.eventBus,
-			maxStreams : getMaxStreams(),
+			maxStreams : variables.settings.visualizer.maxStreams,
 			opener     : ( queue ) => {
 				SSE(
 					callback: ( emitter ) => {
@@ -191,15 +191,6 @@ class{
 				statusCode = 503
 			)
 		}
-	}
-
-	/**
-	 * The configured live-stream cap. Read defensively so an app whose settings predate
-	 * visualizer.maxStreams (or set it to something unusable) still gets the default of 25.
-	 */
-	private numeric function getMaxStreams(){
-		var configured = variables.settings.visualizer.keyExists( "maxStreams" ) ? variables.settings.visualizer.maxStreams : 25
-		return ( isNumeric( configured ) && configured >= 1 ) ? int( configured ) : 25
 	}
 
 	/**

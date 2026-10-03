@@ -197,6 +197,7 @@ class extends="tests.resources.BaseSpec"{
 
 				it( "answers 503 JSON instead of opening a stream once visualizer.maxStreams are open", function(){
 					var settings = getWireBox().getInstance( dsl="coldbox:moduleSettings:rulebox" );
+					var original = settings.visualizer.maxStreams;
 					settings.visualizer.maxStreams = 2;
 					hold( 2 );
 
@@ -209,13 +210,13 @@ class extends="tests.resources.BaseSpec"{
 						expect( getWireBox().getInstance( "LiveStreams@rulebox" ).activeCount() ).toBe( 2 );
 					} finally {
 						releaseAll();
-						settings.visualizer.delete( "maxStreams" );
+						settings.visualizer.maxStreams = original;
 					}
 				} );
 
-				it( "falls back to a cap of 25 when visualizer.maxStreams is not set", function(){
+				it( "uses the default cap of 25 that ModuleConfig fills in", function(){
 					var settings = getWireBox().getInstance( dsl="coldbox:moduleSettings:rulebox" );
-					settings.visualizer.delete( "maxStreams" );
+					expect( settings.visualizer.maxStreams ).toBe( 25 );
 					hold( 25 );
 
 					try{
@@ -224,21 +225,6 @@ class extends="tests.resources.BaseSpec"{
 						expect( event.getRenderData().statusCode ).toBe( 503 );
 					} finally {
 						releaseAll();
-					}
-				} );
-
-				it( "ignores an unusable visualizer.maxStreams and uses the default cap", function(){
-					var settings = getWireBox().getInstance( dsl="coldbox:moduleSettings:rulebox" );
-					settings.visualizer.maxStreams = "lots";
-					hold( 25 );
-
-					try{
-						var event = execute( event="rulebox:visualizer.stream", renderResults=true );
-
-						expect( event.getRenderData().statusCode ).toBe( 503 );
-					} finally {
-						releaseAll();
-						settings.visualizer.delete( "maxStreams" );
 					}
 				} );
 
