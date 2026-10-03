@@ -84,7 +84,9 @@ except( ( facts ) => facts.accountDisabled )
 if `when()` evaluates to `true`. A `Rule` can specify **multiple**
 `then()` calls, invoked in the order they're declared. If a `then()`
 returns `true`, no further consumers in that rule execute - the chain
-breaks. Returning `void` or `false` continues the chain:
+breaks. Only a literal boolean `true` does this; returning `void`, `false`,
+or any other value (a number, a string such as `"true"`, a struct, or the
+`result` object an arrow function returns implicitly) continues the chain:
 
 ```js
 .then( ( facts, result ) => {

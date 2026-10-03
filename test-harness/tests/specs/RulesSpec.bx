@@ -3,6 +3,21 @@
 */
 class extends="tests.resources.BaseSpec"{
 
+	// Builds a rule with two consumers; the first one is supplied by the test.
+	// Returns a struct with the rule and the number of times the second consumer ran.
+	private function runTwoConsumers( required first ){
+		var state = { "secondRan" : false, "rule" : "" };
+		state.rule = getInstance( "rule@rulebox" )
+			.setResult( getInstance( "Result@rulebox" ) )
+			.setRuleBook( rulebook )
+			.then( arguments.first )
+			.then( ( facts, result ) => {
+				state.secondRan = true;
+			} );
+		state.rule.run();
+		return state;
+	}
+
 		function run( testResults, testBox ){
 			// all your suites go here.
 			describe( "A Rule", () => {
@@ -239,6 +254,100 @@ class extends="tests.resources.BaseSpec"{
 					rule.dryRun( { "age" : 40 } );
 
 					expect( rule.getFacts() ).notToHaveKey( "age" );
+				});
+
+				describe( "then() consumer chain", () => {
+
+					it( "does not skip the next consumer when an arrow function returns the Result object", () =>{
+						var state = runTwoConsumers( ( facts, result ) => result.setValue( 5 ) );
+
+						expect( state.secondRan ).toBeTrue();
+						expect( rulebook.getRuleStatus( state.rule.getName() ) ).toBe( rulebook.RULE_STATES.EXECUTED );
+					});
+
+					it( "skips the next consumer when a consumer returns true", () =>{
+						var state = runTwoConsumers( ( facts, result ) => { return true; } );
+
+						expect( state.secondRan ).toBeFalse();
+						expect( rulebook.getRuleStatus( state.rule.getName() ) ).toBe( rulebook.RULE_STATES.EXECUTED );
+					});
+
+					it( "continues the chain when a consumer returns false", () =>{
+						var state = runTwoConsumers( ( facts, result ) => { return false; } );
+
+						expect( state.secondRan ).toBeTrue();
+					});
+
+					it( "continues the chain when a consumer returns nothing", () =>{
+						var state = runTwoConsumers( ( facts, result ) => { } );
+
+						expect( state.secondRan ).toBeTrue();
+					});
+
+					// Only a literal boolean true stops the chain: "true" and 1 do NOT.
+					it( "continues the chain, without throwing, for non-boolean return values", () =>{
+						var returned = [
+							"hello",
+							"yes",
+							"true",
+							"false",
+							1,
+							0,
+							5,
+							{ "a" : 1 },
+							[ 1, 2 ],
+							queryNew( "id" )
+						];
+
+						returned.each( ( value ) => {
+							var captured = value;
+							var state = runTwoConsumers( ( facts, result ) => captured );
+
+							expect( state.secondRan ).toBeTrue();
+							expect( rulebook.getRuleStatus( state.rule.getName() ) ).toBe( rulebook.RULE_STATES.EXECUTED );
+						} );
+					});
+
+					it( "continues the chain when an arrow function returns an appended array (truthy)", () =>{
+						var collected = [];
+						var state = runTwoConsumers( ( facts, result ) => collected.append( 1 ) );
+
+						expect( state.secondRan ).toBeTrue();
+					});
+
+					it( "only breaks the chain of the rule whose consumer returned true, not the rule chain", () =>{
+						var order = [];
+						var ruleA = getInstance( "rule@rulebox" )
+							.setResult( getInstance( "Result@rulebox" ) )
+							.setRuleBook( rulebook )
+							.then( ( facts, result ) => { order.append( "A1" ); return true; } )
+							.then( ( facts, result ) => { order.append( "A2" ); } );
+						ruleA.run();
+
+						var ruleB = getInstance( "rule@rulebox" )
+							.setResult( getInstance( "Result@rulebox" ) )
+							.setRuleBook( rulebook )
+							.then( ( facts, result ) => { order.append( "B1" ); } );
+						ruleB.run();
+
+						expect( order.toList() ).toBe( "A1,B1" );
+					});
+
+					it( "still honors stop() after all then() consumers ran", () =>{
+						var secondRan = false;
+						var rule = getInstance( "rule@rulebox" )
+							.setResult( getInstance( "Result@rulebox" ) )
+							.setRuleBook( rulebook )
+							.then( ( facts, result ) => result.setValue( 5 ) )
+							.then( ( facts, result ) => { secondRan = true; } )
+							.stop();
+
+						rule.run();
+
+						expect( secondRan ).toBeTrue();
+						expect( rulebook.getRuleStatus( rule.getName() ) ).toBe( rulebook.RULE_STATES.STOPPED );
+					});
+
 				});
 
 			});

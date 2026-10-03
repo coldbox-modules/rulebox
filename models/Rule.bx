@@ -213,7 +213,8 @@ class{
 					// Invoke the consumer action with facts and result object
 					var stopConsumers = action( targetFacts, variables.result )
 
-					if( !isNull( stopConsumers ) && stopConsumers ){
+					// Only a literal boolean `true` breaks the chain; "true", 1, strings, objects (e.g. the Result an arrow closure returns) and void/false never do.
+					if( !isNull( stopConsumers ) && isInstanceOf( stopConsumers, "java.lang.Boolean" ) && stopConsumers ){
 						stopConsumerChain = true
 					}
 
