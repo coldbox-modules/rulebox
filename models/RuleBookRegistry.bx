@@ -190,6 +190,14 @@ class singleton{
 		}
 	}
 
+	/**
+	 * Throw the exception every declaration check uses, naming the rulebook and the problem.
+	 *
+	 * @name The declared rulebook name
+	 * @problem What is wrong with the declaration, phrased to follow "Invalid declaration for rulebook 'x': "
+	 *
+	 * @throws RuleBox.InvalidRuleBookDeclarationException Always
+	 */
 	private void function throwInvalidDeclaration( required string name, required string problem ){
 		throw(
 			type    = "RuleBox.InvalidRuleBookDeclarationException",
