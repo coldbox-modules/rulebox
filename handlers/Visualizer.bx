@@ -140,7 +140,7 @@ class{
 			try{
 				facts = jsonDeserialize( facts )
 			} catch( any e ){
-				facts = javaCast( "null", "" )
+				facts = null
 			}
 		}
 
