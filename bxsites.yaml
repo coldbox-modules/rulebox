@@ -2,14 +2,21 @@ name: "RuleBox"
 description: "A modern, intuitive, natural-language rules engine for BoxLang and ColdBox applications."
 baseURL: "https://rulebox.coldbox.org/"
 theme:
+    # The custom RuleBox theme lives in docs/.theme (an ejected bootstrap theme
+    # with its own home page); `name` stays bootstrap for its options.
     name: bootstrap
+    logo: "assets/rulebox-icon.svg"
+    favicon: "assets/rulebox-icon.svg"
     options:
         {
             navCollapsible: true,
             navExpandAll: false,
             tocPosition: sticky,
-            accentColor: "#CC3300",
         }
+extraCss:
+    - assets/brand.css
+ogImage: "assets/video/rulebox-visualizer-intro-poster.png"
+imageGallery: true
 search: true
 nav: []
 markdown:

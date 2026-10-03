@@ -4,6 +4,7 @@ order: 1
 icon: phosphor-duotone:brain
 summary: RuleBox is a modern, intuitive, natural-language rules engine for BoxLang and ColdBox applications.
 toc: false
+layout: home
 ---
 
 # RuleBox
