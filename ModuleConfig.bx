@@ -72,10 +72,14 @@ class {
 				invalidSetting( "visualizer.#key#", value, "a non-blank WireBox mapping or name" )
 			}
 		}
-		for( var key in [ "maxStreams" ] ){
+		// Whole-number settings and the smallest value each accepts
+		var minimums = {
+			maxStreams : 1
+		}
+		for( var key in minimums ){
 			var value = arguments.visualizer[ key ] ?: ""
-			if( !isNumeric( value ) || value < 1 || value != int( value ) ){
-				invalidSetting( "visualizer.#key#", value, "a whole number of 1 or more" )
+			if( !isNumeric( value ) || value < minimums[ key ] || value != int( value ) ){
+				invalidSetting( "visualizer.#key#", value, "a whole number of #minimums[ key ]# or more" )
 			}
 		}
 		return arguments.visualizer
