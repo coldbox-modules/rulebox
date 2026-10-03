@@ -351,12 +351,19 @@ class{
 	 * execution. Rules with a higher priority execute earlier. Rules with the same priority execute
 	 * in the order they were added to the RuleBook via addRule(). Defaults to 0.
 	 *
+	 * Can be called before or after the rule is added: if this rule is already attached to a RuleBook,
+	 * that RuleBook re-links its execution chain immediately so the new priority takes effect.
+	 *
 	 * @priority The priority to give this rule; higher runs first
 	 *
 	 * @return The rule instance
 	 */
 	Rule function withPriority( required numeric priority ){
 		variables.priority = arguments.priority
+		// Already attached? Have the owning book re-derive its priority-ordered chain
+		if( !isNull( variables.ruleBook ) ){
+			variables.ruleBook.relinkRules()
+		}
 		return this
 	}
 
@@ -428,6 +435,14 @@ class{
 	 */
 	Rule function setNextRule( required rule ){
 		variables.nextRule = arguments.rule
+		return this
+	}
+
+	/**
+	 * Clear the next rule in the chain, making this rule the end of the chain
+	 */
+	Rule function clearNextRule(){
+		variables.nextRule = null
 		return this
 	}
 
