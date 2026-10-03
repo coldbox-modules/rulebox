@@ -170,23 +170,98 @@ class extends="tests.resources.BaseSpec"{
 				} );
 
 				it( "applies the same grammar end-to-end from YAMLRuleSource, when the optional YAML module is installed", function(){
-					var results = [];
-					var ruleBook = getInstance( "RuleBook@rulebox" )
-						.registerAction( "flagHighRisk", ( facts, result, params ) => { results.append( "highRisk" ); } )
-						.registerAction( "approveApplicant", ( facts, result, params ) => { results.append( "approved:" & params.reason ); } );
-
-					try{
-						ruleBook.loadRules( getInstance(
-							"YAMLRuleSource@rulebox",
-							{ filePath : expandPath( "/tests/resources/rules/credit-rules.yaml" ) }
-						) );
-					} catch( any e ){
-						skip( "boxlang-yaml module is not installed: #e.message#" );
+					if( !yamlModuleInstalled() ){
+						skip( "The optional bx-yaml module is not installed" );
 						return;
 					}
 
-					ruleBook.run( { "creditScore" : 550 } );
-					expect( results ).toBe( [ "highRisk" ] );
+					var yamlFile = writeTempYaml( creditRulesYaml() );
+					try{
+						var yamlResults = [];
+						var yamlBook = getInstance( "RuleBook@rulebox" )
+							.registerAction( "flagHighRisk", ( facts, result, params ) => { yamlResults.append( "highRisk" ); } )
+							.registerAction( "approveApplicant", ( facts, result, params ) => { yamlResults.append( "approved:" & params.reason ); } );
+						yamlBook.loadRules( getInstance( "YAMLRuleSource@rulebox", { filePath : yamlFile } ) );
+
+						// Its JSON twin, which is known-good
+						var jsonResults = [];
+						var jsonBook = getInstance( "RuleBook@rulebox" )
+							.registerAction( "flagHighRisk", ( facts, result, params ) => { jsonResults.append( "highRisk" ); } )
+							.registerAction( "approveApplicant", ( facts, result, params ) => { jsonResults.append( "approved:" & params.reason ); } );
+						jsonBook.loadRules( getInstance(
+							"JSONRuleSource@rulebox",
+							{ filePath : expandPath( "/tests/resources/rules/credit-rules.json" ) }
+						) );
+
+						for( var score in [ 550, 700 ] ){
+							yamlResults = [];
+							jsonResults = [];
+							yamlBook.run( { "creditScore" : score } );
+							jsonBook.run( { "creditScore" : score } );
+							expect( yamlResults ).toBe( jsonResults );
+							expect( yamlResults ).notToBeEmpty();
+						}
+
+						yamlResults = [];
+						yamlBook.run( { "creditScore" : 550 } );
+						expect( yamlResults ).toBe( [ "highRisk" ] );
+
+						yamlResults = [];
+						yamlBook.run( { "creditScore" : 700 } );
+						expect( yamlResults ).toBe( [ "approved:good credit" ] );
+					} finally {
+						fileDelete( yamlFile );
+					}
+				} );
+
+				it( "returns a flat array of rule structs from YAMLRuleSource.load(), keeping legitimately nested arrays intact", function(){
+					if( !yamlModuleInstalled() ){
+						skip( "The optional bx-yaml module is not installed" );
+						return;
+					}
+
+					var yamlFile = writeTempYaml( [
+						"- name: nested",
+						"  then:",
+						"    - action: first",
+						"      params:",
+						"        matrix: [ [ 1, 2 ], [ 3 ] ]",
+						"    - action: second",
+						"- name: second"
+					].toList( char( 10 ) ) );
+					try{
+						var rules = getInstance( "YAMLRuleSource@rulebox", { filePath : yamlFile } ).load();
+
+						expect( rules ).toBeArray();
+						expect( rules ).toHaveLength( 2 );
+						expect( rules[ 1 ] ).toBeStruct();
+						expect( rules[ 1 ].name ).toBe( "nested" );
+						expect( rules[ 1 ].then ).toBeArray();
+						expect( rules[ 1 ].then ).toHaveLength( 2 );
+						expect( rules[ 1 ].then[ 1 ] ).toBeStruct();
+						expect( rules[ 1 ].then[ 1 ].action ).toBe( "first" );
+						expect( rules[ 1 ].then[ 1 ].params.matrix ).toBe( [ [ 1, 2 ], [ 3 ] ] );
+						expect( rules[ 2 ].name ).toBe( "second" );
+					} finally {
+						fileDelete( yamlFile );
+					}
+				} );
+
+				it( "throws RuleBox.YamlModuleMissingException with the install command when the YAML module is absent", function(){
+					if( yamlModuleInstalled() ){
+						skip( "The optional bx-yaml module is installed, so the missing-module error cannot be triggered" );
+						return;
+					}
+
+					var yamlFile = writeTempYaml( creditRulesYaml() );
+					try{
+						var source = getInstance( "YAMLRuleSource@rulebox", { filePath : yamlFile } );
+						expect( function(){
+							source.load();
+						} ).toThrow( "RuleBox.YamlModuleMissingException", "box install bx-yaml" );
+					} finally {
+						fileDelete( yamlFile );
+					}
 				} );
 
 				it( "applies the same grammar end-to-end from DBRuleSource given a pre-built query", function(){
@@ -226,6 +301,44 @@ class extends="tests.resources.BaseSpec"{
 			} );
 
 		} );
+	}
+
+	/**
+	 * Is the optional bx-yaml module available? Specs skip ONLY when it is genuinely missing.
+	 */
+	private boolean function yamlModuleInstalled(){
+		return structKeyExists( getFunctionList(), "yamlDeserializeFile" )
+	}
+
+	/**
+	 * Write YAML to a throwaway file; the caller deletes it.
+	 */
+	private string function writeTempYaml( required string content ){
+		var path = getTempDirectory() & "rulebox-" & createUUID() & ".yaml"
+		fileWrite( path, arguments.content )
+		return path
+	}
+
+	/**
+	 * The YAML twin of tests/resources/rules/credit-rules.json
+	 */
+	private string function creditRulesYaml(){
+		return [
+			"- name: highRisk",
+			"  priority: 10",
+			"  when:",
+			"    lt: [ creditScore, 600 ]",
+			"  then:",
+			"    - action: flagHighRisk",
+			"  stop: true",
+			"- name: approve",
+			"  when:",
+			"    gte: [ creditScore, 600 ]",
+			"  then:",
+			"    - action: approveApplicant",
+			"      params:",
+			"        reason: good credit"
+		].toList( char( 10 ) )
 	}
 
 }

@@ -158,7 +158,7 @@ does **not** install for you - install it yourself if you use
 `YAMLRuleSource`:
 
 ```bash
-box install boxlang-yaml
+box install bx-yaml
 ```
 
 ## DBRuleSource
