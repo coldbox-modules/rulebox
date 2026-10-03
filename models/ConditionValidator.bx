@@ -72,7 +72,7 @@ class{
 			if( !extraKeys.isEmpty() ){
 				fail( arguments.ruleLabel, arguments.path, "a predicate reference may only contain 'predicate' and 'params', but also has: #extraKeys.toList( ', ' )#" )
 			}
-			if( !isNonEmptyString( arguments.node.predicate ) ){
+			if( !isNonBlankValue( arguments.node.predicate ) ){
 				fail( arguments.ruleLabel, arguments.path & ".predicate", "must be the name of a registered predicate (received: #describe( arguments.node.predicate )#)" )
 			}
 			return
@@ -115,7 +115,7 @@ class{
 			if( isNull( operand ) || !isArray( operand ) || operand.len() != 2 ){
 				fail( arguments.ruleLabel, operatorPath, "takes a 2-element array #shape# (received: #describe( operand )#)" )
 			}
-			if( !isNonEmptyString( operand[ 1 ] ) ){
+			if( !isNonBlankValue( operand[ 1 ] ) ){
 				fail( arguments.ruleLabel, operatorPath & "[1]", "must be a non-empty string fact path such as 'applicant.creditScore' (received: #describe( operand[ 1 ] )#)" )
 			}
 			if( operator == "in" && !isArray( operand[ 2 ] ) ){
@@ -131,7 +131,12 @@ class{
 		)
 	}
 
-	private boolean function isNonEmptyString( any value ){
+	/**
+	 * Is this a usable name or fact path: a simple value that is not blank?
+	 *
+	 * @value The value to check
+	 */
+	private boolean function isNonBlankValue( any value ){
 		return !isNull( arguments.value ) && isSimpleValue( arguments.value ) && len( trim( arguments.value ) ) > 0
 	}
 
@@ -154,6 +159,15 @@ class{
 		return "an unsupported value"
 	}
 
+	/**
+	 * Throw the exception every definition check uses, naming the rule, the path to the bad node and the problem.
+	 *
+	 * @ruleLabel The rule's name in quotes, or "#N (unnamed)" by its position in the source
+	 * @path Where in the definition the problem is, such as "when.and[2].lt"
+	 * @problem What is wrong
+	 *
+	 * @throws RuleBox.InvalidRuleDefinitionException Always
+	 */
 	private void function fail( required string ruleLabel, required string path, required string problem ){
 		throw(
 			type    = "RuleBox.InvalidRuleDefinitionException",
