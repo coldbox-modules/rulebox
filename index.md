@@ -40,6 +40,7 @@ which rules fired, skipped, stopped, or failed.
 
 ## Where to start
 
+- [Tutorial Course](course/index.md) - learn RuleBox in ten short lessons by building a loan decision
 - [Getting Started](getting-started.md) - install the module
 - [Defining RuleBooks](guides/defining-rulebooks.md) - your first rules
 - [The RuleBook DSL](guides/the-dsl.md) - `given`/`when`/`except`/`then`/`using`/`stop`
