@@ -30,7 +30,7 @@ class implements="IMetricsStore"{
 
 	property name="datasourceName" type="string";
 
-	// Resolved from settings (defensively, with defaults) in onDIComplete()
+	// Resolved from settings in onDIComplete(); ModuleConfig fills and validates them
 	variables.breakerThreshold       = 5
 	variables.breakerCooldownMs      = 60000
 	variables.retentionDays          = 30
@@ -47,14 +47,12 @@ class implements="IMetricsStore"{
 	variables.lastError              = ""
 
 	function onDIComplete(){
-		var viz = ( isStruct( variables.settings ) && variables.settings.keyExists( "visualizer" ) && isStruct( variables.settings.visualizer ) )
-			? variables.settings.visualizer
-			: {}
-		variables.datasourceName    = viz.keyExists( "datasourceName" ) ? viz.datasourceName : "rulebox_visualizer"
-		variables.breakerThreshold  = numericSetting( viz, "circuitBreakerThreshold", 5, 1 )
-		variables.breakerCooldownMs = numericSetting( viz, "circuitBreakerCooldownSeconds", 60, 0 ) * 1000
-		variables.retentionDays     = numericSetting( viz, "retentionDays", 30, 0 )
-		variables.maxStoredEvents   = numericSetting( viz, "maxStoredEvents", 100000, 0 )
+		var viz = variables.settings.visualizer
+		variables.datasourceName    = viz.datasourceName
+		variables.breakerThreshold  = viz.circuitBreakerThreshold
+		variables.breakerCooldownMs = viz.circuitBreakerCooldownSeconds * 1000
+		variables.retentionDays     = viz.retentionDays
+		variables.maxStoredEvents   = viz.maxStoredEvents
 		ensureSchema( true )
 		return this
 	}
@@ -298,16 +296,6 @@ class implements="IMetricsStore"{
 			return variables.sqlRunner( arguments.sql, arguments.params, arguments.options )
 		}
 		return queryExecute( arguments.sql, arguments.params, { datasource: variables.datasourceName } )
-	}
-
-	/**
-	 * Read a numeric visualizer setting, falling back to a default if it is absent or not numeric.
-	 */
-	private numeric function numericSetting( required struct viz, required string key, required numeric defaultValue, required numeric min ){
-		if( arguments.viz.keyExists( arguments.key ) && isNumeric( arguments.viz[ arguments.key ] ) && arguments.viz[ arguments.key ] >= arguments.min ){
-			return arguments.viz[ arguments.key ]
-		}
-		return arguments.defaultValue
 	}
 
 	array function queryEvents( struct filters={}, numeric limit=50 ){

@@ -1,0 +1,159 @@
+/**
+ * Regression tests for the Rule Visualizer's settings merge. ColdBox merges an app's
+ * moduleSettings over a module's defaults with a SHALLOW append, so the documented minimal config
+ * `moduleSettings.rulebox.visualizer = { enabled = true }` replaces the whole default
+ * `visualizer` struct and drops `metricsStore`/`datasourceName`. The harness's own
+ * config/Coldbox.bx spells those keys out, so these specs recreate the minimal shape on the live
+ * settings struct (the same struct ModuleConfig.onLoad() fills and every reader is injected with).
+ */
+class extends="tests.resources.BaseSpec"{
+
+	function run( testResults, testBox ){
+		describe( "Visualizer settings with a minimal app override", function(){
+
+			/**
+			 * The live module settings struct, shared by reference with RuleEventBus, the Visualizer
+			 * handler and SQLiteMetricsStore via the coldbox:moduleSettings:rulebox DSL.
+			 */
+			function liveSettings(){
+				return getWireBox().getInstance( dsl="coldbox:moduleSettings:rulebox" );
+			}
+
+			/**
+			 * Replace the live visualizer struct with what a shallow append of
+			 * `{ visualizer = { enabled = true } }` leaves behind. Returns the original to restore.
+			 */
+			function applyMinimalOverride(){
+				var settings = liveSettings();
+				var original = settings.visualizer;
+				settings.visualizer = { enabled: true };
+				return original;
+			}
+
+			function newBus( required struct settings ){
+				var bus = new rulebox.models.metrics.RuleEventBus();
+				bus.setWirebox( getWireBox() );
+				bus.setLogger( getController().getLogBox().getRootLogger() );
+				bus.setSettings( arguments.settings );
+				return bus;
+			}
+
+			it( "ModuleConfig.onLoad() deep-merges the defaults under the app's visualizer settings", function(){
+				var original = applyMinimalOverride();
+				try{
+					var moduleConfig = getController().getModuleService().getModuleConfigCache()[ "rulebox" ];
+					moduleConfig.onLoad();
+
+					var viz = liveSettings().visualizer;
+					expect( viz.enabled ).toBeTrue();
+					expect( viz.metricsStore ).toBe( "InMemoryMetricsStore@rulebox" );
+					expect( viz.datasourceName ).toBe( "rulebox_visualizer" );
+				} finally {
+					liveSettings().visualizer = original;
+				}
+			} );
+
+			it( "ModuleConfig.onLoad() keeps every value the app did supply", function(){
+				var settings = liveSettings();
+				var original = settings.visualizer;
+				settings.visualizer = { enabled: true, metricsStore: "SQLiteMetricsStore@rulebox" };
+				try{
+					getController().getModuleService().getModuleConfigCache()[ "rulebox" ].onLoad();
+
+					expect( settings.visualizer.metricsStore ).toBe( "SQLiteMetricsStore@rulebox" );
+					expect( settings.visualizer.datasourceName ).toBe( "rulebox_visualizer" );
+				} finally {
+					settings.visualizer = original;
+				}
+			} );
+
+			it( "RuleEventBus constructs and resolves the in-memory store once the settings are completed", function(){
+				var original = applyMinimalOverride();
+				try{
+					getController().getModuleService().getModuleConfigCache()[ "rulebox" ].onLoad();
+
+					var bus = newBus( liveSettings() );
+					bus.onDIComplete();
+
+					var received = [];
+					bus.subscribe( ( evt ) => received.append( evt ) );
+					bus.publish( { rulebookName: "minimalSettingsBus", ruleName: "r1", state: "EXECUTED", durationMs: 1, timestamp: "2026-01-01T00:00:00.000" } );
+
+					expect( received ).toHaveLength( 1 );
+					expect(
+						getInstance( "InMemoryMetricsStore@rulebox" ).queryEvents( filters={ rulebookName: "minimalSettingsBus" } )
+					).toHaveLength( 1 );
+				} finally {
+					liveSettings().visualizer = original;
+				}
+			} );
+
+			it( "ModuleConfig.onLoad() throws RuleBox.InvalidSettingException naming the bad key", function(){
+				var settings = liveSettings();
+				var original = settings.visualizer;
+				var badShapes = [
+					{ setting: { enabled: "maybe" }, key: "visualizer.enabled" },
+					{ setting: { enabled: true, metricsStore: "  " }, key: "visualizer.metricsStore" },
+					{ setting: { enabled: true, datasourceName: {} }, key: "visualizer.datasourceName" },
+					{ setting: { enabled: true, circuitBreakerThreshold: "lots" }, key: "visualizer.circuitBreakerThreshold" },
+					{ setting: { enabled: true, circuitBreakerThreshold: 0 }, key: "visualizer.circuitBreakerThreshold" },
+					{ setting: { enabled: true, circuitBreakerCooldownSeconds: "x" }, key: "visualizer.circuitBreakerCooldownSeconds" },
+					{ setting: { enabled: true, retentionDays: -1 }, key: "visualizer.retentionDays" },
+					{ setting: { enabled: true, maxStoredEvents: 1.5 }, key: "visualizer.maxStoredEvents" }
+				];
+				try{
+					for( var bad in badShapes ){
+						settings.visualizer = bad.setting;
+						expect( function(){
+							getController().getModuleService().getModuleConfigCache()[ "rulebox" ].onLoad();
+						} ).toThrow( type="RuleBox.InvalidSettingException", regex=bad.key );
+					}
+					settings.visualizer = true;
+					expect( function(){
+						getController().getModuleService().getModuleConfigCache()[ "rulebox" ].onLoad();
+					} ).toThrow( type="RuleBox.InvalidSettingException", regex="visualizer" );
+				} finally {
+					settings.visualizer = original;
+				}
+			} );
+
+			it( "RuleEventBus survives an unresolvable metrics store without throwing from its own catch block", function(){
+				var received = [];
+				var bus      = newBus( { visualizer: { enabled: true, metricsStore: "DoesNotExist@rulebox", datasourceName: "rulebox_visualizer" } } );
+				bus.subscribe( ( evt ) => received.append( evt ) );
+
+				bus.onDIComplete();
+				bus.publish( { rulebookName: "rb", ruleName: "r1", state: "EXECUTED", durationMs: 1, timestamp: "2026-01-01T00:00:00.000" } );
+
+				expect( received ).toHaveLength( 1 );
+			} );
+
+			it( "a RuleBook run still succeeds and publishes an event under the minimal settings", function(){
+				var original = applyMinimalOverride();
+				getController().getModuleService().getModuleConfigCache()[ "rulebox" ].onLoad();
+				var bus      = getInstance( "RuleEventBus@rulebox" );
+				var received = [];
+				var token    = bus.subscribe( ( evt ) => received.append( evt ) );
+				try{
+					var executed = [];
+					var ruleBook = getInstance( name="RuleBook@rulebox", initArguments={ name: "minimalSettingsBook" } );
+					ruleBook.addRule(
+						ruleBook.newRule( "minimalSettingsRule" ).then( ( facts ) => { executed.append( "ran" ); } )
+					);
+
+					ruleBook.run();
+
+					expect( executed ).toHaveLength( 1 );
+					expect( received ).toHaveLength( 1 );
+					expect( received[ 1 ].rulebookName ).toBe( "minimalSettingsBook" );
+					expect( received[ 1 ].ruleName ).toBe( "minimalSettingsRule" );
+				} finally {
+					bus.unsubscribe( token );
+					liveSettings().visualizer = original;
+				}
+			} );
+
+		} );
+	}
+
+}
