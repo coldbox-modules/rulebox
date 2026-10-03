@@ -132,7 +132,7 @@ class{
 	}
 
 	private boolean function isNonEmptyString( any value ){
-		return !isNull( arguments.value ) && isInstanceOf( arguments.value, "java.lang.String" ) && len( trim( arguments.value ) ) > 0
+		return !isNull( arguments.value ) && isSimpleValue( arguments.value ) && len( trim( arguments.value ) ) > 0
 	}
 
 	/**

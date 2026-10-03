@@ -266,8 +266,8 @@ class extends="tests.resources.BaseSpec"{
 					}
 				} );
 
-				it( "rejects a comparison whose first operand is not a string path", function(){
-					var e = loadAndCatch( { "name" : "badPath", "when" : { "lt" : [ 5, 10 ] } } );
+				it( "rejects a comparison whose first operand is not a fact path", function(){
+					var e = loadAndCatch( { "name" : "badPath", "when" : { "lt" : [ {}, 10 ] } } );
 					expect( e.type ).toBe( "RuleBox.InvalidRuleDefinitionException" );
 					expect( e.message ).toInclude( "when.lt[1]" );
 					expect( e.message ).toInclude( "fact path" );
