@@ -28,11 +28,14 @@ class{
 	}
 
 	/**
-	 * Reset the value of this result to the default value.
+	 * Reset the value of this result to the default value. If there is no default value, the
+	 * value is cleared, so `isPresent()` returns false.
 	 */
 	Result function reset(){
 		if( !isNull( variables.defaultValue ) ){
 			variables.value = variables.defaultValue
+		} else {
+			structDelete( variables, "value" )
 		}
 		return this
 	}

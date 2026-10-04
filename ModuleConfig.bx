@@ -23,6 +23,28 @@ class {
 	this.entryPoint			= "rulebox-visualizer"
 
 	/**
+	* The default `visualizer` settings. A module is loaded once, so they live in a static struct
+	* that configure() copies and onLoad() uses to fill the keys an app's (shallow-merged)
+	* override left out. Nothing writes to it.
+	*/
+	static {
+		VISUALIZER_DEFAULTS = {
+			// Master switch. While false, the visualizer's routes 404 and no rule events are
+			// recorded or broadcast at all - flipping this on is the only thing that turns on
+			// the (small) per-rule-evaluation bookkeeping cost.
+			enabled        = false,
+			// WireBox mapping ID for the metrics persistence store. Defaults to the in-memory
+			// store (no setup, nothing survives a restart). For persistence across restarts,
+			// point this at "SQLiteMetricsStore@rulebox" - see the "Rule Visualizer" guide for
+			// what that needs (the bx-sqlite module plus a matching datasource), or implement
+			// IMetricsStore@rulebox yourself and point this at its mapping.
+			metricsStore   = "InMemoryMetricsStore@rulebox",
+			// Datasource name SQLiteMetricsStore reads/writes, if you opt into it above.
+			datasourceName = "rulebox_visualizer"
+		}
+	}
+
+	/**
 	* Configure Module
 	*/
 	function configure(){
@@ -36,20 +58,7 @@ class {
 			// The Rule Visualizer: a dashboard/dry-run/metrics/live-tracker admin UI, off by default.
 			// Secure it yourself (e.g. with cbSecurity) once enabled - RuleBox doesn't gate access on its own.
 			// See the "Rule Visualizer" guide for the full settings shape.
-			visualizer = {
-				// Master switch. While false, the visualizer's routes 404 and no rule events are
-				// recorded or broadcast at all - flipping this on is the only thing that turns on
-				// the (small) per-rule-evaluation bookkeeping cost.
-				enabled        = false,
-				// WireBox mapping ID for the metrics persistence store. Defaults to the in-memory
-				// store (no setup, nothing survives a restart). For persistence across restarts,
-				// point this at "SQLiteMetricsStore@rulebox" - see the "Rule Visualizer" guide for
-				// what that needs (the bx-sqlite module plus a matching datasource), or implement
-				// IMetricsStore@rulebox yourself and point this at its mapping.
-				metricsStore   = "InMemoryMetricsStore@rulebox",
-				// Datasource name SQLiteMetricsStore reads/writes, if you opt into it above.
-				datasourceName = "rulebox_visualizer"
-			}
+			visualizer = duplicate( static.VISUALIZER_DEFAULTS )
 		}
 	}
 
@@ -57,8 +66,53 @@ class {
 	* Fired when the module is registered and activated.
 	*/
 	function onLoad(){
+		// ColdBox merges an app's moduleSettings over ours with a SHALLOW append, so an app that only
+		// writes `visualizer = { enabled = true }` replaces our whole `visualizer` struct. Put the
+		// defaults back underneath whatever the app supplied, then validate. This is the one place
+		// the visualizer settings are completed and checked: every reader trusts them as-is.
+		if( !isStruct( variables.settings.visualizer ?: "" ) ){
+			invalidSetting( "visualizer", variables.settings.visualizer ?: "null", "a struct" )
+		}
+		variables.settings.visualizer.append( static.VISUALIZER_DEFAULTS, false )
+		validateVisualizerSettings( variables.settings.visualizer )
+
 		// Custom injection DSL: inject="rulebook" (the registry) / inject="rulebook:{name}" (a provider)
 		wirebox.registerDSL( namespace = "rulebook", path = "rulebox.models.RuleBookDSL" )
+	}
+
+	/**
+	* Validate the completed visualizer settings so a bad config fails on app start, not on first use.
+	*
+	* @visualizer The visualizer settings, already filled in from VISUALIZER_DEFAULTS
+	*
+	* @throws RuleBox.InvalidSettingException When a setting has the wrong type or an out-of-range value
+	*/
+	private void function validateVisualizerSettings( required struct visualizer ){
+		if( isNull( arguments.visualizer.enabled ) || !isBoolean( arguments.visualizer.enabled ) ){
+			invalidSetting( "visualizer.enabled", arguments.visualizer.enabled ?: "null", "true or false" )
+		}
+		for( var key in [ "metricsStore", "datasourceName" ] ){
+			var value = arguments.visualizer[ key ] ?: ""
+			if( !isSimpleValue( value ) || !len( trim( value ) ) ){
+				invalidSetting( "visualizer.#key#", value, "a non-blank WireBox mapping or name" )
+			}
+		}
+	}
+
+	/**
+	* Throw the exception every visualizer setting check uses, naming the key and the bad value.
+	*
+	* @key The setting path under moduleSettings.rulebox, such as "visualizer.enabled"
+	* @value The value the app supplied
+	* @expected A short description of what the setting accepts
+	*
+	* @throws RuleBox.InvalidSettingException Always
+	*/
+	private void function invalidSetting( required string key, any value, required string expected ){
+		throw(
+			type    = "RuleBox.InvalidSettingException",
+			message = "Invalid moduleSettings.rulebox.#arguments.key#: expected #arguments.expected#, got #( isSimpleValue( arguments.value ?: "" ) ? "'#arguments.value ?: ""#'" : "a complex value" )#."
+		)
 	}
 
 	/**
