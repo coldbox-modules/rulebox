@@ -220,22 +220,35 @@
 		<h1 id="the-builder"><a href="#the-builder" id="the-builder" name="the-builder" class="anchor"></a>The Builder</h1>
 <p><code>Builder@rulebox</code> is a singleton that lets you create rules and rule
 books on the fly, without writing a dedicated class that extends
-<code>RuleBook</code>. It's handy for dynamic or à la carte rules assembled at
-runtime.</p>
-<pre><code class="language-js">builder = getInstance( &quot;Builder@rulebox&quot; )
+<code>RuleBook</code>.</p>
+<p><strong>When to use it:</strong> use the Builder when the rules are put together at
+runtime (from user choices, settings, or a database). Use a
+<a href="/guides/defining-rulebooks/index.html">RuleBook class</a> when the rules are fixed, so you
+can name, reuse and test them.</p>
+<p>Inject it into any class:</p>
+<pre data-bxsites-title="GreetingService.bx"><code class="language-js">class singleton{
 
-myRuleBook = builder.rulebook( &quot;My RuleBook&quot; )
-	.addRule(
-		builder.rule()
-			.then( ( facts ) =&gt; println( &quot;Hello &quot; ) )
-	)
-	.addRule(
-		builder.rule()
-			.then( ( facts ) =&gt; println( &quot;World &quot; ) )
-	)
+	property name=&quot;builder&quot; inject=&quot;Builder@rulebox&quot;;
 
-myRuleBook.run()
+	function greet( name ){
+		return builder.rulebook( &quot;Greeter&quot; )
+			.addRule(
+				builder.rule()
+					.then( ( facts, result ) =&gt; result.setValue( &quot;Hello &quot; &amp; facts.name ) )
+			)
+			.addRule(
+				builder.rule()
+					.then( ( facts, result ) =&gt; result.setValue( result.getValue() &amp; &quot;!&quot; ) )
+			)
+			.run( { name : arguments.name } )
+			.getResult()
+			.getValue()
+	}
+
+}
 </code></pre>
+<p>Outside of WireBox-managed classes, ask for it with
+<code>getInstance( &quot;Builder@rulebox&quot; )</code>.</p>
 <div class="bxsites-table-wrap"><table class="table">
 <thead>
 <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
@@ -250,12 +263,15 @@ method described in <a href="/guides/the-dsl/index.html">The RuleBook DSL</a> an
 <a href="/guides/facts-and-results/index.html">Facts &amp; Results</a> - <code>given()</code>, <code>withDefaultResult()</code>,
 <code>addRule()</code>, <code>run()</code> - is available on it, exactly as it would be on a
 hand-written <code>RuleBook</code> subclass.</p>
+<p>If your rules live in JSON, YAML, or a database, see
+<a href="/guides/external-rules/index.html">Externalized Rule Definitions</a>. <code>loadRules()</code> works on a
+Builder rulebook too.</p>
 
 	
 
 	
 	
-		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/the-builder.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/the-builder.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 4, 2026, 2&#x3a;21&#x3a;39 PM</span></div>
+		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/the-builder.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/the-builder.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 4, 2026, 2&#x3a;22&#x3a;24 PM</span></div>
 	
 </article>
 

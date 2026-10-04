@@ -26,8 +26,8 @@
 
 	
 	
-		<meta name="description" content="RuleBook basics, defineRules&#x28;&#x29;, and the HelloWorld example.">
-		<meta property="og:description" content="RuleBook basics, defineRules&#x28;&#x29;, and the HelloWorld example.">
+		<meta name="description" content="Write a RuleBook class, run it, and read the result.">
+		<meta property="og:description" content="Write a RuleBook class, run it, and read the result.">
 	
 
 	
@@ -203,7 +203,7 @@
 		</h1>
 		
 		
-			<p class="page-summary">RuleBook basics, defineRules&#x28;&#x29;, and the HelloWorld example.</p>
+			<p class="page-summary">Write a RuleBook class, run it, and read the result.</p>
 		
 		
 		
@@ -215,86 +215,89 @@
 		
 		
 		
-			<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#a-helloworld-example">A HelloWorld example</a></li><li class="toc-level-2"><a href="#retrieving-a-rulebook">Retrieving a RuleBook</a></li></ul></details>
+			<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#a-helloworld-example">A HelloWorld example</a></li><li class="toc-level-3"><a href="#passing-facts">Passing facts</a></li><li class="toc-level-3"><a href="#reading-the-outcome">Reading the outcome</a></li><li class="toc-level-3"><a href="#why-rules-are-defined-on-the-first-run">Why rules are defined on the first run</a></li><li class="toc-level-2"><a href="#other-ways-to-add-a-rule">Other ways to add a rule</a></li><li class="toc-level-2"><a href="#retrieving-a-rulebook">Retrieving a RuleBook</a></li><li class="toc-level-2"><a href="#next">Next</a></li></ul></details>
 		
 
 		
 		<h1 id="defining-rulebooks"><a href="#defining-rulebooks" id="defining-rulebooks" name="defining-rulebooks" class="anchor"></a>Defining RuleBooks</h1>
-<p>The preferred approach is to create your own <code>RuleBook</code> that extends
-<code>rulebox.models.RuleBook</code>, with a method called <code>defineRules()</code>. In this
-method you define all the rules that apply to that RuleBook using the
-RuleBox DSL. Nothing stops you from creating rulebooks on the fly either,
-which lets you build dynamic or à la carte rules when needed - see
-<a href="/guides/the-builder/index.html">The Builder</a>.</p>
-<blockquote>
-<p>RuleBooks should be transient objects, since they're reused when bound
-to facts. See <a href="/guides/thread-safety/index.html">Thread Safety</a>.</p>
-</blockquote>
+<p>A RuleBook is a class that holds a list of rules. Extend
+<code>rulebox.models.RuleBook</code> and add your rules in a <code>defineRules()</code> method.</p>
 <h2 id="a-helloworld-example"><a href="#a-helloworld-example" id="a-helloworld-example" name="a-helloworld-example" class="anchor"></a>A HelloWorld example</h2>
-<pre><code class="language-js">class extends=&quot;rulebox.models.RuleBook&quot;{
+<pre data-bxsites-title="HelloWorld.bx"><code class="language-js">class extends=&quot;rulebox.models.RuleBook&quot;{
 
 	function defineRules(){
-		// Add a new rule to this rulebook
 		addRule(
-			newRule( &quot;MyRule&quot; )
-				.then( ( facts ) =&gt; println( &quot;Hello &quot; ) )
-				.then( ( facts ) =&gt; println( &quot;World&quot; ) )
+			newRule( &quot;SayHello&quot; )
+				.then( ( facts, result ) =&gt; result.setValue( &quot;Hello &quot; &amp; facts.name ) )
 		)
 	}
 
 }
 </code></pre>
-<p>New rules are created by calling <code>newRule()</code> with an optional <code>name</code> you
-can use to identify the rule later, for <a href="/guides/auditing/index.html">auditing</a>. You can
-also define a rule as a closure/lambda instead, with a slightly different
-syntax:</p>
-<pre><code class="language-js">class extends=&quot;rulebox.models.RuleBook&quot;{
-
-	function defineRules(){
-		addRule( ( rule ) =&gt; {
-			rule
-				.setName( &quot;MyRule&quot; )
-				.then( ( facts ) =&gt; println( &quot;Hello &quot; ) )
-				.then( ( facts ) =&gt; println( &quot;World&quot; ) )
-		} )
-	}
-
-}
+<p><code>newRule()</code> takes an optional name, which you can use to identify the
+rule later, for <a href="/guides/auditing/index.html">auditing</a>. Now run it:</p>
+<pre><code class="language-js">var greeting = getInstance( &quot;HelloWorld&quot; )
+	.run( { name : &quot;World&quot; } )
+	.getResult()
+	.getValue()
+// &quot;Hello World&quot;
 </code></pre>
-<blockquote>
-<p>A <code>RuleBook</code> also has a <code>name</code> property, so you can attach a
-human-readable name to it via <code>setName( name )</code>.</p>
-</blockquote>
-<p>...or use two separate rules:</p>
-<pre><code class="language-js">class extends=&quot;rulebox.models.RuleBook&quot;{
-
-	function defineRules(){
-		addRule(
-			newRule()
-				.then( () =&gt; println( &quot;Hello &quot; ) )
-		)
-		addRule(
-			newRule()
-				.then( () =&gt; println( &quot;World &quot; ) )
-		)
-	}
-
-}
+<p><code>getInstance( &quot;HelloWorld&quot; )</code> finds the class in your app's <code>models</code>
+folder by name. Use the full path (<code>path.to.HelloWorld</code>) for a class
+that lives somewhere else.</p>
+<h3 id="passing-facts"><a href="#passing-facts" id="passing-facts" name="passing-facts" class="anchor"></a>Passing facts</h3>
+<p><code>run( facts )</code> takes a struct of facts directly. It is a shortcut for
+calling <code>given()</code> once per key and then <code>run()</code>. Facts you pass replace
+any fact of the same name; pass <code>false</code> as the second argument
+(<code>run( facts, false )</code>) to keep the ones already set. See
+<a href="/guides/facts-and-results/index.html">Facts &amp; Results</a>.</p>
+<h3 id="reading-the-outcome"><a href="#reading-the-outcome" id="reading-the-outcome" name="reading-the-outcome" class="anchor"></a>Reading the outcome</h3>
+<p><code>run()</code> returns the RuleBook itself, not the answer. That keeps calls
+chainable. To get the answer, chain <code>.getResult().getValue()</code> after
+<code>run()</code>, as the example above does. If you are not sure any rule set a
+value, check <code>getResult().isPresent()</code> first. More in
+<a href="/guides/facts-and-results/index.html">Facts &amp; Results</a>.</p>
+<h3 id="why-rules-are-defined-on-the-first-run"><a href="#why-rules-are-defined-on-the-first-run" id="why-rules-are-defined-on-the-first-run" name="why-rules-are-defined-on-the-first-run" class="anchor"></a>Why rules are defined on the first run</h3>
+<p><code>defineRules()</code> does not run when the RuleBook is created. It runs the
+first time you call <code>run()</code> (or <code>dryRun()</code>), and only when the RuleBook
+has no rules yet. By then WireBox has finished injecting your
+dependencies, so you can use them inside <code>defineRules()</code>. Later runs on
+the same instance reuse the rules instead of building them again.</p>
+<h2 id="other-ways-to-add-a-rule"><a href="#other-ways-to-add-a-rule" id="other-ways-to-add-a-rule" name="other-ways-to-add-a-rule" class="anchor"></a>Other ways to add a rule</h2>
+<p>You can also pass a closure to <code>addRule()</code> and configure the rule inside
+it:</p>
+<pre><code class="language-js">addRule( ( rule ) =&gt; {
+	rule
+		.setName( &quot;SayHello&quot; )
+		.then( ( facts, result ) =&gt; result.setValue( &quot;Hello &quot; &amp; facts.name ) )
+} )
 </code></pre>
-<p>Now, run it:</p>
-<pre><code class="language-js">getInstance( &quot;HelloWorld&quot; ).run()
-</code></pre>
+<p>A RuleBook has a <code>name</code> too, which you can set with <code>setName( name )</code>.
+It is handy for <a href="/guides/auditing/index.html">auditing</a> and the <a href="/guides/visualizer/index.html">Visualizer</a>.
+You can also build rulebooks on the fly, with no class at all, using
+<a href="/guides/the-builder/index.html">The Builder</a>.</p>
 <h2 id="retrieving-a-rulebook"><a href="#retrieving-a-rulebook" id="retrieving-a-rulebook" name="retrieving-a-rulebook" class="anchor"></a>Retrieving a RuleBook</h2>
-<p>Since a <code>RuleBook</code> subclass is just a WireBox-mapped CFC/BX class, you
-retrieve it the same way you'd retrieve any other transient:</p>
-<pre><code class="language-js">var homeLoans = getInstance( &quot;path.to.HomeLoanRateRuleBook&quot; )
+<p>A RuleBook class is a normal WireBox-mapped class, so you retrieve it
+like any other transient:</p>
+<pre><code class="language-js">var homeLoans = getInstance( &quot;HomeLoanRateRuleBook&quot; )
 </code></pre>
+<p>RuleBooks are transient: every <code>getInstance()</code> call returns a new one,
+and each one remembers its own facts. Ask for a new RuleBook each time
+you need one, and do not share one between requests or threads. See
+<a href="/guides/thread-safety/index.html">Thread Safety</a>.</p>
+<h2 id="next"><a href="#next" id="next" name="next" class="anchor"></a>Next</h2>
+<ul>
+<li><a href="/guides/the-dsl/index.html">The RuleBook DSL</a>: <code>when</code>, <code>except</code>, <code>then</code>, <code>using</code>, <code>stop</code> and priority.</li>
+<li><a href="/guides/external-rules/index.html#declaring-rulebooks-in-config">Declared rulebooks</a>:
+get a ready-made RuleBook by name with <code>ruleBook( &quot;name&quot; )</code>.</li>
+<li><a href="/guides/external-rules/index.html">Externalized Rule Definitions</a>: load rules from JSON, YAML, or a database.</li>
+</ul>
 
 	
 
 	
 	
-		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/defining-rulebooks.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/defining-rulebooks.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 4, 2026, 2&#x3a;21&#x3a;39 PM</span></div>
+		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/defining-rulebooks.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/defining-rulebooks.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 4, 2026, 2&#x3a;22&#x3a;24 PM</span></div>
 	
 </article>
 
@@ -326,7 +329,7 @@ retrieve it the same way you'd retrieve any other transient:</p>
 			
 			
 				<aside class="col-xl-2 toc-sidebar d-none d-xl-block">
-					<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#a-helloworld-example">A HelloWorld example</a></li><li class="toc-level-2"><a href="#retrieving-a-rulebook">Retrieving a RuleBook</a></li></ul></nav>
+					<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#a-helloworld-example">A HelloWorld example</a></li><li class="toc-level-3"><a href="#passing-facts">Passing facts</a></li><li class="toc-level-3"><a href="#reading-the-outcome">Reading the outcome</a></li><li class="toc-level-3"><a href="#why-rules-are-defined-on-the-first-run">Why rules are defined on the first run</a></li><li class="toc-level-2"><a href="#other-ways-to-add-a-rule">Other ways to add a rule</a></li><li class="toc-level-2"><a href="#retrieving-a-rulebook">Retrieving a RuleBook</a></li><li class="toc-level-2"><a href="#next">Next</a></li></ul></nav>
 				</aside>
 			
 		</div>

@@ -26,8 +26,8 @@
 
 	
 	
-		<meta name="description" content="Why RuleBook and Rule are transient, and what that means for concurrent runs.">
-		<meta property="og:description" content="Why RuleBook and Rule are transient, and what that means for concurrent runs.">
+		<meta name="description" content="Why RuleBook and Rule are transient, and how to get a fresh one every time.">
+		<meta property="og:description" content="Why RuleBook and Rule are transient, and how to get a fresh one every time.">
 	
 
 	
@@ -203,7 +203,7 @@
 		</h1>
 		
 		
-			<p class="page-summary">Why RuleBook and Rule are transient, and what that means for concurrent runs.</p>
+			<p class="page-summary">Why RuleBook and Rule are transient, and how to get a fresh one every time.</p>
 		
 		
 		
@@ -215,30 +215,61 @@
 		
 		
 		
+			<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#why">Why</a></li><li class="toc-level-2"><a href="#safe-ways-to-get-a-rulebook">Safe ways to get a RuleBook</a></li><li class="toc-level-2"><a href="#the-builder">The Builder</a></li></ul></details>
+		
 
 		
 		<h1 id="thread-safety"><a href="#thread-safety" id="thread-safety" name="thread-safety" class="anchor"></a>Thread Safety</h1>
-<p><code>RuleBook</code> and <code>Rule</code> are <strong>transient</strong> (non-singleton) objects, and
-<code>given()</code>/<code>givenAll()</code> write facts directly onto the instance's own
-state. That means a single <code>RuleBook</code> instance is <strong>not</strong> safe to <code>run()</code>
-concurrently from multiple threads, or with different facts across
-separate calls - the facts and the rule status audit trail accumulate on
-that instance across every <code>run()</code> call.</p>
-<p>Always request a fresh transient instance (e.g. <code>getInstance( &quot;MyRuleBook&quot; )</code>)
-per invocation, whether that invocation happens on a separate thread or
-simply at a separate point in time with different facts. A <code>RuleBook</code>
-instance is only safe to <code>run()</code> again if it's given the exact same facts
-it already holds.</p>
-<p><code>Builder@rulebox</code> itself is a <code>@singleton</code> <code>@threadsafe</code> class - it's
-safe to share a single instance of the builder across threads, since it
-only ever hands back fresh <code>RuleBook</code>/<code>Rule</code> transients rather than
-holding request-specific state itself.</p>
+<p><strong>Call <code>getInstance()</code> for each use.</strong> <code>RuleBook</code> and <code>Rule</code> are
+<strong>transient</strong> (non-singleton) objects, so every <code>getInstance()</code> call
+gives you a new one that nobody else is touching.</p>
+<pre><code class="language-js">var greeting = getInstance( &quot;HelloWorld&quot; )
+	.run( { name : &quot;World&quot; } )
+	.getResult()
+	.getValue()
+</code></pre>
+<h2 id="why"><a href="#why" id="why" name="why" class="anchor"></a>Why</h2>
+<p><code>given()</code> and <code>run( facts )</code> write facts onto the instance itself, and
+the result and the rule status audit trail live there too. One
+<code>RuleBook</code> instance is <strong>not</strong> safe to <code>run()</code> from several threads at
+once, or with different facts in separate calls. A RuleBook instance is
+only safe to <code>run()</code> again if it is given the exact same facts it
+already holds.</p>
+<p>Do not keep a RuleBook in a singleton property or a shared scope, and do
+not inject one with a plain <code>inject=&quot;HelloWorld&quot;</code> into a
+singleton. That gives the singleton one instance for its whole life.</p>
+<h2 id="safe-ways-to-get-a-rulebook"><a href="#safe-ways-to-get-a-rulebook" id="safe-ways-to-get-a-rulebook" name="safe-ways-to-get-a-rulebook" class="anchor"></a>Safe ways to get a RuleBook</h2>
+<ul>
+<li><strong><code>getInstance( &quot;MyRuleBook&quot; )</code></strong> in the place you use it, for a
+RuleBook class.</li>
+<li><strong><code>ruleBook( &quot;name&quot; )</code></strong> in handlers, views and layouts, for a rulebook
+<a href="/guides/external-rules/index.html#declaring-rulebooks-in-config">declared in config</a>.
+It returns a fresh RuleBook every call.</li>
+<li><strong><code>inject=&quot;rulebook:name&quot;</code></strong> for the same declared rulebooks, in any
+class. It injects a small provider, not a RuleBook. Call <code>.get()</code> where
+you use it to get a fresh RuleBook, so it is safe even in a singleton:</li>
+</ul>
+<pre data-bxsites-title="LoanService.bx"><code class="language-js">class singleton{
+
+	property name=&quot;creditRules&quot; inject=&quot;rulebook:credit&quot;;
+
+	function decide( score ){
+		return creditRules.get().run( { creditScore : score } ).getResult().getValue()
+	}
+
+}
+</code></pre>
+<h2 id="the-builder"><a href="#the-builder" id="the-builder" name="the-builder" class="anchor"></a>The Builder</h2>
+<p><code>Builder@rulebox</code> itself is a <code>@singleton</code> <code>@threadsafe</code> class. It is
+safe to share one instance of the builder across threads, since it only
+hands back fresh <code>RuleBook</code> and <code>Rule</code> transients and holds no
+request-specific state itself.</p>
 
 	
 
 	
 	
-		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/thread-safety.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/thread-safety.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 4, 2026, 2&#x3a;21&#x3a;39 PM</span></div>
+		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/thread-safety.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/thread-safety.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 4, 2026, 2&#x3a;22&#x3a;24 PM</span></div>
 	
 </article>
 
@@ -268,6 +299,10 @@ holding request-specific state itself.</p>
 			</main>
 
 			
+			
+				<aside class="col-xl-2 toc-sidebar d-none d-xl-block">
+					<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#why">Why</a></li><li class="toc-level-2"><a href="#safe-ways-to-get-a-rulebook">Safe ways to get a RuleBook</a></li><li class="toc-level-2"><a href="#the-builder">The Builder</a></li></ul></nav>
+				</aside>
 			
 		</div>
 		
