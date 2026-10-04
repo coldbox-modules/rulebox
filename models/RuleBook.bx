@@ -186,7 +186,13 @@ class{
 	 * execution chain, and so does calling `withPriority()` on a rule that is already added, so priorities
 	 * can be set on rules in any order before or after they are added.
 	 *
+	 * Rule names must be unique within a RuleBook, since the audit trail and the metrics are keyed by
+	 * name. Adding a named rule whose name is already taken (names are case-insensitive) throws a
+	 * `RuleBox.DuplicateRuleNameException`. Rules without an explicit name get a UUID and never collide.
+	 *
 	 * @rule A rule object or a closure/lambda that will represent the rule.
+	 *
+	 * @throws RuleBox.DuplicateRuleNameException If a rule with the same name was already added
 	 *
 	 * @return This RuleBook instance, to allow for chaining of calls
 	 */
@@ -200,6 +206,11 @@ class{
 			arguments.rule = targetRule
 		}
 
+		// Reject a name already registered in this rulebook, before touching any state
+		if( len( arguments.rule.getName() ) && variables.ruleStatusMap.keyExists( arguments.rule.getName() ) ){
+			throwDuplicateRuleName( arguments.rule.getName() )
+		}
+
 		// Link the rule book
 		arguments.rule.setRuleBook( this )
 		// Track it's status
@@ -210,6 +221,19 @@ class{
 		linkRuleChain()
 
 		return this
+	}
+
+	/**
+	 * Throw the exception used whenever a rule name is registered twice in this RuleBook
+	 *
+	 * @name The duplicated rule name
+	 */
+	private void function throwDuplicateRuleName( required string name ){
+		throw(
+			type    = "RuleBox.DuplicateRuleNameException",
+			message = "A rule named '#arguments.name#' already exists in this RuleBook.",
+			detail  = "Rule names must be unique within a RuleBook, as the rule status map and metrics are keyed by name. Give the rule a different name, or leave the name off."
+		)
 	}
 
 	/**
@@ -343,6 +367,9 @@ class{
 	 * structs) and addRule() each one. Register any named actions/predicates the definitions reference
 	 * via registerAction()/registerPredicate() before calling this.
 	 *
+	 * Named definitions must be unique within the source and must not clash with a rule already in this
+	 * RuleBook; otherwise a RuleBox.DuplicateRuleNameException is thrown before any rule is added.
+	 *
 	 * Each definition struct may contain: name, priority, activeFrom, activeUntil, when, except, then,
 	 * stop, using. See the "Externalized Rules" guide for the full schema.
 	 *
@@ -351,7 +378,7 @@ class{
 	 * @return This RuleBook instance, to allow for chaining of calls
 	 */
 	RuleBook function loadRules( required any source ){
-		for( var def in arguments.source.load() ){
+		for( var def in loadDefinitions( arguments.source ) ){
 			var rule = def.keyExists( "name" ) ? newRule( def.name ) : newRule()
 
 			if( def.keyExists( "priority" ) ){
@@ -395,6 +422,32 @@ class{
 		}
 
 		return this
+	}
+
+	/**
+	 * Load the rule definitions from a source, verifying that no named definition repeats a name or
+	 * clashes with a rule already in this RuleBook. This runs before any rule is added, so a
+	 * `RuleBox.DuplicateRuleNameException` from loadRules() leaves the book unchanged.
+	 *
+	 * @source An object exposing array function load()
+	 *
+	 * @throws RuleBox.DuplicateRuleNameException If two definitions, or a definition and an existing rule, share a name
+	 */
+	private array function loadDefinitions( required any source ){
+		var definitions = arguments.source.load()
+		var seen        = {}
+
+		for( var def in definitions ){
+			if( !isStruct( def ) || !def.keyExists( "name" ) || !isSimpleValue( def.name ) || !len( def.name ) ){
+				continue
+			}
+			if( seen.keyExists( def.name ) || variables.ruleStatusMap.keyExists( def.name ) ){
+				throwDuplicateRuleName( def.name )
+			}
+			seen[ def.name ] = true
+		}
+
+		return definitions
 	}
 
 	/**

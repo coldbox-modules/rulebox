@@ -105,6 +105,88 @@ class extends="tests.resources.BaseSpec"{
 
 			} );
 
+			describe( "loadRules() duplicate rule names", function(){
+
+				beforeEach( function(){
+					setup();
+				} );
+
+				it( "throws a DuplicateRuleNameException naming the rule when a source repeats a name", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					var e = {};
+
+					try{
+						ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+							{ "name" : "approve", "then" : [] },
+							{ "name" : "reject", "then" : [] },
+							{ "name" : "approve", "then" : [] }
+						] ) );
+					} catch( any ex ){
+						e = ex;
+					}
+
+					expect( e ).toHaveKey( "type" );
+					expect( e.type ).toBe( "RuleBox.DuplicateRuleNameException" );
+					expect( e.message ).toInclude( "approve" );
+				} );
+
+				it( "adds no rules when a source repeats a name, even for the rules before the duplicate", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+
+					expect( function(){
+						ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+							{ "name" : "approve", "then" : [] },
+							{ "name" : "reject", "then" : [] },
+							{ "name" : "approve", "then" : [] }
+						] ) );
+					} ).toThrow( "RuleBox.DuplicateRuleNameException" );
+
+					expect( ruleBook.getRules() ).toBeEmpty();
+					expect( ruleBook.hasRules() ).toBeFalse();
+					expect( ruleBook.getRuleStatus( "approve" ) ).toBe( ruleBook.RULE_STATES.NOT_AVAILABLE );
+				} );
+
+				it( "throws when a source name collides with a rule already in the book, and adds nothing", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "approve" ) );
+
+					expect( function(){
+						ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+							{ "name" : "reject", "then" : [] },
+							{ "name" : "approve", "then" : [] }
+						] ) );
+					} ).toThrow( "RuleBox.DuplicateRuleNameException" );
+
+					expect( ruleBook.getRules() ).toHaveLength( 1 );
+					expect( ruleBook.getRuleStatus( "reject" ) ).toBe( ruleBook.RULE_STATES.NOT_AVAILABLE );
+				} );
+
+				it( "leaves unnamed definitions alone", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+
+					ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+						{ "then" : [] },
+						{ "then" : [] },
+						{ "name" : "approve", "then" : [] }
+					] ) );
+
+					expect( ruleBook.getRules() ).toHaveLength( 3 );
+				} );
+
+				it( "still allows reloadRules() with the same names", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					var source = new tests.resources.InlineRuleSource( [
+						{ "name" : "approve", "then" : [] }
+					] );
+
+					ruleBook.loadRules( source );
+					ruleBook.reloadRules( source );
+
+					expect( ruleBook.getRules() ).toHaveLength( 1 );
+				} );
+
+			} );
+
 			describe( "loadRules()", function(){
 
 				it( "throws when a `then` action references an unregistered name", function(){

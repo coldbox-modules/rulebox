@@ -83,6 +83,11 @@ It is handy for [auditing](auditing.md) and the [Visualizer](visualizer.md).
 You can also build rulebooks on the fly, with no class at all, using
 [The Builder](the-builder.md).
 
+Rule names must be unique within a `RuleBook`, because the
+[audit trail](auditing.md) is keyed by name. Adding a rule whose name is
+already taken throws a `RuleBox.DuplicateRuleNameException`; unnamed rules
+are never affected.
+
 ## Retrieving a RuleBook
 
 A RuleBook class is a normal WireBox-mapped class, so you retrieve it
