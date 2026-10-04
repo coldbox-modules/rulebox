@@ -12,14 +12,20 @@
 class{
 
 	/**
-	 * Constructor: no streams open, and each stream's queue holds at most 1000 events.
+	 * Fixed limits, the same for every instance. Static so they are not copied per instance.
+	 */
+	static {
+		// Events held per stream before the oldest start being dropped
+		QUEUE_CAPACITY = 1000
+	}
+
+	/**
+	 * Constructor: no streams open.
 	 *
 	 * @return This LiveStreams instance
 	 */
 	function init(){
-		// Events held per stream before the oldest start being dropped
-		variables.active        = createObject( "java", "java.util.concurrent.atomic.AtomicInteger" ).init( 0 )
-		variables.queueCapacity = 1000
+		variables.active = createObject( "java", "java.util.concurrent.atomic.AtomicInteger" ).init( 0 )
 		return this
 	}
 
@@ -64,9 +70,9 @@ class{
 	/**
 	 * A fresh bounded queue for one stream's events.
 	 *
-	 * @capacity Max events held; defaults to the model's queueCapacity
+	 * @capacity Max events held; defaults to QUEUE_CAPACITY
 	 */
-	any function newQueue( numeric capacity=variables.queueCapacity ){
+	any function newQueue( numeric capacity=static.QUEUE_CAPACITY ){
 		return createObject( "java", "java.util.concurrent.LinkedBlockingQueue" ).init( javaCast( "int", arguments.capacity ) )
 	}
 
