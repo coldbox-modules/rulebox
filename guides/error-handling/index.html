@@ -26,8 +26,8 @@
 
 	
 	
-		<meta name="description" content="What happens when a then&#x28;&#x29; throws, and what happens when a Rule is run detached.">
-		<meta property="og:description" content="What happens when a then&#x28;&#x29; throws, and what happens when a Rule is run detached.">
+		<meta name="description" content="What happens when a rule throws, and what happens when a Rule is run detached.">
+		<meta property="og:description" content="What happens when a rule throws, and what happens when a Rule is run detached.">
 	
 
 	
@@ -203,7 +203,7 @@
 		</h1>
 		
 		
-			<p class="page-summary">What happens when a then&#x28;&#x29; throws, and what happens when a Rule is run detached.</p>
+			<p class="page-summary">What happens when a rule throws, and what happens when a Rule is run detached.</p>
 		
 		
 		
@@ -215,17 +215,25 @@
 		
 		
 		
-			<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#a-then-consumer-that-throws">A then&#x28;&#x29; consumer that throws</a></li><li class="toc-level-2"><a href="#running-a-detached-rule">Running a detached Rule</a></li></ul></details>
+			<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#a-rule-that-throws">A rule that throws</a></li><li class="toc-level-2"><a href="#running-a-detached-rule">Running a detached Rule</a></li></ul></details>
 		
 
 		
 		<h1 id="error-handling"><a href="#error-handling" id="error-handling" name="error-handling" class="anchor"></a>Error Handling</h1>
-<h2 id="a-then-consumer-that-throws"><a href="#a-then-consumer-that-throws" id="a-then-consumer-that-throws" name="a-then-consumer-that-throws" class="anchor"></a>A <code>then()</code> consumer that throws</h2>
-<p>If a <code>then()</code> consumer throws, RuleBox records the rule as <code>FAILED</code> in
-the audit trail (see <a href="/guides/auditing/index.html">Auditing Rules</a>) <strong>before</strong> the
-exception is re-thrown to the caller. That means <code>ruleBook.getRuleStatus()</code>
-reliably reflects a mid-chain failure - you don't have to catch the
-exception yourself just to find out which rule blew up:</p>
+<h2 id="a-rule-that-throws"><a href="#a-rule-that-throws" id="a-rule-that-throws" name="a-rule-that-throws" class="anchor"></a>A rule that throws</h2>
+<p>If a rule throws while it is being evaluated, RuleBox records the rule as
+<code>FAILED</code> in the audit trail (see <a href="/guides/auditing/index.html">Auditing Rules</a>) <strong>before</strong>
+the exception is re-thrown to the caller. This covers a throw from:</p>
+<ul>
+<li>a <code>then()</code> consumer</li>
+<li><code>when()</code></li>
+<li><code>except()</code></li>
+<li>a bad <code>active()</code> date (one that can't be read as a date)</li>
+</ul>
+<p>The rules after the failed one are never reached, so they stay
+<code>REGISTERED</code>. That means <code>ruleBook.getRuleStatus()</code> reliably reflects a
+mid-chain failure. You don't have to catch the exception yourself just to
+find out which rule blew up:</p>
 <pre><code class="language-js">try {
 	myRuleBook.run()
 } catch( any e ) {
@@ -249,7 +257,7 @@ attached before it's run.</p>
 
 	
 	
-		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/error-handling.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/error-handling.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 4, 2026, 2&#x3a;22&#x3a;24 PM</span></div>
+		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/error-handling.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/error-handling.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 4, 2026, 2&#x3a;22&#x3a;34 PM</span></div>
 	
 </article>
 
@@ -281,7 +289,7 @@ attached before it's run.</p>
 			
 			
 				<aside class="col-xl-2 toc-sidebar d-none d-xl-block">
-					<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#a-then-consumer-that-throws">A then&#x28;&#x29; consumer that throws</a></li><li class="toc-level-2"><a href="#running-a-detached-rule">Running a detached Rule</a></li></ul></nav>
+					<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#a-rule-that-throws">A rule that throws</a></li><li class="toc-level-2"><a href="#running-a-detached-rule">Running a detached Rule</a></li></ul></nav>
 				</aside>
 			
 		</div>

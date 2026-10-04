@@ -26,8 +26,8 @@
 
 	
 	
-		<meta name="description" content="Track which rules fired, skipped, stopped, or failed - or preview it with dryRun&#x28;&#x29;.">
-		<meta property="og:description" content="Track which rules fired, skipped, stopped, or failed - or preview it with dryRun&#x28;&#x29;.">
+		<meta name="description" content="Preview what would fire with dryRun&#x28;&#x29;, then track which rules fired, skipped, stopped, or failed.">
+		<meta property="og:description" content="Preview what would fire with dryRun&#x28;&#x29;, then track which rules fired, skipped, stopped, or failed.">
 	
 
 	
@@ -203,7 +203,7 @@
 		</h1>
 		
 		
-			<p class="page-summary">Track which rules fired, skipped, stopped, or failed - or preview it with dryRun&#x28;&#x29;.</p>
+			<p class="page-summary">Preview what would fire with dryRun&#x28;&#x29;, then track which rules fired, skipped, stopped, or failed.</p>
 		
 		
 		
@@ -215,57 +215,23 @@
 		
 		
 		
-			<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#rule-states">Rule states</a></li><li class="toc-level-2"><a href="#reading-the-audit-trail">Reading the audit trail</a></li><li class="toc-level-2"><a href="#dry-run--explain-mode">Dry-run &#x2f; explain mode</a></li><li class="toc-level-2"><a href="#rule-metrics">Rule metrics</a></li></ul></details>
+			<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#dry-run--explain-mode">Dry-run &#x2f; explain mode</a></li><li class="toc-level-2"><a href="#name-your-rules">Name your rules</a></li><li class="toc-level-2"><a href="#rule-states">Rule states</a></li><li class="toc-level-2"><a href="#reading-the-audit-trail">Reading the audit trail</a></li><li class="toc-level-2"><a href="#rule-metrics">Rule metrics</a></li></ul></details>
 		
 
 		
 		<h1 id="auditing-rules"><a href="#auditing-rules" id="auditing-rules" name="auditing-rules" class="anchor"></a>Auditing Rules</h1>
-<p>Rule auditing tells you which rules fired and which didn't. A <code>RuleBook</code>
-tracks this in a <code>RuleStatusMap</code>. Give your rules a <code>name</code> so the audit
-trail is meaningful - otherwise you'll see the rule's internal UUID
-instead. You can name a rule in any of these ways:</p>
-<pre><code class="language-js">// Using the Builder
-builder.rule( &quot;ruleName&quot; )
-
-// Using newRule()
-addRule( newRule( &quot;ruleName&quot; ) )
-
-// Or its setter
-addRule( newRule().setName( &quot;ruleName&quot; ) )
-</code></pre>
-<h2 id="rule-states"><a href="#rule-states" id="rule-states" name="rule-states" class="anchor"></a>Rule states</h2>
-<p>Each rule added to a <code>RuleBook</code> has its state tracked via
-<code>RULE_STATES</code>, exposed on every <code>RuleBook</code> instance:</p>
-<div class="bxsites-table-wrap"><table class="table">
-<thead>
-<tr><th>State</th><th>Meaning</th></tr>
-</thead>
-<tbody>
-<tr><td><code>REGISTERED</code></td><td>The rule has been added to the <code>RuleBook</code>, not yet evaluated this run</td></tr>
-<tr><td><code>EXECUTED</code></td><td>The rule's <code>when()</code> (and <code>except()</code>) passed and its <code>then()</code> action(s) completed successfully</td></tr>
-<tr><td><code>SKIPPED</code></td><td>The rule's <code>when()</code>/<code>except()</code> condition did not pass</td></tr>
-<tr><td><code>STOPPED</code></td><td>The rule executed and then called <code>stop()</code>, halting the chain</td></tr>
-<tr><td><code>FAILED</code></td><td>A <code>then()</code> consumer threw - see <a href="/guides/error-handling/index.html">Error Handling</a></td></tr>
-<tr><td><code>NOT_AVAILABLE</code></td><td>Returned by <code>getRuleStatus()</code> for a name that isn't in the map</td></tr>
-</tbody>
-</table></div>
-<p><code>RuleBook.run()</code> resets every registered rule's status back to
-<code>REGISTERED</code> at the start of each run, so a rule that a shorter chain
-doesn't reach this time around never reports a stale status left over
-from a previous run.</p>
-<h2 id="reading-the-audit-trail"><a href="#reading-the-audit-trail" id="reading-the-audit-trail" name="reading-the-audit-trail" class="anchor"></a>Reading the audit trail</h2>
-<pre><code class="language-js">status = ruleBook.getRuleStatus( &quot;rule1&quot; )
-status = ruleBook.getRuleStatus( &quot;rule2&quot; )
-</code></pre>
-<p>Or retrieve the entire map:</p>
-<pre><code class="language-js">writeDump( ruleBook.getRuleStatusMap() )
-</code></pre>
+<p>Auditing answers two questions: which rules <em>would</em> fire for some facts,
+and which rules <em>did</em> fire on the last run.</p>
 <h2 id="dry-run--explain-mode"><a href="#dry-run--explain-mode" id="dry-run--explain-mode" name="dry-run--explain-mode" class="anchor"></a>Dry-run / explain mode</h2>
 <p>Sometimes you want to know which rules a given set of facts <em>would</em>
-trigger, without actually triggering them - no <code>then()</code> consumers run, no
-facts are merged into the sticky fact store, no <code>Result</code> is touched, and
-the real audit trail (<code>getRuleStatusMap()</code>) is left exactly as it was.
-<code>dryRun()</code> gives you that preview, on both <code>RuleBook</code> and <code>Rule</code>:</p>
+trigger, without actually triggering them. <code>dryRun()</code> gives you that
+preview, on both <code>RuleBook</code> and <code>Rule</code>. It does not:</p>
+<ul>
+<li>run any <code>then()</code> consumers</li>
+<li>merge facts into the sticky fact store</li>
+<li>touch the <code>Result</code></li>
+<li>change the status map or the rule metrics</li>
+</ul>
 <pre><code class="language-js">report = ruleBook.dryRun( { &quot;creditScore&quot; : 550 } )
 writeDump( report )
 </code></pre>
@@ -276,24 +242,64 @@ execution order:</p>
 	{ &quot;name&quot; : &quot;creditScoreAdjustment&quot;,  &quot;wouldExecute&quot; : true,  &quot;wouldStop&quot; : false }
 ]
 </code></pre>
-<p>The walk stops exactly where a real <code>run()</code> would stop - the first rule
-whose condition passes and has <code>stop()</code> set. Rules after that point are
-never reached, so (just like a real run) they simply don't appear in the
-report.</p>
-<p>A single <code>Rule</code> can also be dry-run on its own - and unlike <code>run()</code>, it
-doesn't require being attached to a <code>RuleBook</code> first:</p>
-<pre><code class="language-js">report = newRule()
+<p>The walk stops where a real <code>run()</code> would stop: at the first rule whose
+condition passes and has <code>stop()</code> set. Rules after that point don't appear
+in the report.</p>
+<p>A single <code>Rule</code> can also be dry-run on its own. Unlike <code>run()</code>, it doesn't
+need to be attached to a <code>RuleBook</code>. Create it with
+<a href="/guides/the-builder/index.html">the Builder</a>:</p>
+<pre><code class="language-js">builder = getInstance( &quot;Builder@rulebox&quot; )
+
+report = builder.rule( &quot;lowScore&quot; )
 	.when( ( facts ) =&gt; facts.creditScore &lt; 600 )
 	.stop()
 	.dryRun( { &quot;creditScore&quot; : 550 } )
 
-// { &quot;name&quot; : &quot;...&quot;, &quot;wouldExecute&quot; : true, &quot;wouldStop&quot; : true }
+// { &quot;name&quot; : &quot;lowScore&quot;, &quot;wouldExecute&quot; : true, &quot;wouldStop&quot; : true }
+</code></pre>
+<h2 id="name-your-rules"><a href="#name-your-rules" id="name-your-rules" name="name-your-rules" class="anchor"></a>Name your rules</h2>
+<p>A <code>RuleBook</code> records each rule's state in a status map, keyed by rule
+name. Give your rules a <code>name</code> so the audit trail is meaningful. Without
+one you'll see the rule's internal UUID. You can name a rule in any of
+these ways:</p>
+<pre><code class="language-js">// Using the Builder
+builder.rule( &quot;ruleName&quot; )
+
+// Using newRule(), inside a RuleBook
+addRule( newRule( &quot;ruleName&quot; ) )
+
+// Or its setter
+addRule( newRule().setName( &quot;ruleName&quot; ) )
+</code></pre>
+<h2 id="rule-states"><a href="#rule-states" id="rule-states" name="rule-states" class="anchor"></a>Rule states</h2>
+<p>Each rule added to a <code>RuleBook</code> has a state, from the <code>RULE_STATES</code>
+struct exposed on every <code>RuleBook</code> instance:</p>
+<div class="bxsites-table-wrap"><table class="table">
+<thead>
+<tr><th>State</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>REGISTERED</code></td><td>Added, not yet evaluated this run</td></tr>
+<tr><td><code>EXECUTED</code></td><td><code>when()</code> passed (and <code>except()</code> did not) and the <code>then()</code> actions completed</td></tr>
+<tr><td><code>SKIPPED</code></td><td><code>when()</code>/<code>except()</code> did not pass, or the rule is outside its <code>active()</code> window</td></tr>
+<tr><td><code>STOPPED</code></td><td>Executed, then <code>stop()</code> halted the chain</td></tr>
+<tr><td><code>FAILED</code></td><td>Evaluating the rule threw. This can come from <code>when()</code>, <code>except()</code>, a <code>then()</code> consumer, or a bad <code>active()</code> date. See <a href="/guides/error-handling/index.html">Error Handling</a></td></tr>
+</tbody>
+</table></div>
+<p><code>run()</code> resets every rule back to <code>REGISTERED</code> at the start of each run, so
+a rule that a shorter chain doesn't reach never shows a stale state from a
+previous run.</p>
+<h2 id="reading-the-audit-trail"><a href="#reading-the-audit-trail" id="reading-the-audit-trail" name="reading-the-audit-trail" class="anchor"></a>Reading the audit trail</h2>
+<pre><code class="language-js">status = ruleBook.getRuleStatus( &quot;rule1&quot; )
+</code></pre>
+<p>A name that isn't in the status map returns <code>NOT_AVAILABLE</code>.</p>
+<p>To get the whole status map, a plain struct of rule name to state:</p>
+<pre><code class="language-js">writeDump( ruleBook.getRuleStatusMap() )
 </code></pre>
 <h2 id="rule-metrics"><a href="#rule-metrics" id="rule-metrics" name="rule-metrics" class="anchor"></a>Rule metrics</h2>
-<p>While the audit trail tells you what happened on the <em>last</em> <code>run()</code>,
-<code>RuleBook</code> also keeps running execution metrics per rule, accumulated
-across every <code>run()</code> call on the instance - meant to be fed straight into
-a dashboard:</p>
+<p>The audit trail tells you what happened on the <em>last</em> <code>run()</code>. A
+<code>RuleBook</code> also keeps running metrics per rule, added up across every
+<code>run()</code> call on that instance:</p>
 <pre><code class="language-js">metrics = ruleBook.getRuleMetrics( &quot;creditScoreAdjustment&quot; )
 writeDump( metrics )
 </code></pre>
@@ -301,37 +307,30 @@ writeDump( metrics )
 	&quot;name&quot;             : &quot;creditScoreAdjustment&quot;,
 	&quot;totalEvaluations&quot; : 42,
 	&quot;countsByState&quot;    : { &quot;EXECUTED&quot; : 30, &quot;SKIPPED&quot; : 10, &quot;STOPPED&quot; : 1, &quot;FAILED&quot; : 1 },
-	&quot;totalDurationMs&quot;  : 1234,
-	&quot;minDurationMs&quot;    : 2,
-	&quot;maxDurationMs&quot;    : 55,
-	&quot;lastDurationMs&quot;   : 8,
-	&quot;firstRunAt&quot;       : {ts '...'},
-	&quot;lastRunAt&quot;        : {ts '...'}
+	&quot;totalDurationMs&quot;  : 1234
+	// ...plus minDurationMs, maxDurationMs, lastDurationMs, firstRunAt, lastRunAt
 }
 </code></pre>
 <ul>
 <li><code>countsByState</code> uses the same <code>RULE_STATES</code> values as the audit trail</li>
-<li>Duration covers the whole evaluation - <code>when()</code>/<code>except()</code> plus any
-<code>then()</code> consumers that ran - so a rule that's slow to <em>check</em> shows up
-even when it never fires</li>
-<li>A rule that's never been evaluated (or doesn't exist) returns the same
-shape with <code>totalEvaluations: 0</code> and no <code>firstRunAt</code>/<code>lastRunAt</code>, rather
-than throwing</li>
-<li><code>dryRun()</code> never records metrics, same as it never touches the audit trail</li>
+<li>Duration covers the whole evaluation, so a rule that is slow to <em>check</em>
+shows up even when it never fires</li>
+<li>A rule that was never evaluated (or doesn't exist) returns the same
+shape with <code>totalEvaluations: 0</code> and no <code>firstRunAt</code>/<code>lastRunAt</code></li>
 </ul>
-<p>Get every rule's metrics in one call with <code>ruleBook.getRuleMetricsMap()</code> -
-a struct of <code>name → metrics</code>, plain enough to serialize straight to JSON
-for a dashboard endpoint.</p>
-<p>Unlike the status map, metrics are <strong>not</strong> reset by <code>run()</code> - they're a
-running history for the instance's lifetime. Clear them explicitly with:</p>
-<pre><code class="language-js">ruleBook.resetMetrics()
-</code></pre>
+<p><code>ruleBook.getRuleMetricsMap()</code> returns every rule's metrics as a struct of
+name to metrics, ready to serialize to JSON for a dashboard.</p>
+<p>Unlike the status map, <code>run()</code> does not reset metrics. Clear them yourself
+with <code>ruleBook.resetMetrics()</code>.</p>
+<p>Metrics live on the <code>RuleBook</code> instance, so a new <code>RuleBook</code> starts from
+zero. For metrics across runs and instances, use the
+<a href="/guides/visualizer/index.html#metrics-persistence">Rule Visualizer</a>.</p>
 
 	
 
 	
 	
-		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/auditing.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/auditing.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 4, 2026, 2&#x3a;22&#x3a;24 PM</span></div>
+		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/auditing.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/auditing.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 4, 2026, 2&#x3a;22&#x3a;34 PM</span></div>
 	
 </article>
 
@@ -363,7 +362,7 @@ running history for the instance's lifetime. Clear them explicitly with:</p>
 			
 			
 				<aside class="col-xl-2 toc-sidebar d-none d-xl-block">
-					<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#rule-states">Rule states</a></li><li class="toc-level-2"><a href="#reading-the-audit-trail">Reading the audit trail</a></li><li class="toc-level-2"><a href="#dry-run--explain-mode">Dry-run &#x2f; explain mode</a></li><li class="toc-level-2"><a href="#rule-metrics">Rule metrics</a></li></ul></nav>
+					<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#dry-run--explain-mode">Dry-run &#x2f; explain mode</a></li><li class="toc-level-2"><a href="#name-your-rules">Name your rules</a></li><li class="toc-level-2"><a href="#rule-states">Rule states</a></li><li class="toc-level-2"><a href="#reading-the-audit-trail">Reading the audit trail</a></li><li class="toc-level-2"><a href="#rule-metrics">Rule metrics</a></li></ul></nav>
 				</aside>
 			
 		</div>
