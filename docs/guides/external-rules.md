@@ -280,11 +280,14 @@ moduleSettings = {
 for a config-declared rulebook, grab it via the registry or DSL below and
 register it yourself before use.
 
-Any `*.json`/`*.yaml` file dropped in the convention folder (default
-`config/rulebox`, override via `conventionPath`) is auto-discovered too -
-the declared name is the filename without its extension. An explicit
-config entry of the same name layers its `actions`/`predicates` on top of
-that discovered file.
+Any `*.json`, `*.yaml` or `*.yml` file (extension matched case-insensitively)
+dropped in the convention folder (default `config/rulebox`, override via
+`conventionPath`) is auto-discovered too - the declared name is the filename
+without its extension. Directories and dotfiles are ignored, and if two files
+map to the same name (e.g. `credit.json` and `credit.yaml`) the registry throws
+a `RuleBox.DuplicateRuleBookException` naming both rather than picking one
+silently. An explicit config entry of the same name layers its
+`actions`/`predicates` on top of that discovered file.
 
 ### Retrieving a declared rulebook
 
