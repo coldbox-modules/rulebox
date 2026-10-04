@@ -5,12 +5,13 @@
  *
  * This only checks the *shape* of a definition against the ConditionEvaluator grammar; it never
  * evaluates anything and does not change how conditions are evaluated at runtime.
+ *
+ * A stateless static helper: call ConditionValidator::validate( def, index ), no instance needed.
  */
 class{
 
 	/**
-	 * The operator sets of the ConditionEvaluator grammar. Static: they are the same for every
-	 * instance and never change.
+	 * The operator sets of the ConditionEvaluator grammar. They never change.
 	 */
 	static {
 		// Operators that take a [ path, value ] pair
@@ -28,7 +29,7 @@ class{
 	 *
 	 * @throws RuleBox.InvalidRuleDefinitionException If anything in the definition is malformed
 	 */
-	void function validate( required struct def, required numeric index ){
+	static void function validate( required struct def, required numeric index ){
 		var ruleLabel = ( arguments.def.keyExists( "name" ) && isSimpleValue( arguments.def.name ) && len( arguments.def.name ) )
 			? "'#arguments.def.name#'"
 			: "##" & arguments.index & " (unnamed)"
@@ -36,16 +37,16 @@ class{
 		for( var key in [ "when", "except" ] ){
 			// A null/absent node means "always true" (when) or "no exception" (except)
 			if( arguments.def.keyExists( key ) && !isNull( arguments.def[ key ] ) ){
-				validateNode( arguments.def[ key ], key, ruleLabel, true )
+				static.validateNode( arguments.def[ key ], key, ruleLabel, true )
 			}
 		}
 
 		for( var key in [ "activeFrom", "activeUntil" ] ){
 			if( arguments.def.keyExists( key ) && !isNull( arguments.def[ key ] ) && !isDate( arguments.def[ key ] ) ){
-				fail(
+				static.fail(
 					ruleLabel,
 					key,
-					"is not a parseable date/time (received: #describe( arguments.def[ key ] )#)"
+					"is not a parseable date/time (received: #static.describe( arguments.def[ key ] )#)"
 				)
 			}
 		}
@@ -59,28 +60,28 @@ class{
 	 * @ruleLabel The pre-formatted rule identifier used in error messages
 	 * @topLevel True only for the root of a when/except tree, where predicate references are allowed
 	 */
-	private void function validateNode( required any node, required string path, required string ruleLabel, boolean topLevel = false ){
+	private static void function validateNode( required any node, required string path, required string ruleLabel, boolean topLevel = false ){
 		if( !isStruct( arguments.node ) ){
-			fail( arguments.ruleLabel, arguments.path, "must be a struct with exactly one operator key (received: #describe( arguments.node )#)" )
+			static.fail( arguments.ruleLabel, arguments.path, "must be a struct with exactly one operator key (received: #static.describe( arguments.node )#)" )
 		}
 
 		// Registered-predicate reference: { "predicate": "name", "params": {...} }
 		if( arguments.node.keyExists( "predicate" ) ){
 			if( !arguments.topLevel ){
-				fail( arguments.ruleLabel, arguments.path & ".predicate", "predicate references are only supported at the top level of when/except, not nested inside and/or/not" )
+				static.fail( arguments.ruleLabel, arguments.path & ".predicate", "predicate references are only supported at the top level of when/except, not nested inside and/or/not" )
 			}
 			var extraKeys = arguments.node.keyArray().filter( ( k ) => k != "predicate" && k != "params" )
 			if( !extraKeys.isEmpty() ){
-				fail( arguments.ruleLabel, arguments.path, "a predicate reference may only contain 'predicate' and 'params', but also has: #extraKeys.toList( ', ' )#" )
+				static.fail( arguments.ruleLabel, arguments.path, "a predicate reference may only contain 'predicate' and 'params', but also has: #extraKeys.toList( ', ' )#" )
 			}
-			if( !isNonBlankValue( arguments.node.predicate ) ){
-				fail( arguments.ruleLabel, arguments.path & ".predicate", "must be the name of a registered predicate (received: #describe( arguments.node.predicate )#)" )
+			if( !static.isNonBlankValue( arguments.node.predicate ) ){
+				static.fail( arguments.ruleLabel, arguments.path & ".predicate", "must be the name of a registered predicate (received: #static.describe( arguments.node.predicate )#)" )
 			}
 			return
 		}
 
 		if( arguments.node.len() != 1 ){
-			fail(
+			static.fail(
 				arguments.ruleLabel,
 				arguments.path,
 				arguments.node.isEmpty()
@@ -95,37 +96,37 @@ class{
 
 		if( static.LOGICAL_OPERATORS.contains( operator ) ){
 			if( isNull( operand ) || !isArray( operand ) || operand.isEmpty() ){
-				fail( arguments.ruleLabel, operatorPath, "takes a non-empty array of condition nodes (received: #describe( operand )#)" )
+				static.fail( arguments.ruleLabel, operatorPath, "takes a non-empty array of condition nodes (received: #static.describe( operand )#)" )
 			}
 			for( var i = 1; i <= operand.len(); i++ ){
-				validateNode( operand[ i ], operatorPath & "[#i#]", arguments.ruleLabel )
+				static.validateNode( operand[ i ], operatorPath & "[#i#]", arguments.ruleLabel )
 			}
 			return
 		}
 
 		if( operator == "not" ){
 			if( isNull( operand ) || !isStruct( operand ) ){
-				fail( arguments.ruleLabel, operatorPath, "takes a single condition node, not an array or a simple value (received: #describe( operand )#)" )
+				static.fail( arguments.ruleLabel, operatorPath, "takes a single condition node, not an array or a simple value (received: #static.describe( operand )#)" )
 			}
-			validateNode( operand, operatorPath, arguments.ruleLabel )
+			static.validateNode( operand, operatorPath, arguments.ruleLabel )
 			return
 		}
 
 		if( static.COMPARISON_OPERATORS.contains( operator ) || operator == "in" ){
 			var shape = operator == "in" ? "[ path, [ values... ] ]" : "[ path, value ]"
 			if( isNull( operand ) || !isArray( operand ) || operand.len() != 2 ){
-				fail( arguments.ruleLabel, operatorPath, "takes a 2-element array #shape# (received: #describe( operand )#)" )
+				static.fail( arguments.ruleLabel, operatorPath, "takes a 2-element array #shape# (received: #static.describe( operand )#)" )
 			}
-			if( !isNonBlankValue( operand[ 1 ] ) ){
-				fail( arguments.ruleLabel, operatorPath & "[1]", "must be a non-empty string fact path such as 'applicant.creditScore' (received: #describe( operand[ 1 ] )#)" )
+			if( !static.isNonBlankValue( operand[ 1 ] ) ){
+				static.fail( arguments.ruleLabel, operatorPath & "[1]", "must be a non-empty string fact path such as 'applicant.creditScore' (received: #static.describe( operand[ 1 ] )#)" )
 			}
 			if( operator == "in" && !isArray( operand[ 2 ] ) ){
-				fail( arguments.ruleLabel, operatorPath & "[2]", "must be an array of values to look for (received: #describe( operand[ 2 ] )#)" )
+				static.fail( arguments.ruleLabel, operatorPath & "[2]", "must be an array of values to look for (received: #static.describe( operand[ 2 ] )#)" )
 			}
 			return
 		}
 
-		fail(
+		static.fail(
 			arguments.ruleLabel,
 			operatorPath,
 			"unknown condition operator '#operator#'; supported operators: eq, neq, lt, lte, gt, gte, in, and, or, not"
@@ -137,14 +138,14 @@ class{
 	 *
 	 * @value The value to check
 	 */
-	private boolean function isNonBlankValue( any value ){
+	private static boolean function isNonBlankValue( any value ){
 		return !isNull( arguments.value ) && isSimpleValue( arguments.value ) && len( trim( arguments.value ) ) > 0
 	}
 
 	/**
 	 * Short, safe description of a value for use in an error message
 	 */
-	private string function describe( any value ){
+	private static string function describe( any value ){
 		if( isNull( arguments.value ) ){
 			return "null"
 		}
@@ -169,7 +170,7 @@ class{
 	 *
 	 * @throws RuleBox.InvalidRuleDefinitionException Always
 	 */
-	private void function fail( required string ruleLabel, required string path, required string problem ){
+	private static void function fail( required string ruleLabel, required string path, required string problem ){
 		throw(
 			type    = "RuleBox.InvalidRuleDefinitionException",
 			message = "Invalid definition for rule #arguments.ruleLabel# at '#arguments.path#': #arguments.problem#",

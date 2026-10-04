@@ -109,7 +109,6 @@ class{
 		variables.predicateRegistry = {}
 		variables.ruleMetricsMap 	= {}
 		variables.conditionEvaluator = new ConditionEvaluator()
-		variables.conditionValidator = new ConditionValidator()
 
 		// Expose the static rule states enum on the instance for external access
 		this.RULE_STATES = static.RULE_STATES
@@ -362,7 +361,7 @@ class{
 
 		for( var def in arguments.source.load() ){
 			index++
-			variables.conditionValidator.validate( def, index )
+			ConditionValidator::validate( def, index )
 
 			var rule = def.keyExists( "name" ) ? newRule( def.name ) : newRule()
 
