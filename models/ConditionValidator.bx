@@ -9,14 +9,15 @@
 class{
 
 	/**
-	 * Operators that take a [ path, value ] pair
+	 * The operator sets of the ConditionEvaluator grammar. Static: they are the same for every
+	 * instance and never change.
 	 */
-	variables.COMPARISON_OPERATORS = [ "eq", "neq", "lt", "lte", "gt", "gte" ]
-
-	/**
-	 * Operators that take a non-empty array of condition nodes
-	 */
-	variables.LOGICAL_OPERATORS = [ "and", "or" ]
+	static {
+		// Operators that take a [ path, value ] pair
+		COMPARISON_OPERATORS = [ "eq", "neq", "lt", "lte", "gt", "gte" ]
+		// Operators that take a non-empty array of condition nodes
+		LOGICAL_OPERATORS = [ "and", "or" ]
+	}
 
 	/**
 	 * Validate a whole rule definition: its `when`/`except` condition trees and its
@@ -92,7 +93,7 @@ class{
 		var operatorPath = arguments.path & "." & operator
 		var operand      = arguments.node[ operator ]
 
-		if( variables.LOGICAL_OPERATORS.contains( operator ) ){
+		if( static.LOGICAL_OPERATORS.contains( operator ) ){
 			if( isNull( operand ) || !isArray( operand ) || operand.isEmpty() ){
 				fail( arguments.ruleLabel, operatorPath, "takes a non-empty array of condition nodes (received: #describe( operand )#)" )
 			}
@@ -110,7 +111,7 @@ class{
 			return
 		}
 
-		if( variables.COMPARISON_OPERATORS.contains( operator ) || operator == "in" ){
+		if( static.COMPARISON_OPERATORS.contains( operator ) || operator == "in" ){
 			var shape = operator == "in" ? "[ path, [ values... ] ]" : "[ path, value ]"
 			if( isNull( operand ) || !isArray( operand ) || operand.len() != 2 ){
 				fail( arguments.ruleLabel, operatorPath, "takes a 2-element array #shape# (received: #describe( operand )#)" )
