@@ -223,6 +223,61 @@ class extends="tests.resources.BaseSpec"{
 					expect( results ).toBe( [ "approved:good credit" ] );
 				} );
 
+				it( "trims each fact name in a DBRuleSource `using_facts` comma list", function(){
+					var rows = queryNew( "name,when_json,then_json,using_facts", "varchar,varchar,varchar,varchar" );
+					queryAddRow( rows, [
+						{ "name" : "spaced", "when_json" : "", "then_json" : "", "using_facts" : "name, age" },
+						{ "name" : "padded", "when_json" : "", "then_json" : "", "using_facts" : " name ,age , " },
+						{ "name" : "none", "when_json" : "", "then_json" : "", "using_facts" : "" }
+					] );
+
+					var defs = getInstance( "DBRuleSource@rulebox", { query : rows } ).load();
+
+					expect( defs[ 1 ][ "using" ] ).toBe( [ "name", "age" ] );
+					expect( defs[ 2 ][ "using" ] ).toBe( [ "name", "age" ] );
+					expect( defs[ 3 ] ).notToHaveKey( "using" );
+				} );
+
+				it( "delivers only the named facts when `using_facts` is 'name, age'", function(){
+					var seen = [];
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+						.registerAction( "capture", ( facts, result, params ) => { seen.append( facts.keyArray().sort( "text" ), true ); } )
+						.given( "name", "luis" )
+						.given( "age", 40 )
+						.given( "city", "SF" );
+
+					var rows = queryNew( "name,when_json,then_json,using_facts", "varchar,varchar,varchar,varchar" );
+					queryAddRow( rows, [
+						{
+							"name"        : "r1",
+							"when_json"   : "",
+							"then_json"   : jsonSerialize( [ { "action" : "capture" } ] ),
+							"using_facts" : "name, age"
+						}
+					] );
+
+					ruleBook.loadRules( getInstance( "DBRuleSource@rulebox", { query : rows } ) );
+					ruleBook.run();
+
+					expect( seen ).toBe( [ "age", "name" ] );
+				} );
+
+				it( "accepts a comma-delimited string for the `using` key, trimming each name", function(){
+					var seen = [];
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+						.registerAction( "capture", ( facts, result, params ) => { seen.append( facts.keyArray().sort( "text" ), true ); } )
+						.given( "name", "luis" )
+						.given( "age", 40 )
+						.given( "city", "SF" );
+
+					ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+						{ "name" : "r1", "using" : " name , age ", "then" : [ { "action" : "capture" } ] }
+					] ) );
+					ruleBook.run();
+
+					expect( seen ).toBe( [ "age", "name" ] );
+				} );
+
 			} );
 
 		} );
