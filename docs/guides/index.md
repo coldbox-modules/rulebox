@@ -12,7 +12,7 @@ toc: false
 - [The RuleBook DSL](the-dsl.md) - `given`/`when`/`except`/`then`/`using`/`stop`
 - [Facts & Results](facts-and-results.md) - working with facts and the `Result` object
 - [The Builder](the-builder.md) - à la carte rules and rule books
-- [Auditing Rules](auditing.md) - `RuleStatusMap` and rule states
+- [Auditing Rules](auditing.md) - dry-run, the status map (audit trail), and rule states
 - [Externalized Rule Definitions](external-rules.md) - load rules from JSON, YAML, or a database
 - [Thread Safety](thread-safety.md) - why RuleBooks and Rules are transient
 - [Error Handling](error-handling.md) - exceptions and failure states

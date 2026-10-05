@@ -122,6 +122,73 @@ class extends="tests.resources.BaseSpec"{
 					expect( rule.getFactsNameMap()[ 1 ].findNoCase( "age" ) ).toBeTrue();
 				});
 
+				describe( "using() fact name lists", () => {
+
+					// Runs a rule holding facts a, b and c; returns the fact names the then() consumer received
+					var deliveredKeys = ( usingChain ) => {
+						var seen = [];
+						var rule = getInstance( "rule@rulebox" )
+							.setRuleBook( rulebook )
+							.given( "a", 1 )
+							.given( "b", 2 )
+							.given( "c", 3 );
+						usingChain( rule )
+							.then( ( facts ) => { seen.append( facts.keyArray().sort( "text" ), true ); } )
+							.run();
+						return seen;
+					};
+
+					it( "delivers exactly the facts in a comma list with spaces", () => {
+						expect( deliveredKeys( ( rule ) => rule.using( "a, b" ) ) ).toBe( [ "a", "b" ] );
+					});
+
+					it( "delivers exactly the facts in a comma list without spaces", () => {
+						expect( deliveredKeys( ( rule ) => rule.using( "a,b" ) ) ).toBe( [ "a", "b" ] );
+					});
+
+					it( "trims leading and trailing whitespace around every name", () => {
+						expect( deliveredKeys( ( rule ) => rule.using( " a ,b " ) ) ).toBe( [ "a", "b" ] );
+					});
+
+					it( "ignores empty entries in a list", () => {
+						var rule = getInstance( "rule@rulebox" ).using( "a, ,b,," );
+						expect( rule.getFactsNameMap()[ 1 ] ).toBe( [ "a", "b" ] );
+					});
+
+					it( "accepts an array of names", () => {
+						expect( deliveredKeys( ( rule ) => rule.using( [ "a", "b" ] ) ) ).toBe( [ "a", "b" ] );
+					});
+
+					it( "trims the names inside an array", () => {
+						expect( deliveredKeys( ( rule ) => rule.using( [ " a ", "b " ] ) ) ).toBe( [ "a", "b" ] );
+					});
+
+					it( "aggregates chained using() calls", () => {
+						expect( deliveredKeys( ( rule ) => rule.using( "a" ).using( " b" ) ) ).toBe( [ "a", "b" ] );
+						expect( deliveredKeys( ( rule ) => rule.using( [ "a" ] ).using( "b, " ) ) ).toBe( [ "a", "b" ] );
+					});
+
+					it( "does not mutate the array passed in when chaining", () => {
+						var names = [ "a" ];
+						getInstance( "rule@rulebox" ).using( names ).using( "b" );
+						expect( names ).toBe( [ "a" ] );
+					});
+
+					it( "matches fact names case-insensitively but exactly, never as a substring", () => {
+						var seen = [];
+						getInstance( "rule@rulebox" )
+							.setRuleBook( rulebook )
+							.given( "Name", "luis" )
+							.given( "nameFull", "luis majano" )
+							.given( "age", 40 )
+							.using( " NAME " )
+							.then( ( facts ) => { seen.append( facts.keyArray().sort( "text" ), true ); } )
+							.run();
+						expect( seen ).toBe( [ "Name" ] );
+					});
+
+				});
+
 				it( "can store the next rule", () =>{
 					var rule = getInstance( "rule@rulebox" );
 

@@ -3,12 +3,15 @@
  * registerAction()/registerPredicate()/loadRules() yourself for every rulebook your app defines.
  *
  * Rulebooks are declared in moduleSettings.rulebox.rulebooks, and/or auto-discovered from
- * *.json/*.yaml files dropped in the convention folder (default "config/rulebox"). See the
+ * *.json/*.yaml/*.yml files dropped in the convention folder (default "config/rulebox"). See the
  * "Externalized Rule Definitions" guide for the full settings shape.
  *
  * getRuleBook() always builds and returns a FRESH RuleBook instance - never a shared/cached one -
  * so this registry stays safe to use from a singleton or across concurrent requests: nothing here
- * holds facts or run-time state, only the recipe to build one.
+ * holds facts or run-time state, only the recipe to build one. That includes inline definitions:
+ * the registry keeps its own private copy of each declaration, and every RuleBook it builds gets
+ * an independent deep copy of the rule definitions, so mutating a rule's `params` (or anything else
+ * in a definition) in one RuleBook never leaks into another or back into the stored declaration.
  */
 class singleton{
 
@@ -57,7 +60,8 @@ class singleton{
 
 	/**
 	 * Build and return a fresh, fully-configured RuleBook for the given declared name - registries
-	 * populated, rules loaded. A new instance every call: safe to call from anywhere, concurrently.
+	 * populated, rules loaded. A new instance every call, with its own independent copy of the rule
+	 * definitions: safe to call from anywhere, concurrently.
 	 *
 	 * @name The rulebook's declared name
 	 *
@@ -88,11 +92,16 @@ class singleton{
 	}
 
 	/**
-	 * Auto-discover *.json/*.yaml files in the convention folder. The declared name is the
-	 * filename without its extension.
+	 * Auto-discover rule files in the convention folder. Only regular files with a .json, .yaml
+	 * or .yml extension (matched case-insensitively) count; directories and dotfiles are ignored.
+	 * The declared name is the filename without its extension.
+	 *
+	 * @throws RuleBox.DuplicateRuleBookException when two files map to the same rulebook name
+	 *         (e.g. a.json and a.yaml) - explicit beats silent precedence.
 	 */
 	private struct function discoverConventionRuleBooks(){
 		var found          = {}
+		var sources        = {}
 		var conventionPath = variables.settings.keyExists( "conventionPath" ) ? variables.settings.conventionPath : "config/rulebox"
 		var expandedPath   = toAppPath( conventionPath )
 
@@ -100,15 +109,29 @@ class singleton{
 			return found
 		}
 
-		for( var filePath in directoryList( expandedPath, false, "path", "*.json" ) ){
-			found[ getFileFromPath( filePath ).reReplaceNoCase( "\.json$", "" ) ] = {
-				source     : filePath,
-				actions    : {},
-				predicates : {}
+		// Files only, sorted so duplicate reporting is deterministic across filesystems
+		var filePaths = directoryList( expandedPath, false, "path", "", "name", "file" )
+		filePaths.sort( "textNoCase" )
+
+		for( var filePath in filePaths ){
+			var fileName = getFileFromPath( filePath )
+
+			if( fileName.left( 1 ) == "." || !fileName.reFindNoCase( "\.(json|ya?ml)$" ) ){
+				continue
 			}
-		}
-		for( var filePath in directoryList( expandedPath, false, "path", "*.yaml" ) ){
-			found[ getFileFromPath( filePath ).reReplaceNoCase( "\.yaml$", "" ) ] = {
+
+			var name = fileName.reReplaceNoCase( "\.(json|ya?ml)$", "" )
+
+			if( found.keyExists( name ) ){
+				throw(
+					type    = "RuleBox.DuplicateRuleBookException",
+					message = "Two convention files map to the rulebook name '#name#': '#getFileFromPath( sources[ name ] )#' and '#fileName#'.",
+					detail  = "Rulebook names are the filename without its extension, so each name may only have one file in '#expandedPath#'. Remove or rename one of: #sources[ name ]#, #filePath#"
+				)
+			}
+
+			sources[ name ] = filePath
+			found[ name ]   = {
 				source     : filePath,
 				actions    : {},
 				predicates : {}
@@ -150,6 +173,18 @@ class singleton{
 			normalized.source = arguments.entry
 		}
 
+		// Snapshot what we store, so later edits to the caller's settings can't change a declaration.
+		// Inline definitions are plain data and get a deep copy. The actions/predicates maps and a
+		// struct source get a shallow copy only: their values can be closures or objects, which must
+		// never be duplicated.
+		if( isArray( normalized.source ) ){
+			normalized.source = duplicate( normalized.source, true )
+		} else if( isStruct( normalized.source ) ){
+			normalized.source = duplicate( normalized.source, false )
+		}
+		normalized.actions    = duplicate( normalized.actions, false )
+		normalized.predicates = duplicate( normalized.predicates, false )
+
 		return normalized
 	}
 
@@ -166,6 +201,8 @@ class singleton{
 		}
 
 		if( isArray( arguments.source ) ){
+			// InlineRuleSource takes its own deep copy and hands out another on every load(), so the
+			// stored declaration is never shared with a RuleBook
 			return wirebox.getInstance( name: "InlineRuleSource@rulebox", initArguments: { definitions: arguments.source } )
 		}
 

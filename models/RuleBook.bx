@@ -127,7 +127,7 @@ class{
 	RuleBook function withDefaultResult( required result ){
 		variables.defaultResult = arguments.result
 		variables.result.setDefaultValue( arguments.result )
-		variables.result.setValue( arguments.result )
+		variables.result.reset()
 		return this
 	}
 
@@ -183,9 +183,16 @@ class{
 	 *
 	 * Rules execute in priority order (highest `withPriority()` value first); rules sharing the same
 	 * priority execute in the order they were added here. Adding a rule re-derives the entire
-	 * execution chain, so priorities can be set on rules in any order before or after they are added.
+	 * execution chain, and so does calling `withPriority()` on a rule that is already added, so priorities
+	 * can be set on rules in any order before or after they are added.
+	 *
+	 * Rule names must be unique within a RuleBook, since the audit trail and the metrics are keyed by
+	 * name. Adding a named rule whose name is already taken (names are case-insensitive) throws a
+	 * `RuleBox.DuplicateRuleNameException`. Rules without an explicit name get a UUID and never collide.
 	 *
 	 * @rule A rule object or a closure/lambda that will represent the rule.
+	 *
+	 * @throws RuleBox.DuplicateRuleNameException If a rule with the same name was already added
 	 *
 	 * @return This RuleBook instance, to allow for chaining of calls
 	 */
@@ -197,6 +204,11 @@ class{
 			arguments.rule( targetRule )
 			// Clean it now that it built
 			arguments.rule = targetRule
+		}
+
+		// Reject a name already registered in this rulebook, before touching any state
+		if( len( arguments.rule.getName() ) && variables.ruleStatusMap.keyExists( arguments.rule.getName() ) ){
+			throwDuplicateRuleName( arguments.rule.getName() )
 		}
 
 		// Link the rule book
@@ -212,12 +224,29 @@ class{
 	}
 
 	/**
+	 * Throw the exception used whenever a rule name is registered twice in this RuleBook
+	 *
+	 * @name The duplicated rule name
+	 */
+	private void function throwDuplicateRuleName( required string name ){
+		throw(
+			type    = "RuleBox.DuplicateRuleNameException",
+			message = "A rule named '#arguments.name#' already exists in this RuleBook.",
+			detail  = "Rule names must be unique within a RuleBook, as the rule status map and metrics are keyed by name. Give the rule a different name, or leave the name off."
+		)
+	}
+
+	/**
 	 * Remove every rule from this RuleBook, resetting it to a rule-less state - as if freshly
-	 * constructed. Registries (registerAction()/registerPredicate()) and rule metrics are untouched.
+	 * constructed. Each removed rule also has its nextRule link cleared, so a rule that is re-added
+	 * here or to another RuleBook is linked only by its new chain. Registries
+	 * (registerAction()/registerPredicate()) and rule metrics are untouched.
 	 *
 	 * @return This RuleBook instance, to allow for chaining of calls
 	 */
 	RuleBook function clearRules(){
+		// Break the old chain so removed rules can't carry stale links into a new one
+		variables.rules.each( ( rule ) => rule.clearNextRule() )
 		variables.rules 		= []
 		variables.ruleStatusMap = {}
 		structDelete( variables, "headRule" )
@@ -241,6 +270,23 @@ class{
 	}
 
 	/**
+	 * Re-derive this RuleBook's execution chain from the rules' current priorities. A Rule calls this
+	 * automatically when `withPriority()` changes the priority of a rule already attached to this
+	 * RuleBook, so you normally never need to call it yourself.
+	 *
+	 * Ordering is highest priority first; rules sharing a priority keep the order they were added in.
+	 * A RuleBook with no rules is left untouched.
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function relinkRules(){
+		if( variables.rules.len() ){
+			linkRuleChain()
+		}
+		return this
+	}
+
+	/**
 	 * Rebuilds the head/tail rule execution chain from `variables.rules`, ordering rules by priority
 	 * (highest first) and, for rules sharing the same priority, by the order they were added.
 	 */
@@ -259,14 +305,14 @@ class{
 		} )
 
 		// Relink every rule's nextRule pointer to reflect the new order. The final rule in the new
-		// order needs no explicit update: it is either brand new (nextRule already null) or was
-		// already the tail before this call (nextRule already null), since the relative order between
-		// any two previously-added rules never changes once they've both been added.
+		// order must have its pointer cleared: it may have been mid-chain before this call (e.g. its
+		// priority was lowered after addRule()), and a stale pointer would loop or repeat rules.
 		variables.headRule = indexed[ 1 ].rule
 		variables.tailRule = indexed[ indexed.len() ].rule
 		for( var i = 1; i < indexed.len(); i++ ){
 			indexed[ i ].rule.setNextRule( indexed[ i + 1 ].rule )
 		}
+		variables.tailRule.clearNextRule()
 	}
 
 	/**
@@ -325,15 +371,29 @@ class{
 	 * structs) and addRule() each one. Register any named actions/predicates the definitions reference
 	 * via registerAction()/registerPredicate() before calling this.
 	 *
+	 * Named definitions must be unique within the source and must not clash with a rule already in this
+	 * RuleBook; otherwise a RuleBox.DuplicateRuleNameException is thrown before any rule is added.
+	 *
 	 * Each definition struct may contain: name, priority, activeFrom, activeUntil, when, except, then,
 	 * stop, using. See the "Externalized Rules" guide for the full schema.
+	 *
+	 * Every definition is validated as it is built (condition-tree shape, operators, operand types and
+	 * activeFrom/activeUntil dates), and a malformed one throws RuleBox.InvalidRuleDefinitionException
+	 * naming the rule and the offending path. All definitions are built before any is added, so if any
+	 * definition fails to validate or resolve, no rule from this source is added to the book.
 	 *
 	 * @source An object exposing array function load()
 	 *
 	 * @return This RuleBook instance, to allow for chaining of calls
 	 */
 	RuleBook function loadRules( required any source ){
-		for( var def in arguments.source.load() ){
+		var builtRules = []
+
+		// Duplicate names are rejected up front, then every definition is validated and built
+		// before the book is touched
+		for( var def, index in loadDefinitions( arguments.source ) ){
+			ConditionValidator::validate( def, index )
+
 			var rule = def.keyExists( "name" ) ? newRule( def.name ) : newRule()
 
 			if( def.keyExists( "priority" ) ){
@@ -354,6 +414,12 @@ class{
 			}
 
 			var factNames = def.keyExists( "using" ) ? def.using : []
+			// A comma-delimited string is accepted too: trim each name and drop empty ones
+			if( isSimpleValue( factNames ) ){
+				factNames = listToArray( factNames )
+					.map( ( name ) => trim( name ) )
+					.filter( ( name ) => len( name ) )
+			}
 
 			for( var actionClosure in resolveActions( def.keyExists( "then" ) ? def.then : [] ) ){
 				// using() pegs to the *next* then() call only, so re-apply it before each one
@@ -367,10 +433,39 @@ class{
 				rule.stop()
 			}
 
-			addRule( rule )
+			builtRules.append( rule )
 		}
 
+		// Only now that every definition built cleanly do we touch the book
+		builtRules.each( ( builtRule ) => addRule( builtRule ) )
+
 		return this
+	}
+
+	/**
+	 * Load the rule definitions from a source, verifying that no named definition repeats a name or
+	 * clashes with a rule already in this RuleBook. This runs before any rule is added, so a
+	 * `RuleBox.DuplicateRuleNameException` from loadRules() leaves the book unchanged.
+	 *
+	 * @source An object exposing array function load()
+	 *
+	 * @throws RuleBox.DuplicateRuleNameException If two definitions, or a definition and an existing rule, share a name
+	 */
+	private array function loadDefinitions( required any source ){
+		var definitions = arguments.source.load()
+		var seen        = {}
+
+		for( var def in definitions ){
+			if( !isStruct( def ) || !def.keyExists( "name" ) || !isSimpleValue( def.name ) || !len( def.name ) ){
+				continue
+			}
+			if( seen.keyExists( def.name ) || variables.ruleStatusMap.keyExists( def.name ) ){
+				throwDuplicateRuleName( def.name )
+			}
+			seen[ def.name ] = true
+		}
+
+		return definitions
 	}
 
 	/**
@@ -589,13 +684,18 @@ class{
 
 		// Feeds the Rule Visualizer (dashboard, metrics, live tracker). A cheap no-op unless
 		// moduleSettings.rulebox.visualizer.enabled is true - see RuleEventBus@rulebox.
-		variables.eventBus.publish( {
-			rulebookName : variables.name,
-			ruleName     : arguments.name,
-			state        : arguments.state,
-			durationMs   : arguments.durationMs,
-			timestamp    : dateTimeFormat( metric.lastRunAt, "yyyy-MM-dd'T'HH:mm:ss" )
-		} )
+		// Metrics must never fail or double-count a business rule, so a broken event bus is logged and swallowed.
+		try{
+			variables.eventBus.publish( {
+				rulebookName : variables.name,
+				ruleName     : arguments.name,
+				state        : arguments.state,
+				durationMs   : arguments.durationMs,
+				timestamp    : dateTimeFormat( metric.lastRunAt, "yyyy-MM-dd'T'HH:mm:ss" )
+			} )
+		} catch( any e ){
+			logger.warn( "RuleBox could not publish the metric event for rule [#arguments.name#] in rulebook [#variables.name#]: #e.message#" )
+		}
 	}
 
 	/**

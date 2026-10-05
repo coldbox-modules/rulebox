@@ -1,0 +1,25 @@
+/**
+ * Demo traffic for recording the Visualizer walkthrough.
+ * Copy into test-harness/handlers/ while recording, then delete it. Not shipped.
+ */
+class {
+
+	/**
+	 * Runs the harness JSON rulebooks once with random facts.
+	 *
+	 * @event The request context
+	 * @rc    The request collection
+	 * @prc   The private request collection
+	 *
+	 * @return A short summary of the facts used
+	 */
+	any function run( event, rc, prc ){
+		var score  = randRange( 520, 790 )
+		var total  = randRange( 20, 180 )
+		var region = [ "US", "CA", "MX", "DE" ][ randRange( 1, 4 ) ]
+		ruleBook( "loanapproval" ).run( { creditScore : score } )
+		ruleBook( "shippingrates" ).run( { orderTotal : total, region : region } )
+		return "ok #score# #total# #region#"
+	}
+
+}
