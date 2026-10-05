@@ -546,7 +546,10 @@
 		</div>
 		<div class="rb-wrap rb-foot-bottom">
 			<span>&copy; #year( now() )# Ortus Solutions, Corp. Apache License 2.0.</span>
-			<span>Part of the ColdBox platform</span>
+			<div class="rb-foot-right">
+				<a class="rb-foot-verse" href="https://www.bible.com/bible/59/JHN.14.6.ESV" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">&#10084;&#65039;</span> He is the truth and the life</a>
+				<span>Part of the ColdBox platform</span>
+			</div>
 		</div>
 	</footer>
 
