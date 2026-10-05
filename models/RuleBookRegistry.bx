@@ -47,7 +47,10 @@ class{
 
 		var configuredRuleBooks = variables.settings.rulebooks ?: {}
 		for( var name, configured in configuredRuleBooks ){
-			discovered[ name ] = normalizeDefinition( configured, discovered[ name ] ?: {} )
+			if( isNull( configured ) ){
+				throwInvalidDeclaration( name, "the declaration is null" )
+			}
+			discovered[ name ] = normalizeDefinition( name, configured, discovered[ name ] ?: {} )
 		}
 
 		variables.definitions = discovered
@@ -91,6 +94,7 @@ class{
 			ruleBook.registerPredicate( predicateName, predicate )
 		}
 
+		// Nothing is cached: every call re-reads the source file / re-runs the SQL, by design
 		ruleBook.loadRules( resolveSource( def.source ) )
 
 		return ruleBook
@@ -155,8 +159,12 @@ class{
 	 * - a string:  a rule-source file path (JSON/YAML inferred from extension)
 	 * - an array:  inline rule-definition structs
 	 * - a struct:  { source: <string|array|{type:"db",...}>, actions: {...}, predicates: {...} }
+	 *
+	 * Anything else - or an entry that ends up with no usable source - throws a typed
+	 * RuleBox.InvalidRuleBookDeclarationException naming the rulebook, so a bad declaration fails
+	 * when the registry is built/reloaded rather than obscurely at the first getRuleBook().
 	 */
-	private struct function normalizeDefinition( required any entry, required struct existing ){
+	private struct function normalizeDefinition( required string name, required any entry, required struct existing ){
 		var normalized = {
 			source     : existing.source ?: "",
 			actions    : existing.actions ?: {},
@@ -165,18 +173,25 @@ class{
 
 		if( isStruct( arguments.entry ) ){
 			if( arguments.entry.keyExists( "source" ) ){
+				if( isNull( arguments.entry.source ) ){
+					throwInvalidDeclaration( arguments.name, "its 'source' is null" )
+				}
 				normalized.source = arguments.entry.source
 			}
-			if( arguments.entry.keyExists( "actions" ) ){
-				normalized.actions = arguments.entry.actions
-			}
-			if( arguments.entry.keyExists( "predicates" ) ){
-				normalized.predicates = arguments.entry.predicates
+			for( var key in [ "actions", "predicates" ] ){
+				if( arguments.entry.keyExists( key ) ){
+					if( isNull( arguments.entry[ key ] ) || !isStruct( arguments.entry[ key ] ) ){
+						throwInvalidDeclaration( arguments.name, "'#key#' must be a struct of name => mapping ID" )
+					}
+					normalized[ key ] = arguments.entry[ key ]
+				}
 			}
 		} else {
 			// A bare string (path) or array (inline definitions) IS the source
 			normalized.source = arguments.entry
 		}
+
+		validateSource( arguments.name, normalized.source )
 
 		// Snapshot what we store, so later edits to the caller's settings can't change a declaration.
 		// Inline definitions are plain data and get a deep copy. The actions/predicates maps and a
@@ -191,6 +206,44 @@ class{
 		normalized.predicates = duplicate( normalized.predicates, false )
 
 		return normalized
+	}
+
+	/**
+	 * Check a declaration's source is a non-blank path string, an array of inline definition
+	 * structs, or a struct (db descriptor - its contents are validated when the book is built).
+	 * A string path is also resolved here, so one that escapes the app root fails fast.
+	 */
+	private void function validateSource( required string name, required any source ){
+		if( isSimpleValue( arguments.source ) ){
+			if( !len( trim( arguments.source ) ) ){
+				throwInvalidDeclaration( arguments.name, "it has no source (blank path); declare a 'source' or drop a file named '#arguments.name#.json' in the convention folder" )
+			}
+			toAppPath( arguments.source )
+		} else if( isArray( arguments.source ) ){
+			for( var definition in arguments.source ){
+				if( isNull( definition ) || !isStruct( definition ) ){
+					throwInvalidDeclaration( arguments.name, "inline rule definitions must all be structs" )
+				}
+			}
+		} else if( !isStruct( arguments.source ) ){
+			throwInvalidDeclaration( arguments.name, "its source must be a path string, an array of rule definitions, or a struct" )
+		}
+	}
+
+	/**
+	 * Throw the exception every declaration check uses, naming the rulebook and the problem.
+	 *
+	 * @name The declared rulebook name
+	 * @problem What is wrong with the declaration, phrased to follow "Invalid declaration for rulebook 'x': "
+	 *
+	 * @throws RuleBox.InvalidRuleBookDeclarationException Always
+	 */
+	private void function throwInvalidDeclaration( required string name, required string problem ){
+		throw(
+			type    = "RuleBox.InvalidRuleBookDeclarationException",
+			message = "Invalid declaration for rulebook '#arguments.name#': #arguments.problem#.",
+			detail  = "Declare it under moduleSettings.rulebox.rulebooks.#arguments.name# as a source file path, an array of inline rule definitions, or a struct { source, actions, predicates }."
+		)
 	}
 
 	/**
@@ -229,11 +282,59 @@ class{
 	}
 
 	/**
-	 * Resolve a relative app path (e.g. "config/rulebox" or "config/rules/credit.json") to an
+	 * Resolve a configured path (e.g. "config/rulebox" or "config/rules/credit.json") to an
 	 * absolute one, so config authors never need to call expandPath() themselves.
+	 *
+	 * Rule: Windows drive ("C:\x", "C:/x") and UNC ("\\host\x", "//host/x") paths are used as
+	 * given, as is a "/..." path that exists on disk as written and is not found under the app
+	 * root. Everything else is relative to the app root - `.`/`..` are normalised lexically and a
+	 * path that climbs out of the root throws RuleBox.InvalidRuleBookPathException.
 	 */
 	private string function toAppPath( required string relativePath ){
-		return expandPath( "/" & arguments.relativePath.reReplace( "^/+", "" ) )
+		var raw = arguments.relativePath.trim()
+
+		if( !raw.len() ){
+			throw( type = "RuleBox.InvalidRuleBookPathException", message = "A rulebook path cannot be blank." )
+		}
+
+		// Windows drive-letter or UNC path: absolute as given, never re-rooted or mangled
+		if( raw.reFind( "^([A-Za-z]:[\\/]|\\\\|//)" ) ){
+			return raw
+		}
+
+		var kept    = []
+		var hasDots = false
+		for( var segment in raw.replace( "\", "/", "all" ).listToArray( "/" ) ){
+			if( segment == "." ){
+				continue
+			}
+			if( segment == ".." ){
+				hasDots = true
+				if( !kept.len() ){
+					throw(
+						type    = "RuleBox.InvalidRuleBookPathException",
+						message = "The rulebook path '#raw#' resolves outside the application root.",
+						detail  = "Relative paths must stay inside the application root; use an absolute path to reach files elsewhere."
+					)
+				}
+				kept.deleteAt( kept.len() )
+			} else {
+				kept.append( segment )
+			}
+		}
+
+		var resolved = expandPath( "/" ).replace( "\", "/", "all" ).reReplace( "/+$", "" ) & "/" & kept.toList( "/" )
+
+		// A leading "/" is app-relative if that exists; otherwise a real absolute path on disk
+		if(
+			raw.left( 1 ) == "/" && !hasDots
+			&& !fileExists( resolved ) && !directoryExists( resolved )
+			&& ( fileExists( raw ) || directoryExists( raw ) )
+		){
+			return raw
+		}
+
+		return resolved
 	}
 
 }
