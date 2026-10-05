@@ -16,24 +16,51 @@ class{
 	/**
 	 * Constructor
 	 *
-	 * @value If passed, creates an instance of the result with this as the default value
+	 * @value If passed, creates an instance of the result with this as the default value, which also becomes the current value
 	 */
 	Result function init( value ){
 
 		if( !isNull( arguments.value ) ){
-			variables.defaultValue = arguments.value
+			setDefaultValue( arguments.value )
+			reset()
 		}
 
 		return this
 	}
 
 	/**
-	 * Reset the value of this result to the default value. If there is no default value, the
+	 * Set the default value. Structs, arrays and queries are deep copied so later changes to the original,
+	 * or to a value handed out by `reset()`, never change the default. Objects and closures are kept as is.
+	 * If there is no current value yet, the default also becomes the current value.
+	 *
+	 * @value The default value, if null the default is cleared
+	 */
+	Result function setDefaultValue( value ){
+		if( isNull( arguments.value ) ){
+			structDelete( variables, "defaultValue" )
+		} else {
+			variables.defaultValue = copyOf( arguments.value )
+			if( !isPresent() ){
+				reset()
+			}
+		}
+		return this
+	}
+
+	/**
+	 * Get the default value. This is a copy, so changing it does not change the default.
+	 */
+	function getDefaultValue(){
+		return ( isNull( variables.defaultValue ) ? null : copyOf( variables.defaultValue ) )
+	}
+
+	/**
+	 * Reset the value of this result to a fresh copy of the default value. If there is no default value, the
 	 * value is cleared, so `isPresent()` returns false.
 	 */
 	Result function reset(){
 		if( !isNull( variables.defaultValue ) ){
-			variables.value = variables.defaultValue
+			variables.value = copyOf( variables.defaultValue )
 		} else {
 			structDelete( variables, "value" )
 		}
@@ -79,5 +106,18 @@ class{
     function orElseGet( required other ){
         return ( isPresent() ? variables.value : arguments.other() )
     }
+
+	/**
+	 * Deep copy structs, arrays and queries so a default is never shared by reference. Anything else
+	 * (simple values, objects, closures) is returned untouched, we never duplicate WireBox objects or closures.
+	 *
+	 * @value The value to copy
+	 */
+	private function copyOf( value ){
+		if( !isObject( arguments.value ) && ( isStruct( arguments.value ) || isArray( arguments.value ) || isQuery( arguments.value ) ) ){
+			return duplicate( arguments.value, true )
+		}
+		return arguments.value
+	}
 
 }

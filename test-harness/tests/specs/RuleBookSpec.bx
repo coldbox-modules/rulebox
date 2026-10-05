@@ -644,6 +644,10 @@ class extends="tests.resources.BaseSpec"{
 
 			describe( "result lifecycle across runs", function(){
 
+				beforeEach( function(){
+					setup();
+				});
+
 				it( "does not leak a value from a prior run when there is no default result", function(){
 					var ruleBook = getInstance( "RuleBook@rulebox" );
 					ruleBook.addRule(
@@ -708,6 +712,117 @@ class extends="tests.resources.BaseSpec"{
 
 					expect( result.isPresent() ).toBeTrue();
 					expect( result.getValue() ).toBe( "dflt" );
+				});
+
+				it( "isPresent() is true right after init() with a default value", function(){
+					var result = getInstance( "Result@rulebox" ).init( "dflt" );
+
+					expect( result.isPresent() ).toBeTrue();
+					expect( result.getValue() ).toBe( "dflt" );
+				});
+
+				it( "isPresent() is false when nothing has been set or defaulted", function(){
+					var result = getInstance( "Result@rulebox" );
+
+					expect( result.isPresent() ).toBeFalse();
+					expect( isNull( result.getDefaultValue() ) ).toBeTrue();
+					expect( result.orElse( "other" ) ).toBe( "other" );
+					expect( result.orElseGet( () => "supplied" ) ).toBe( "supplied" );
+				});
+
+				it( "treats falsy values as present when set", function(){
+					var falsy = [ 0, "", false, {}, [] ];
+
+					falsy.each( ( candidate ) => {
+						var result = getInstance( "Result@rulebox" );
+						result.setValue( candidate );
+
+						expect( result.isPresent() ).toBeTrue();
+						expect( result.orElse( "other" ) ).toBe( candidate );
+					} );
+				});
+
+				it( "treats falsy values as present when used as a default", function(){
+					var falsy = [ 0, "", false, {}, [] ];
+
+					falsy.each( ( candidate ) => {
+						var result = getInstance( "Result@rulebox" ).init( candidate );
+						expect( result.isPresent() ).toBeTrue();
+						expect( result.orElse( "other" ) ).toBe( candidate );
+
+						result.setValue( "changed" ).reset();
+						expect( result.isPresent() ).toBeTrue();
+						expect( result.orElse( "other" ) ).toBe( candidate );
+					} );
+				});
+
+				it( "does not share a struct default with the caller or with the live value", function(){
+					var source = { count : 1, tags : [ "a" ] };
+					var result = getInstance( "Result@rulebox" ).init( source );
+
+					// Mutating the caller's struct must not change the default
+					source.count = 99;
+					source.tags.append( "b" );
+					result.reset();
+					expect( result.getValue().count ).toBe( 1 );
+					expect( result.getValue().tags ).toHaveLength( 1 );
+
+					// Mutating the live value must not change the default
+					result.getValue().count = 50;
+					result.getValue().tags.append( "z" );
+					result.reset();
+					expect( result.getValue().count ).toBe( 1 );
+					expect( result.getValue().tags ).toHaveLength( 1 );
+				});
+
+				it( "copies the default passed to setDefaultValue()", function(){
+					var source = [ 1, 2 ];
+					var result = getInstance( "Result@rulebox" );
+					result.setDefaultValue( source );
+
+					source.append( 3 );
+					result.reset();
+					expect( result.getValue() ).toBe( [ 1, 2 ] );
+				});
+
+				it( "reset() hands back a fresh copy of the default each time", function(){
+					var result = getInstance( "Result@rulebox" ).init( { items : [] } );
+
+					var first = result.reset().getValue();
+					first.items.append( "x" );
+					var second = result.reset().getValue();
+
+					expect( second.items ).toBeEmpty();
+					expect( first.items ).toHaveLength( 1 );
+				});
+
+				it( "does not leak a mutated struct default into later runs", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" ).withDefaultResult( { hits : [] } );
+					ruleBook.addRule(
+						ruleBook.newRule( "collector" )
+							.when( ( facts ) => facts.go )
+							.then( ( facts, result ) => result.getValue().hits.append( "hit" ) )
+					);
+
+					ruleBook.run( { go : true } );
+					ruleBook.run( { go : true } );
+					expect( ruleBook.getResult().getValue().hits ).toHaveLength( 1 );
+
+					ruleBook.run( { go : false } );
+					expect( ruleBook.getResult().getValue().hits ).toBeEmpty();
+				});
+
+				it( "does not copy objects or closures used as a default", function(){
+					var fn     = () => "hello";
+					var object = getInstance( "Result@rulebox" ).init( "marker" );
+
+					var withClosure = getInstance( "Result@rulebox" ).init( fn );
+					expect( withClosure.reset().getValue()() ).toBe( "hello" );
+
+					var withObject = getInstance( "Result@rulebox" ).init( object );
+					object.setValue( "changed" );
+					expect( withObject.reset().getValue() ).toBe( object );
+					expect( withObject.getValue().getValue() ).toBe( "changed" );
 				});
 
 			});
