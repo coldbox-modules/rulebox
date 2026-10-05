@@ -1,0 +1,61 @@
+/**
+ * Turns a rule's evaluation counts into health figures: how many evaluations completed, how many
+ * failed, the completion and error rates, and the average duration. RuleBook's own metrics and every
+ * IMetricsStore report these the same way, so this is the one place the arithmetic lives.
+ *
+ * A stateless static helper: call RuleHealth::of( countsByState, totalEvaluations, totalDurationMs ).
+ */
+class{
+
+	/**
+	 * Limits shared by everything that records rule health
+	 */
+	static {
+		// The longest error message kept for a FAILED evaluation, in characters
+		MAX_ERROR_MESSAGE_LENGTH = 500
+	}
+
+	/**
+	 * Health figures for a set of evaluation counts. A completed evaluation is one that ended without
+	 * throwing (EXECUTED, SKIPPED or STOPPED); a failed one threw (FAILED). Rates are fractions from 0
+	 * to 1 and are 0 when there are no evaluations yet.
+	 *
+	 * @countsByState Evaluation counts keyed by RULE_STATES name
+	 * @totalEvaluations All evaluations counted
+	 * @totalDurationMs The summed duration of those evaluations, in milliseconds
+	 *
+	 * @return { completed, failed, completionRate, errorRate, avgDurationMs }
+	 */
+	static struct function of( required struct countsByState, required numeric totalEvaluations, required numeric totalDurationMs ){
+		var failed    = arguments.countsByState.FAILED ?: 0
+		var completed = ( arguments.countsByState.EXECUTED ?: 0 )
+			+ ( arguments.countsByState.SKIPPED ?: 0 )
+			+ ( arguments.countsByState.STOPPED ?: 0 )
+		var total     = arguments.totalEvaluations
+
+		return {
+			"completed"      : completed,
+			"failed"         : failed,
+			"completionRate" : total == 0 ? 0 : completed / total,
+			"errorRate"      : total == 0 ? 0 : failed / total,
+			"avgDurationMs"  : total == 0 ? 0 : arguments.totalDurationMs / total
+		}
+	}
+
+	/**
+	 * The error details kept for a FAILED evaluation: the exception type and its message, cut to
+	 * MAX_ERROR_MESSAGE_LENGTH characters. Never the stack trace or the exception's detail.
+	 *
+	 * @error The caught exception
+	 *
+	 * @return { type, message }
+	 */
+	static struct function errorOf( required any error ){
+		var message = arguments.error.message ?: ""
+		return {
+			"type"    : arguments.error.type ?: "",
+			"message" : message.len() > static.MAX_ERROR_MESSAGE_LENGTH ? message.left( static.MAX_ERROR_MESSAGE_LENGTH ) : message
+		}
+	}
+
+}

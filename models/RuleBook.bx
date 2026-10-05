@@ -1,3 +1,5 @@
+import rulebox.models.metrics.RuleHealth;
+
 /**
  * A RuleBook object that stores all the rules to execute in a given context against given facts.
  */
@@ -644,7 +646,10 @@ class{
 	 *
 	 * @name The name of the rule
 	 *
-	 * @return { name, totalEvaluations, countsByState, totalDurationMs, minDurationMs, maxDurationMs, lastDurationMs, firstRunAt?, lastRunAt? }
+	 * @return { name, totalEvaluations, countsByState, totalDurationMs, minDurationMs, maxDurationMs, lastDurationMs,
+	 *         completed, failed, completionRate, errorRate, avgDurationMs, firstRunAt?, lastRunAt?, lastError? }.
+	 *         completed counts EXECUTED, SKIPPED and STOPPED evaluations, failed counts FAILED ones, the rates are
+	 *         fractions from 0 to 1, and lastError is { type, message, at } for the most recent FAILED evaluation.
 	 */
 	struct function getRuleMetrics( required string name ){
 		return variables.ruleMetricsMap[ arguments.name ] ?: newMetricsEntry( arguments.name )
@@ -668,8 +673,9 @@ class{
 	 * @name The name of the rule that was evaluated
 	 * @state The final RULE_STATES this evaluation ended in (EXECUTED, SKIPPED, STOPPED, or FAILED)
 	 * @durationMs How long the evaluation took, in milliseconds
+	 * @error The exception a FAILED evaluation threw. Its type and message become the rule's lastError.
 	 */
-	void function recordRuleMetric( required string name, required string state, required numeric durationMs ){
+	void function recordRuleMetric( required string name, required string state, required numeric durationMs, any error ){
 		if( !variables.ruleMetricsMap.keyExists( arguments.name ) ){
 			variables.ruleMetricsMap[ arguments.name ] = newMetricsEntry( arguments.name )
 		}
@@ -686,18 +692,30 @@ class{
 			metric.firstRunAt = metric.lastRunAt
 		}
 		metric.totalEvaluations++
+		metric.append( RuleHealth::of( metric.countsByState, metric.totalEvaluations, metric.totalDurationMs ) )
+
+		var errorInfo = null
+		if( arguments.state == static.RULE_STATES.FAILED && !isNull( arguments.error ) ){
+			errorInfo        = RuleHealth::errorOf( arguments.error )
+			metric.lastError = errorInfo.copy().append( { "at" : metric.lastRunAt } )
+		}
 
 		// Feeds the Rule Visualizer (dashboard, metrics, live tracker). A cheap no-op unless
 		// moduleSettings.rulebox.visualizer.enabled is true - see RuleEventBus@rulebox.
 		// Metrics must never fail or double-count a business rule, so a broken event bus is logged and swallowed.
 		try{
-			variables.eventBus.publish( {
+			var event = {
 				rulebookName : variables.name,
 				ruleName     : arguments.name,
 				state        : arguments.state,
 				durationMs   : arguments.durationMs,
 				timestamp    : dateTimeFormat( metric.lastRunAt, "yyyy-MM-dd'T'HH:mm:ss" )
-			} )
+			}
+			if( !isNull( errorInfo ) ){
+				event.errorType    = errorInfo.type
+				event.errorMessage = errorInfo.message
+			}
+			variables.eventBus.publish( event )
 		} catch( any e ){
 			logger.warn( "RuleBox could not publish the metric event for rule [#arguments.name#] in rulebook [#variables.name#]: #e.message#" )
 		}
@@ -714,7 +732,12 @@ class{
 			"totalDurationMs"  : 0,
 			"minDurationMs"    : 0,
 			"maxDurationMs"    : 0,
-			"lastDurationMs"   : 0
+			"lastDurationMs"   : 0,
+			"completed"        : 0,
+			"failed"           : 0,
+			"completionRate"   : 0,
+			"errorRate"        : 0,
+			"avgDurationMs"    : 0
 		}
 	}
 

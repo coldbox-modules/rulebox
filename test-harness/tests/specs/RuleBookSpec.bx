@@ -627,6 +627,93 @@ class extends="tests.resources.BaseSpec"{
 					expect( ruleBook.getRuleMetrics( "myRule" ).countsByState.FAILED ).toBe( 1 );
 				});
 
+				it( "keeps the type and message of the most recent FAILED evaluation as lastError", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule(
+						ruleBook.newRule( "myRule" ).then( ( facts ) => {
+							throw( type = "TestBoom", message = "Kaboom #facts.attempt#" );
+						} )
+					);
+
+					expect( function(){ ruleBook.run( { attempt : 1 } ); } ).toThrow();
+					expect( function(){ ruleBook.run( { attempt : 2 } ); } ).toThrow();
+
+					var lastError = ruleBook.getRuleMetrics( "myRule" ).lastError;
+					expect( lastError.type ).toBe( "TestBoom" );
+					expect( lastError.message ).toBe( "Kaboom 2" );
+					expect( lastError ).toHaveKey( "at" );
+				});
+
+				it( "cuts a long error message down to 500 characters", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule(
+						ruleBook.newRule( "myRule" ).then( ( facts ) => {
+							throw( type = "TestBoom", message = repeatString( "x", 800 ) );
+						} )
+					);
+
+					expect( function(){ ruleBook.run(); } ).toThrow();
+
+					expect( ruleBook.getRuleMetrics( "myRule" ).lastError.message.len() ).toBe( 500 );
+				});
+
+				it( "reports completed and failed counts, completion and error rates and the average duration", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule(
+						ruleBook.newRule( "myRule" ).then( ( facts ) => {
+							if( facts.boom ){
+								throw( type = "TestBoom", message = "Kaboom" );
+							}
+						} )
+					);
+
+					ruleBook.run( { boom : false } );
+					ruleBook.run( { boom : false } );
+					ruleBook.run( { boom : false } );
+					expect( function(){ ruleBook.run( { boom : true } ); } ).toThrow();
+
+					var metrics = ruleBook.getRuleMetrics( "myRule" );
+					expect( metrics.totalEvaluations ).toBe( 4 );
+					expect( metrics.completed ).toBe( 3 );
+					expect( metrics.failed ).toBe( 1 );
+					expect( metrics.completionRate ).toBe( 0.75 );
+					expect( metrics.errorRate ).toBe( 0.25 );
+					expect( metrics.avgDurationMs ).toBe( metrics.totalDurationMs / 4 );
+				});
+
+				it( "counts SKIPPED and STOPPED evaluations as completed", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "skipper" ).when( ( facts ) => false ) );
+					ruleBook.addRule( ruleBook.newRule( "stopper" ).then( ( facts ) => {} ).stop() );
+
+					ruleBook.run();
+
+					expect( ruleBook.getRuleMetrics( "skipper" ).completed ).toBe( 1 );
+					expect( ruleBook.getRuleMetrics( "stopper" ).completed ).toBe( 1 );
+					expect( ruleBook.getRuleMetrics( "stopper" ).completionRate ).toBe( 1 );
+					expect( ruleBook.getRuleMetrics( "stopper" ) ).notToHaveKey( "lastError" );
+				});
+
+				it( "sends the error type and message with a FAILED event to the Rule Visualizer", function(){
+					var metricsStore = getInstance( "InMemoryMetricsStore@rulebox" );
+					metricsStore.reset();
+
+					var ruleBook = getInstance( "RuleBook@rulebox" ).setName( "visualizerFailTest" );
+					ruleBook.addRule(
+						ruleBook.newRule( "myRule" ).then( ( facts ) => {
+							throw( type = "TestBoom", message = "Kaboom" );
+						} )
+					);
+
+					expect( function(){ ruleBook.run(); } ).toThrow();
+
+					var events = metricsStore.queryEvents( filters={ rulebookName: "visualizerFailTest" } );
+					expect( events ).toHaveLength( 1 );
+					expect( events[ 1 ].state ).toBe( ruleBook.RULE_STATES.FAILED );
+					expect( events[ 1 ].errorType ).toBe( "TestBoom" );
+					expect( events[ 1 ].errorMessage ).toBe( "Kaboom" );
+				});
+
 				it( "accumulates metrics across multiple run() calls, unlike the status map", function(){
 					var ruleBook = getInstance( "RuleBook@rulebox" );
 					ruleBook.addRule( ruleBook.newRule( "myRule" ).then( ( facts ) => {} ) );

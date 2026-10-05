@@ -221,7 +221,7 @@ class{
 
 		} catch( any e ){
 			// Record the failure in the audit trail and let the caller decide what to do with it
-			recordOutcome( variables.ruleBook.RULE_STATES.FAILED, getTickCount() - startTicks )
+			recordOutcome( variables.ruleBook.RULE_STATES.FAILED, getTickCount() - startTicks, e )
 			rethrow;
 		}
 
@@ -246,15 +246,16 @@ class{
 	 *
 	 * @state The final RULE_STATES for this evaluation
 	 * @durationMs How long the evaluation took, in milliseconds
+	 * @error The exception a FAILED evaluation threw
 	 */
-	private void function recordOutcome( required string state, required numeric durationMs ){
+	private void function recordOutcome( required string state, required numeric durationMs, any error ){
 		try{
 			variables.ruleBook.getRuleStatusMap().put( variables.name, arguments.state )
 		} catch( any e ){
 			logger.warn( "RuleBox could not record the status of rule [#variables.name#]: #e.message#" )
 		}
 		try{
-			variables.ruleBook.recordRuleMetric( variables.name, arguments.state, arguments.durationMs )
+			variables.ruleBook.recordRuleMetric( variables.name, arguments.state, arguments.durationMs, arguments.error ?: null )
 		} catch( any e ){
 			logger.warn( "RuleBox could not record the metrics of rule [#variables.name#]: #e.message#" )
 		}
