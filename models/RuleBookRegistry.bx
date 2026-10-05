@@ -13,7 +13,9 @@
  * an independent deep copy of the rule definitions, so mutating a rule's `params` (or anything else
  * in a definition) in one RuleBook never leaks into another or back into the stored declaration.
  */
-class singleton{
+@singleton
+@threadsafe
+class{
 
 	@inject( "wirebox" )
 	property name="wirebox";

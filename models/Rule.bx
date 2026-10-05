@@ -122,18 +122,6 @@ class{
 	}
 
 	/**
-	 * Set the result in the rule
-	 *
-	 * @result The result object
-	 *
-	 * @return The rule instance
-	 */
-	Rule function setResult( required result ){
-		variables.result = arguments.result
-		return this
-	}
-
-	/**
 	 * The given() method accepts a key/value pair as a Fact for this Rule.
 	 *
 	 * @name The unique name of the fact
@@ -448,16 +436,6 @@ class{
 
 		// Store the fact names for this iteration of consumers
 		variables.factsNameMap[ consumerIndex ] = arguments.factNames
-		return this
-	}
-
-	/**
-	 * Set the next rule in the chain of rules
-	 *
-	 * @rule The rule to tie into this rule chain
-	 */
-	Rule function setNextRule( required rule ){
-		variables.nextRule = arguments.rule
 		return this
 	}
 

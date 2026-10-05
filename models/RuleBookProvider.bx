@@ -6,7 +6,14 @@
  */
 class{
 
+	/**
+	 * The declared rulebook name this provider builds
+	 */
 	property name="name" type="string";
+
+	/**
+	 * The RuleBookRegistry that builds a fresh RuleBook on every get()
+	 */
 	property name="registry";
 
 	/**

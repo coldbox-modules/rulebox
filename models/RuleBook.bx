@@ -82,6 +82,11 @@ class{
 	 */
 	property name="ruleMetricsMap" type="struct";
 
+	/**
+	 * Compiles the condition trees of externally-defined rules into predicates
+	 */
+	property name="conditionEvaluator";
+
 	// Static lookup map for rule states
 	static{
 		RULE_STATES = {

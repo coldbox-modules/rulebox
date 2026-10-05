@@ -33,6 +33,12 @@ class implements="IMetricsStore"{
 	 */
 	property name="maxEventsPerRulebook" type="numeric" default="1000";
 
+	/**
+	 * The last sequence number handed out. Incremented for every recorded event so events from
+	 * different rulebooks can be ordered newest first.
+	 */
+	property name="sequence" type="numeric";
+
 	function init(){
 		variables.eventsByRulebook = {}
 		variables.aggregatesByRulebook = {}

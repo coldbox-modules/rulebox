@@ -9,6 +9,7 @@
  * Swap this out entirely via moduleSettings.rulebox.visualizer.metricsStore.
  */
 @singleton
+@threadsafe
 class implements="IMetricsStore"{
 
 	@inject( "coldbox:moduleSettings:rulebox" )
@@ -17,6 +18,9 @@ class implements="IMetricsStore"{
 	@inject( "logbox:logger:{this}" )
 	property name="logger";
 
+	/**
+	 * The datasource events are written to, read from visualizer.datasourceName in onDIComplete()
+	 */
 	property name="datasourceName" type="string";
 
 	function onDIComplete(){

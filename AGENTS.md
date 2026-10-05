@@ -116,6 +116,38 @@ This is BoxLang, not Java. Write it the BoxLang way:
 - **Truthiness and types:** BoxLang does truthy comparisons and type coercion behind the scenes. Don't add Java-style conversions or casts it already does for you.
 - **`static`:** constants that never change, and the defaults a module loads once, live in a `static {}` block and are read as `static.NAME`. A helper with no state is a class of `static` functions, called as `ClassName::method()`, not an instance.
 
+### BoxLang Classes
+
+- **Fields are properties:** every instance field (anything a class keeps in `variables`) is declared with `property`, including runtime state such as counters and lazily resolved objects. `ModuleConfig.bx` is the exception: `variables.settings` there is the ColdBox module convention.
+- **Docblocks:** every non-injected property has a `/** ... */` docblock saying what it holds. Injected properties (`@inject( "..." )`) don't need one. Every method has a docblock too.
+- **No hand-written accessors:** BoxLang generates `getX()` and `setX()` for every property, and the generated setter returns `this`, so chaining works. Only write a `get`/`set` method when it does more than read or assign the field.
+- **A declared property always exists:** it sits in `variables` as `null` until it is set. Test it with `isNull( variables.x )`, never `structKeyExists( variables, "x" )`, which is always true.
+- **Singletons and `@threadSafe`:** a `@singleton` class that has property injection or an `onDIComplete()` method also gets `@threadSafe`, so WireBox holds its lock through injection. This does not apply to classes in a circular dependency.
+
+  ```js
+  @singleton
+  @threadSafe
+  class{
+
+      @inject( "wirebox" )
+      property name="wirebox";
+
+      /**
+       * The last subscription token handed out by subscribe()
+       */
+      property name="nextToken" type="numeric";
+
+      /**
+       * Wire up anything that needs the injected dependencies
+       */
+      function onDIComplete(){
+          variables.nextToken = 0
+      }
+  }
+  ```
+
+The full set of rules is also packaged as the `rulebox-boxlang-conventions` skill in `.agents/skills-custom/`.
+
 ### Testing
 
 - Tests located in `/tests/specs/`
@@ -299,6 +331,9 @@ _CommandBox (9):_
 - **commandbox-task-runners** - Use this skill for CommandBox task runners: creating task CFCs, targets, passing...
 - **commandbox-testing** - Use this skill for CommandBox TestBox integration: testbox run command, running ...
 - **commandbox-usage** - Use this skill for CommandBox CLI usage: running commands, namespaces, tab compl...
+
+_Project (1):_
+- **rulebox-boxlang-conventions** - Use this skill when writing or reviewing any BoxLang code in this repo: destructuring loops, `##` escaping, `null`, `static`, property and accessor rules, and `@threadSafe` singletons. Load `.agents/skills-custom/rulebox-boxlang-conventions/SKILL.md`.
 
 _Other (1):_
 - **ortus-coding-standards** - Use this skill when writing, reviewing, or formatting any Ortus Solutions code (...
