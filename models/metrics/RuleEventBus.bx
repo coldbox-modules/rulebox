@@ -47,6 +47,11 @@ class{
 	 */
 	property name="metricsStoreFailed" type="boolean";
 
+	/**
+	 * Constructor: no subscribers, and a one second lock timeout for live broadcasts
+	 *
+	 * @return This bus
+	 */
 	function init(){
 		variables.subscribers  = {}
 		variables.nextToken    = 0
@@ -55,6 +60,11 @@ class{
 		return this
 	}
 
+	/**
+	 * Resolve the configured metrics store up front when the visualizer is enabled
+	 *
+	 * @return This bus
+	 */
 	function onDIComplete(){
 		if( variables.settings.visualizer.enabled ){
 			resolveMetricsStore()

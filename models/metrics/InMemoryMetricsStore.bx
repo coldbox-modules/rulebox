@@ -39,6 +39,11 @@ class implements="IMetricsStore"{
 	 */
 	property name="sequence" type="numeric";
 
+	/**
+	 * Constructor: an empty store
+	 *
+	 * @return This store
+	 */
 	function init(){
 		variables.eventsByRulebook = {}
 		variables.aggregatesByRulebook = {}
@@ -46,6 +51,12 @@ class implements="IMetricsStore"{
 		return this
 	}
 
+	/**
+	 * Persist one rule-evaluation event: append it to its rulebook's feed (capped at
+	 * maxEventsPerRulebook) and fold it into the running aggregates.
+	 *
+	 * @event { rulebookName, ruleName, state, durationMs, timestamp }
+	 */
 	void function recordEvent( required struct event ){
 		lock name="rulebox_inmemory_metrics" type="exclusive" timeout="5"{
 			var rulebookName = arguments.event.rulebookName
@@ -75,6 +86,14 @@ class implements="IMetricsStore"{
 		}
 	}
 
+	/**
+	 * Return recorded events, newest first.
+	 *
+	 * @filters Optional filters: { rulebookName }
+	 * @limit Max rows to return
+	 *
+	 * @return An array of { rulebookName, ruleName, state, durationMs, timestamp } structs
+	 */
 	array function queryEvents( struct filters={}, numeric limit=50 ){
 		var requestedFilters = arguments.filters
 		var maxRows = arguments.limit
@@ -99,6 +118,13 @@ class implements="IMetricsStore"{
 		}
 	}
 
+	/**
+	 * Aggregated stats for one rulebook across all its recorded rules.
+	 *
+	 * @rulebookName The rulebook to summarize
+	 *
+	 * @return { rulebookName, totalEvaluations, countsByState, avgDurationMs, totalDurationMs }
+	 */
 	struct function queryRuleBookSummary( required string rulebookName ){
 		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
 			var aggregate = variables.aggregatesByRulebook.keyExists( arguments.rulebookName )
@@ -108,6 +134,14 @@ class implements="IMetricsStore"{
 		}
 	}
 
+	/**
+	 * Aggregated stats for a single rule within a rulebook.
+	 *
+	 * @rulebookName The rule's owning rulebook
+	 * @ruleName The rule to summarize
+	 *
+	 * @return { rulebookName, ruleName, totalEvaluations, countsByState, avgDurationMs, minDurationMs, maxDurationMs, lastRunAt }
+	 */
 	struct function queryRuleMetrics( required string rulebookName, required string ruleName ){
 		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
 			var aggregate = newAggregate()
@@ -125,12 +159,20 @@ class implements="IMetricsStore"{
 		}
 	}
 
+	/**
+	 * Every distinct rulebook name that has at least one recorded event.
+	 *
+	 * @return An array of rulebook names
+	 */
 	array function queryRuleBookNames(){
 		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
 			return variables.aggregatesByRulebook.keyArray()
 		}
 	}
 
+	/**
+	 * Clear every recorded event and aggregate.
+	 */
 	void function reset(){
 		lock name="rulebox_inmemory_metrics" type="exclusive" timeout="5"{
 			variables.eventsByRulebook = {}
@@ -163,8 +205,8 @@ class implements="IMetricsStore"{
 			agg.minDurationMs = duration
 			agg.maxDurationMs = duration
 		} else {
-			agg.minDurationMs = mathMin( agg.minDurationMs, duration )
-			agg.maxDurationMs = mathMax( agg.maxDurationMs, duration )
+			agg.minDurationMs = min( agg.minDurationMs, duration )
+			agg.maxDurationMs = max( agg.maxDurationMs, duration )
 		}
 		agg.totalEvaluations++
 		agg.totalDurationMs += duration
@@ -192,14 +234,6 @@ class implements="IMetricsStore"{
 		summary[ "totalDurationMs" ]  = arguments.aggregate.totalDurationMs
 		summary[ "avgDurationMs" ]    = arguments.aggregate.totalEvaluations == 0 ? 0 : arguments.aggregate.totalDurationMs / arguments.aggregate.totalEvaluations
 		return summary
-	}
-
-	private numeric function mathMin( required numeric a, required numeric b ){
-		return arguments.a < arguments.b ? arguments.a : arguments.b
-	}
-
-	private numeric function mathMax( required numeric a, required numeric b ){
-		return arguments.a > arguments.b ? arguments.a : arguments.b
 	}
 
 }

@@ -28,6 +28,9 @@ class{
 	 */
 	property name="definitions" type="struct";
 
+	/**
+	 * Discover and normalize every declared rulebook once the settings are injected
+	 */
 	function onDIComplete(){
 		reload()
 	}

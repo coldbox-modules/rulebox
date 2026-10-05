@@ -20,6 +20,12 @@ class{
 	}
 
 	/**
+	 * How many live streams hold a slot right now. An AtomicInteger, so tryAcquire() and release()
+	 * stay correct across threads.
+	 */
+	property name="active";
+
+	/**
 	 * Constructor: no streams open.
 	 *
 	 * @return This LiveStreams instance
