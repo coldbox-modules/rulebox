@@ -1,0 +1,619 @@
+
+
+
+
+
+
+
+
+
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Home - RuleBox</title>
+	<meta property="og:type" content="website">
+	<meta property="og:site_name" content="RuleBox">
+	<meta property="og:title" content="Home">
+
+	
+	
+
+	
+	
+		<link rel="canonical" href="https&#x3a;&#x2f;&#x2f;rulebox.coldbox.org&#x2f;index.html">
+	
+
+	
+	
+		<meta name="description" content="RuleBox is a modern, intuitive, natural-language rules engine for BoxLang and ColdBox applications.">
+		<meta property="og:description" content="RuleBox is a modern, intuitive, natural-language rules engine for BoxLang and ColdBox applications.">
+	
+
+	
+	
+		<meta property="og:image" content="/assets/video/rulebox-visualizer-intro-poster.png">
+		<meta name="twitter:card" content="summary_large_image">
+	
+
+	
+	
+		<link rel="icon" href="/assets/rulebox-icon.svg">
+	
+
+	
+	<script>
+		( function () {
+			var configuredMode = "auto";
+			var stored = localStorage.getItem( "bxsites-theme" );
+			var prefersDark = window.matchMedia( "(prefers-color-scheme: dark)" ).matches;
+			var wantsDark = stored ? stored === "dark" : ( configuredMode === "dark" || ( configuredMode === "auto" && prefersDark ) );
+			if ( wantsDark ) {
+				document.documentElement.setAttribute( "data-theme", "dark" );
+			}
+		} )();
+	</script>
+
+	
+	<link rel="stylesheet" href="/assets/vendor/bootstrap/bootstrap.min.css">
+	<link rel="stylesheet" href="/assets/vendor/highlight/github.min.css">
+	<link rel="stylesheet" href="/assets/theme/style.de0a3c16.css">
+	<link rel="stylesheet" href="/assets/theme/home.css">
+
+	
+	<link rel="stylesheet" href="/assets/bundle.f640fb16.css">
+
+	
+	
+
+	
+	
+
+	
+	
+
+	
+	
+
+	
+	
+		<script>window.__BXSITES_BASE_PATH__ = "/";</script>
+		<script>window.__BXSITES_SEARCH_NO_RESULTS__ = "No\x20results\x20found.";</script>
+		<script src="/assets/vendor/minisearch/minisearch.js"></script>
+		<script src="/assets/search.js" defer></script>
+	
+
+	
+	
+
+	
+	
+
+	
+	<script src="/assets/vendor/alpine/cdn.min.js" defer></script>
+</head>
+<body
+	class="rb-home"
+	x-data="{ dark: document.documentElement.getAttribute( 'data-theme' ) === 'dark', copied: false }"
+	x-init="$watch( 'dark', v => { document.documentElement.setAttribute( 'data-theme', v ? 'dark' : 'light' ); localStorage.setItem( 'bxsites-theme', v ? 'dark' : 'light' ) } )">
+
+	<div class="rb-glow rb-glow-1" aria-hidden="true"></div>
+	<div class="rb-glow rb-glow-2" aria-hidden="true"></div>
+
+	
+	<header class="rb-nav">
+		<div class="rb-wrap rb-navrow">
+			<a class="rb-brand" href="/">
+				<img src="/assets/rulebox-icon.svg" alt="">
+				<span class="rb-brand-name">RuleBox</span>
+			</a>
+			<nav class="rb-navlinks" aria-label="Main">
+				<a href="/getting-started/">Getting Started</a>
+				<a href="/course/">Tutorial Course</a>
+				<a href="/guides/">Guides</a>
+				<a href="/guides/visualizer/">Visualizer</a>
+			</nav>
+			<div class="rb-navcta">
+				
+					<div class="rb-search">
+
+	<div class="bxsites-search position-relative">
+		<input
+			type="search"
+			id="bxsites-search-input"
+			class="form-control"
+			placeholder="Search..."
+			aria-label="Search">
+		<kbd class="bxsites-search-kbd" aria-hidden="true">Ctrl K</kbd>
+		<ul id="bxsites-search-results" class="bxsites-search-results list-unstyled"></ul>
+	</div>
+
+
+</div>
+				
+				
+					<select class="version-switcher form-select form-select-sm" onchange="location.href=this.value" aria-label="Version"><option value="/" selected>Latest</option><option value="/versions/1.0.0/">1.0.0</option></select>
+				
+				<button type="button" class="rb-icon-btn" @click="dark = !dark" aria-label="Toggle dark mode">
+					<span x-show="!dark"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg></span>
+					<span x-show="dark" x-cloak><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg></span>
+				</button>
+				
+					<a class="rb-btn rb-btn-ghost rb-btn-sm" href="https://github.com/coldbox-modules/rulebox" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.333-1.754-1.333-1.754-1.089-.744.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.303-5.467-1.332-5.467-5.93 0-1.31.468-2.38 1.235-3.22-.123-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23A11.5 11.5 0 0 1 12 5.803c1.02.005 2.045.138 3.003.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.118 3.176.77.84 1.235 1.91 1.235 3.22 0 4.61-2.807 5.625-5.48 5.92.43.372.823 1.102.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .322.216.694.825.576C20.565 21.795 24 17.298 24 12c0-6.63-5.37-12-12-12"/></svg> Star</a>
+				
+			</div>
+		</div>
+	</header>
+
+	<main>
+		
+		<section class="rb-hero">
+			<div class="rb-wrap rb-hero-grid">
+				<div class="rb-hero-copy">
+					<div class="rb-pill">
+						<span class="rb-pill-logos">
+							<img src="/assets/coldbox-icon.svg" alt="ColdBox">
+							<img src="/assets/boxlang-icon.svg" alt="BoxLang">
+						</span>
+						The rules engine for ColdBox and BoxLang
+					</div>
+					<h1>Write rules like you speak.<br><span class="rb-grad">Run them like code.</span></h1>
+					<p class="rb-lead">RuleBox turns tangled <code>if</code>/<code>else</code> blocks into named rules you can read, test and audit. Given some facts, when a condition holds, then act. In BoxLang, or as JSON your team can change without a deploy.</p>
+					<div class="rb-actions">
+						<a class="rb-btn rb-btn-primary" href="/course/">Start the Tutorial Course
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+						</a>
+						<a class="rb-btn rb-btn-ghost" href="/guides/">Read the Guides</a>
+					</div>
+					<div class="rb-install-row">
+						<div class="rb-install">
+							<span><span class="rb-prompt">$</span> box install rulebox</span>
+							<button type="button" @click="navigator.clipboard.writeText( 'box install rulebox' ); copied = true; setTimeout( () => copied = false, 1500 )" :aria-label="copied ? 'Copied' : 'Copy install command'" aria-label="Copy install command">
+								<svg x-show="!copied" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+								<svg x-show="copied" x-cloak viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+							</button>
+						</div>
+						<div class="rb-badges"><span>BoxLang 1.14+</span><span>ColdBox 8+</span><span>Apache 2.0</span></div>
+					</div>
+				</div>
+
+				<div class="rb-window">
+					<div class="rb-window-frame">
+						<div class="rb-window-bar">
+							<span class="rb-dot rb-dot-r"></span><span class="rb-dot rb-dot-y"></span><span class="rb-dot rb-dot-g"></span>
+							<span class="rb-tab rb-tab-on">LoanApproval.bx</span>
+						</div>
+<pre class="rb-code"><span class="k">class</span> extends=<span class="s">"rulebox.models.RuleBook"</span> {
+
+  <span class="k">function</span> <span class="f">defineRules</span>(){
+    <span class="f">addRule</span>(
+      <span class="f">newRule</span>( <span class="s">"declineLowScores"</span> )
+        .<span class="f">withPriority</span>( <span class="n">20</span> )
+        .<span class="f">when</span>( ( facts ) =&gt; facts.creditScore &lt; <span class="n">580</span> )
+        .<span class="f">then</span>( ( facts, result ) =&gt; result.<span class="f">setValue</span>( <span class="s">"DECLINED"</span> ) )
+        .<span class="f">stop</span>()
+    )
+    <span class="f">addRule</span>(
+      <span class="f">newRule</span>( <span class="s">"autoApprove"</span> )
+        .<span class="f">when</span>( ( facts ) =&gt; facts.creditScore &gt;= <span class="n">680</span> )
+        .<span class="f">except</span>( ( facts ) =&gt; facts.requestedAmount &gt; <span class="n">500000</span> )
+        .<span class="f">then</span>( ( facts, result ) =&gt; result.<span class="f">setValue</span>( <span class="s">"APPROVED"</span> ) )
+    )
+  }
+}</pre>
+<pre class="rb-code rb-code-foot"><span class="c">// in any handler</span>
+<span class="f">ruleBook</span>( <span class="s">"loan"</span> )
+  .<span class="f">run</span>( { creditScore: <span class="n">720</span>, requestedAmount: <span class="n">250000</span> } )
+  .<span class="f">getResult</span>().<span class="f">getValue</span>() <span class="c">// "APPROVED"</span><span class="rb-cursor" aria-hidden="true"></span></pre>
+					</div>
+					<div class="rb-float rb-float-1 rb-card" aria-hidden="true">
+						<span class="rb-float-ico rb-float-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+						<span class="rb-mono">autoApprove</span><span class="rb-ok">EXECUTED</span>
+					</div>
+					<div class="rb-float rb-float-2 rb-card" aria-hidden="true">
+						<span class="rb-float-ico rb-float-skip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 12h12"/></svg></span>
+						<span class="rb-mono">declineLowScores</span><span class="rb-skip">SKIPPED</span>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		
+		<section class="rb-section" id="tour">
+			<div class="rb-wrap">
+				<div class="rb-section-head rb-center">
+					<span class="rb-eyebrow">One-minute tour</span>
+					<h2>See the <span class="rb-grad">Rule Visualizer</span> in action</h2>
+				</div>
+				<div class="rb-video">
+					<video controls preload="metadata" playsinline poster="/assets/video/rulebox-visualizer-intro-poster.png" aria-label="A one-minute tour of the RuleBox Visualizer">
+						<source src="/assets/video/rulebox-visualizer-intro.mp4" type="video/mp4">
+					</video>
+				</div>
+				<p class="rb-video-note">Dashboard, chain view, dry runs, metrics and the live tracker, recorded against the RuleBox test app.</p>
+			</div>
+		</section>
+
+		
+		<section class="rb-section">
+			<div class="rb-wrap">
+				<div class="rb-section-head rb-center">
+					<span class="rb-eyebrow">How a rule runs</span>
+					<h2>Facts in. A decision out. <span class="rb-grad">Every step recorded.</span></h2>
+					<p>Rules run in priority order. Each one checks its condition, acts or skips, and can stop the chain. The audit trail shows exactly what happened.</p>
+				</div>
+				<div class="rb-flow rb-card">
+					
+						<div class="rb-stage">
+							
+								<div class="rb-link" aria-hidden="true"><span class="rb-pulse" style="animation-delay: 0s"></span></div>
+							
+							<div class="rb-stage-ico" aria-hidden="true">{ }</div>
+							<h3>Facts</h3>
+							<code>run&#x28; facts &#x29;</code>
+							<p>A struct of name and value pairs: the data you decide on.</p>
+						</div>
+					
+						<div class="rb-stage">
+							
+								<div class="rb-link" aria-hidden="true"><span class="rb-pulse" style="animation-delay: 0.5s"></span></div>
+							
+							<div class="rb-stage-ico" aria-hidden="true">?</div>
+							<h3>When</h3>
+							<code>.when&#x28; ... &#x29;</code>
+							<p>Each rule tests its condition, in priority order.</p>
+						</div>
+					
+						<div class="rb-stage">
+							
+								<div class="rb-link" aria-hidden="true"><span class="rb-pulse" style="animation-delay: 1s"></span></div>
+							
+							<div class="rb-stage-ico" aria-hidden="true">!</div>
+							<h3>Except</h3>
+							<code>.except&#x28; ... &#x29;</code>
+							<p>An exception skips the rule even when the condition holds.</p>
+						</div>
+					
+						<div class="rb-stage">
+							
+								<div class="rb-link" aria-hidden="true"><span class="rb-pulse" style="animation-delay: 1.5s"></span></div>
+							
+							<div class="rb-stage-ico" aria-hidden="true">=&gt;</div>
+							<h3>Then</h3>
+							<code>.then&#x28; ... &#x29;</code>
+							<p>Actions run, set the result, and can stop the chain.</p>
+						</div>
+					
+						<div class="rb-stage">
+							
+							<div class="rb-stage-ico" aria-hidden="true">&check;</div>
+							<h3>Result</h3>
+							<code>.getResult&#x28;&#x29;</code>
+							<p>One answer, plus an audit trail of every rule.</p>
+						</div>
+					
+				</div>
+			</div>
+		</section>
+
+		
+		<section class="rb-section" id="features">
+			<div class="rb-wrap">
+				<div class="rb-head-row">
+					<div class="rb-section-head">
+						<span class="rb-eyebrow">Everything a rule needs</span>
+						<h2>Small API. <span class="rb-grad">Serious engine.</span></h2>
+					</div>
+					<a href="/guides/">Browse all guides</a>
+				</div>
+				<div class="rb-grid3">
+					
+						<a class="rb-feature rb-card" href="/guides/the-dsl/">
+							<span class="rb-feature-ico" aria-hidden="true">Aa</span>
+							<h3>Natural-language DSL</h3>
+							<p>Rules read like sentences. No nested conditionals, no scattered business logic.</p>
+							<code>given &#x2f; when &#x2f; except &#x2f; then</code>
+						</a>
+					
+						<a class="rb-feature rb-card" href="/guides/external-rules/">
+							<span class="rb-feature-ico" aria-hidden="true">{}</span>
+							<h3>Rules as data</h3>
+							<p>Load rules from JSON, YAML or a database table, with named actions and predicates.</p>
+							<code>loadRules&#x28; source &#x29;</code>
+						</a>
+					
+						<a class="rb-feature rb-card" href="/guides/external-rules/">
+							<span class="rb-feature-ico" aria-hidden="true">#</span>
+							<h3>Declared rulebooks</h3>
+							<p>Declare rulebooks in config or a folder, then get one anywhere by name.</p>
+							<code>ruleBook&#x28; &quot;loan&quot; &#x29;</code>
+						</a>
+					
+						<a class="rb-feature rb-card" href="/guides/auditing/">
+							<span class="rb-feature-ico" aria-hidden="true">&equiv;</span>
+							<h3>Full audit trail</h3>
+							<p>Know which rules executed, skipped or failed on every run.</p>
+							<code>getRuleStatusMap&#x28;&#x29;</code>
+						</a>
+					
+						<a class="rb-feature rb-card" href="/guides/auditing/">
+							<span class="rb-feature-ico" aria-hidden="true">&loz;</span>
+							<h3>Dry runs</h3>
+							<p>Ask what would happen for a set of facts, without running a single action.</p>
+							<code>dryRun&#x28; facts &#x29;</code>
+						</a>
+					
+						<a class="rb-feature rb-card" href="/guides/the-dsl/">
+							<span class="rb-feature-ico" aria-hidden="true">&varr;</span>
+							<h3>Priorities and stops</h3>
+							<p>Order rules explicitly and let one rule end the chain.</p>
+							<code>withPriority&#x28; 20 &#x29;.stop&#x28;&#x29;</code>
+						</a>
+					
+						<a class="rb-feature rb-card" href="/guides/the-dsl/">
+							<span class="rb-feature-ico" aria-hidden="true">&#9719;</span>
+							<h3>Time windows</h3>
+							<p>Turn a rule on for a season or a campaign, then let it expire.</p>
+							<code>active&#x28; from, until &#x29;</code>
+						</a>
+					
+						<a class="rb-feature rb-card" href="/guides/visualizer/">
+							<span class="rb-feature-ico" aria-hidden="true">&#9673;</span>
+							<h3>Rule Visualizer</h3>
+							<p>Dashboard, chain view, dry run, metrics and a live tracker.</p>
+							<code>visualizer.enabled &#x3d; true</code>
+						</a>
+					
+						<a class="rb-feature rb-card" href="/guides/thread-safety/">
+							<span class="rb-feature-ico" aria-hidden="true">&oplus;</span>
+							<h3>WireBox native</h3>
+							<p>Inject rulebooks and the Builder. A fresh RuleBook per decision keeps it thread safe.</p>
+							<code>inject&#x3d;&quot;rulebook&#x3a;loan&quot;</code>
+						</a>
+					
+				</div>
+			</div>
+		</section>
+
+		
+		<section class="rb-section">
+			<div class="rb-wrap">
+				<div class="rb-section-head rb-center">
+					<span class="rb-eyebrow">Code or data</span>
+					<h2>The same rule, <span class="rb-grad">two ways.</span></h2>
+					<p>Keep logic that rarely changes in BoxLang. Move thresholds that change often into JSON, YAML or a database table, and load them at runtime.</p>
+				</div>
+				<div class="rb-grid2">
+					<div class="rb-pane rb-card">
+						<div class="rb-pane-head"><b>In BoxLang</b><span>LoanApproval.bx</span></div>
+<pre class="rb-code"><span class="f">newRule</span>( <span class="s">"declineLowScores"</span> )
+  .<span class="f">withPriority</span>( <span class="n">20</span> )
+  .<span class="f">when</span>( ( facts ) =&gt; facts.creditScore &lt; <span class="n">580</span> )
+  .<span class="f">then</span>( ( facts, result ) =&gt;
+    result.<span class="f">setValue</span>( <span class="s">"DECLINED"</span> )
+  )
+  .<span class="f">stop</span>()</pre>
+					</div>
+					<div class="rb-pane rb-card">
+						<div class="rb-pane-head"><b>As data</b><span>config/rules/loan.json</span></div>
+<pre class="rb-code">{
+  <span class="p">"name"</span>: <span class="s">"declineLowScores"</span>,
+  <span class="p">"priority"</span>: <span class="n">20</span>,
+  <span class="p">"when"</span>: { <span class="p">"lt"</span>: [ <span class="s">"creditScore"</span>, <span class="n">580</span> ] },
+  <span class="p">"then"</span>: [ { <span class="p">"action"</span>: <span class="s">"decide"</span>,
+    <span class="p">"params"</span>: { <span class="p">"decision"</span>: <span class="s">"DECLINED"</span> } } ],
+  <span class="p">"stop"</span>: <span class="k">true</span>
+}</pre>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		
+		<section class="rb-section" id="visualizer">
+			<div class="rb-wrap">
+				<div class="rb-head-row">
+					<div class="rb-section-head">
+						<span class="rb-eyebrow">Rule Visualizer</span>
+						<h2>See your rules. <span class="rb-grad">Watch them fire.</span></h2>
+						<p>A built-in admin UI: browse every rulebook, view its chain in run order, dry-run any facts, read metrics, and stream evaluations live.</p>
+					</div>
+					<a href="/guides/visualizer/">Turn it on in one setting</a>
+				</div>
+				<div class="bxsites-image-gallery bxsites-image-gallery--cols-3">
+					
+						<figure class="bxsites-image-gallery__item">
+							<img class="bxsites-image-gallery__image" src="/assets/visualizer/dashboard.png" alt="Dashboard&#x3a;&#x20;Every&#x20;declared&#x20;rulebook,&#x20;its&#x20;outcomes&#x20;and&#x20;recent&#x20;activity." data-bxsites-lightbox loading="lazy">
+							<figcaption class="bxsites-image-gallery__caption"><b>Dashboard.</b> Every declared rulebook, its outcomes and recent activity.</figcaption>
+						</figure>
+					
+						<figure class="bxsites-image-gallery__item">
+							<img class="bxsites-image-gallery__image" src="/assets/visualizer/chain-loanapproval.png" alt="Chain&#x20;view&#x3a;&#x20;Rules&#x20;in&#x20;run&#x20;order,&#x20;with&#x20;priorities&#x20;and&#x20;stops." data-bxsites-lightbox loading="lazy">
+							<figcaption class="bxsites-image-gallery__caption"><b>Chain view.</b> Rules in run order, with priorities and stops.</figcaption>
+						</figure>
+					
+						<figure class="bxsites-image-gallery__item">
+							<img class="bxsites-image-gallery__image" src="/assets/visualizer/dryrun.png" alt="Dry&#x20;run&#x3a;&#x20;Type&#x20;facts&#x20;and&#x20;see&#x20;which&#x20;rules&#x20;would&#x20;fire." data-bxsites-lightbox loading="lazy">
+							<figcaption class="bxsites-image-gallery__caption"><b>Dry run.</b> Type facts and see which rules would fire.</figcaption>
+						</figure>
+					
+						<figure class="bxsites-image-gallery__item">
+							<img class="bxsites-image-gallery__image" src="/assets/visualizer/metrics.png" alt="Metrics&#x3a;&#x20;Evaluations,&#x20;durations&#x20;and&#x20;outcomes&#x20;by&#x20;state." data-bxsites-lightbox loading="lazy">
+							<figcaption class="bxsites-image-gallery__caption"><b>Metrics.</b> Evaluations, durations and outcomes by state.</figcaption>
+						</figure>
+					
+						<figure class="bxsites-image-gallery__item">
+							<img class="bxsites-image-gallery__image" src="/assets/visualizer/live.png" alt="Live&#x20;tracker&#x3a;&#x20;Every&#x20;evaluation,&#x20;streamed&#x20;as&#x20;it&#x20;happens." data-bxsites-lightbox loading="lazy">
+							<figcaption class="bxsites-image-gallery__caption"><b>Live tracker.</b> Every evaluation, streamed as it happens.</figcaption>
+						</figure>
+					
+						<figure class="bxsites-image-gallery__item">
+							<img class="bxsites-image-gallery__image" src="/assets/visualizer/chain-seasonalpromo.png" alt="Time&#x20;windows&#x3a;&#x20;A&#x20;seasonal&#x20;rulebook&#x20;with&#x20;active&#x28;&#x29;&#x20;date&#x20;ranges." data-bxsites-lightbox loading="lazy">
+							<figcaption class="bxsites-image-gallery__caption"><b>Time windows.</b> A seasonal rulebook with active&#x28;&#x29; date ranges.</figcaption>
+						</figure>
+					
+				</div>
+			</div>
+		</section>
+
+		
+		<section class="rb-section" id="course">
+			<div class="rb-wrap">
+				<div class="rb-course rb-card">
+					<div class="rb-head-row" style="margin-bottom: 0">
+						<div class="rb-section-head">
+							<span class="rb-eyebrow">Tutorial Course</span>
+							<h2>Learn RuleBox in <span class="rb-grad">ten short lessons.</span></h2>
+							<p>Build a loan decision from a single <code>if</code> statement to rules in a file, running inside ColdBox and showing up in the Visualizer.</p>
+						</div>
+						<a class="rb-btn rb-btn-primary" href="/course/01-what-is-rulebox/">Start lesson 1</a>
+					</div>
+					<ol class="rb-lessons">
+						
+							<li>
+								<span class="rb-num">01</span>
+								<a href="/course/01-what-is-rulebox/">What is RuleBox&#x3f;</a>
+							</li>
+						
+							<li>
+								<span class="rb-num">02</span>
+								<a href="/course/02-your-first-rule/">Your First Rule</a>
+							</li>
+						
+							<li>
+								<span class="rb-num">03</span>
+								<a href="/course/03-facts-and-results/">Facts and Results</a>
+							</li>
+						
+							<li>
+								<span class="rb-num">04</span>
+								<a href="/course/04-more-rules/">More Rules</a>
+							</li>
+						
+							<li>
+								<span class="rb-num">05</span>
+								<a href="/course/05-see-what-happened/">See What Happened</a>
+							</li>
+						
+							<li>
+								<span class="rb-num">06</span>
+								<a href="/course/06-rules-from-json/">Rules from JSON</a>
+							</li>
+						
+							<li>
+								<span class="rb-num">07</span>
+								<a href="/course/07-rulebooks-in-coldbox/">RuleBooks in ColdBox</a>
+							</li>
+						
+							<li>
+								<span class="rb-num">08</span>
+								<a href="/course/08-when-things-go-wrong/">When Things Go Wrong</a>
+							</li>
+						
+							<li>
+								<span class="rb-num">09</span>
+								<a href="/course/09-the-visualizer/">The Visualizer</a>
+							</li>
+						
+							<li>
+								<span class="rb-num">10</span>
+								<a href="/course/10-where-to-go-next/">Where to Go Next</a>
+							</li>
+						
+					</ol>
+				</div>
+			</div>
+		</section>
+
+		
+		<section class="rb-section" style="padding-top: 16px; padding-bottom: 64px">
+			<div class="rb-wrap rb-stack">
+				<span class="rb-eyebrow" style="color: var(--rb-muted)">Built on the Ortus stack</span>
+				<div class="rb-stack-row">
+					<a class="rb-chip-logo rb-card" href="https://boxlang.io" target="_blank" rel="noopener noreferrer"><img src="/assets/boxlang-icon.svg" alt="">BoxLang</a>
+					<a class="rb-chip-logo rb-card" href="https://www.coldbox.org" target="_blank" rel="noopener noreferrer"><img src="/assets/coldbox-icon.svg" alt="">ColdBox</a>
+					<a class="rb-chip-logo rb-card" href="https://wirebox.ortusbooks.com" target="_blank" rel="noopener noreferrer"><span class="rb-chip-mark" style="color: var(--rb-c1)" aria-hidden="true">Wb</span>WireBox</a>
+					<a class="rb-chip-logo rb-card" href="https://www.testbox.run" target="_blank" rel="noopener noreferrer"><span class="rb-chip-mark" style="color: var(--rb-c2)" aria-hidden="true">Tb</span>TestBox</a>
+					<a class="rb-chip-logo rb-card" href="https://www.ortussolutions.com/products/commandbox" target="_blank" rel="noopener noreferrer"><span class="rb-chip-mark" style="color: var(--rb-amber)" aria-hidden="true">Cb</span>CommandBox</a>
+				</div>
+			</div>
+		</section>
+
+		
+		<section class="rb-section" style="padding-top: 0">
+			<div class="rb-wrap rb-grid3">
+				<a class="rb-cta rb-card" href="/getting-started/">
+					<h3>Get started</h3>
+					<p>Install the module and run your first rule in five minutes.</p>
+					<span>Getting Started</span>
+				</a>
+				<a class="rb-cta rb-card" href="https://www.ortussolutions.com/services" target="_blank" rel="noopener noreferrer">
+					<h3>Professional support</h3>
+					<p>Ortus Solutions, the team behind ColdBox and BoxLang, offers support and consulting.</p>
+					<span>Talk to Ortus</span>
+				</a>
+				
+					<a class="rb-cta rb-card" href="https://github.com/coldbox-modules/rulebox" target="_blank" rel="noopener noreferrer">
+						<h3>Open source</h3>
+						<p>Apache 2.0 licensed. Issues, ideas and pull requests welcome on GitHub.</p>
+						<span>coldbox-modules/rulebox</span>
+					</a>
+				
+			</div>
+		</section>
+	</main>
+
+	
+	<footer class="rb-footer">
+		<div class="rb-wrap rb-foot">
+			<div class="rb-foot-brand">
+				<a class="rb-brand" href="/">
+					<img src="/assets/rulebox-icon.svg" alt="">
+					<span class="rb-brand-name">RuleBox</span>
+				</a>
+				<p>A natural-language rules engine for BoxLang and ColdBox, based on RuleBook.</p>
+				
+					<div class="rb-social"><a class="social-link" href="https://github.com/coldbox-modules/rulebox" target="_blank" rel="noopener noreferrer" aria-label="RuleBox on GitHub" title="RuleBox on GitHub"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.333-1.754-1.333-1.754-1.089-.744.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.303-5.467-1.332-5.467-5.93 0-1.31.468-2.38 1.235-3.22-.123-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23A11.5 11.5 0 0 1 12 5.803c1.02.005 2.045.138 3.003.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.118 3.176.77.84 1.235 1.91 1.235 3.22 0 4.61-2.807 5.625-5.48 5.92.43.372.823 1.102.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .322.216.694.825.576C20.565 21.795 24 17.298 24 12c0-6.63-5.37-12-12-12"/></svg></a><a class="social-link" href="https://www.ortussolutions.com/community/slack" target="_blank" rel="noopener noreferrer" aria-label="Slack Community" title="Slack Community"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52ZM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313ZM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834ZM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312ZM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834ZM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312ZM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52ZM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313Z"/></svg></a><a class="social-link" href="https://community.ortussolutions.com/" target="_blank" rel="noopener noreferrer" aria-label="Community Forum" title="Community Forum"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg></a></div>
+				
+			</div>
+			<div class="rb-foot-col">
+				<h4>Learn</h4>
+				<a href="/getting-started/">Getting Started</a>
+				<a href="/course/">Tutorial Course</a>
+				<a href="/releases/">Release Notes</a>
+			</div>
+			<div class="rb-foot-col">
+				<h4>Guides</h4>
+				<a href="/guides/the-dsl/">The RuleBook DSL</a>
+				<a href="/guides/external-rules/">External Rules</a>
+				<a href="/guides/visualizer/">Rule Visualizer</a>
+			</div>
+			<div class="rb-foot-col">
+				<h4>Community</h4>
+				
+					<a href="https://github.com/coldbox-modules/rulebox/issues" target="_blank" rel="noopener noreferrer">Issues</a>
+				
+				<a href="https://www.ortussolutions.com/community/slack" target="_blank" rel="noopener noreferrer">Slack</a>
+				<a href="https://community.ortussolutions.com/" target="_blank" rel="noopener noreferrer">Forum</a>
+			</div>
+		</div>
+		<div class="rb-wrap rb-foot-bottom">
+			<span>&copy; 2026 Ortus Solutions, Corp. Apache License 2.0.</span>
+			<div class="rb-foot-right">
+				<a class="rb-foot-verse" href="https://www.bible.com/bible/59/JHN.14.6.ESV" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">❤️</span> He is the truth and the life</a>
+				<span>Part of the ColdBox platform</span>
+			</div>
+		</div>
+	</footer>
+
+	
+	
+		<script src="/assets/image-gallery-init.js" defer></script>
+	
+
+	
+	
+</body>
+</html>
+
