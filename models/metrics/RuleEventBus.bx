@@ -25,9 +25,17 @@ class{
 	 */
 	property name="subscribers" type="struct";
 
+	/**
+	 * Seconds publish() will wait for the subscriber lock before giving up on the live broadcast
+	 * (the event is still persisted). Kept short because publish() runs inline on the thread that is
+	 * evaluating a business rule. Must be greater than 0 (0 means "wait forever" for a lock).
+	 */
+	property name="lockTimeout" type="numeric";
+
 	function init(){
 		variables.subscribers  = {}
 		variables.nextToken    = 0
+		variables.lockTimeout  = 1
 		variables.metricsStoreFailed = false
 		return this
 	}
@@ -73,34 +81,40 @@ class{
 	 * @event { rulebookName, ruleName, state, durationMs, timestamp }
 	 */
 	void function publish( required struct event ){
-		if( !variables.settings.visualizer.enabled ){
-			return
-		}
-
-		if( !structKeyExists( variables, "metricsStore" ) && !variables.metricsStoreFailed ){
-			resolveMetricsStore()
-		}
-
-		if( structKeyExists( variables, "metricsStore" ) ){
-			try{
-				variables.metricsStore.recordEvent( arguments.event )
-			} catch( any e ){
-				logger.error( "RuleBox visualizer's metrics store failed to record an event: #e.message# #e.detail#" )
+		// Metrics must never break rule execution: nothing in here may escape to the caller,
+		// lock acquisition failures included.
+		try{
+			if( !variables.settings.visualizer.enabled ){
+				return
 			}
-		}
 
-		var listeners     = []
-		var publishedEvent = arguments.event
-		lock name="rulebox_event_bus_subscribers" type="readOnly" timeout="5"{
-			listeners = variables.subscribers.valueArray()
-		}
-		listeners.each( ( listener ) => {
-			try{
-				listener( publishedEvent )
-			} catch( any e ){
-				logger.warn( "RuleBox visualizer: a live subscriber threw and was skipped: #e.message#" )
+			if( !structKeyExists( variables, "metricsStore" ) && !variables.metricsStoreFailed ){
+				resolveMetricsStore()
 			}
-		} )
+
+			if( structKeyExists( variables, "metricsStore" ) ){
+				try{
+					variables.metricsStore.recordEvent( arguments.event )
+				} catch( any e ){
+					logger.error( "RuleBox visualizer's metrics store failed to record an event: #e.message# #e.detail#" )
+				}
+			}
+
+			var listeners      = []
+			var publishedEvent = arguments.event
+			lock name="rulebox_event_bus_subscribers" type="readOnly" timeout="#variables.lockTimeout#"{
+				listeners = variables.subscribers.valueArray()
+			}
+			listeners.each( ( listener ) => {
+				try{
+					listener( publishedEvent )
+				} catch( any e ){
+					logger.warn( "RuleBox visualizer: a live subscriber threw and was skipped: #e.message#" )
+				}
+			} )
+		} catch( any e ){
+			logger.error( "RuleBox visualizer could not publish an event and dropped it: #e.message# #e.detail#" )
+		}
 	}
 
 	/**

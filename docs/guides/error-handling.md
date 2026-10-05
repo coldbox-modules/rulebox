@@ -2,19 +2,27 @@
 title: Error Handling
 order: 7
 icon: phosphor-duotone:warning-circle
-summary: What happens when a then() throws, and what happens when a Rule is run detached.
+summary: What happens when a rule throws, and what happens when a Rule is run detached.
 tags: [guides, errors]
 ---
 
 # Error Handling
 
-## A `then()` consumer that throws
+## A rule that throws
 
-If a `then()` consumer throws, RuleBox records the rule as `FAILED` in
-the audit trail (see [Auditing Rules](auditing.md)) **before** the
-exception is re-thrown to the caller. That means `ruleBook.getRuleStatus()`
-reliably reflects a mid-chain failure - you don't have to catch the
-exception yourself just to find out which rule blew up:
+If a rule throws while it is being evaluated, RuleBox records the rule as
+`FAILED` in the audit trail (see [Auditing Rules](auditing.md)) **before**
+the exception is re-thrown to the caller. This covers a throw from:
+
+- a `then()` consumer
+- `when()`
+- `except()`
+- a bad `active()` date (one that can't be read as a date)
+
+The rules after the failed one are never reached, so they stay
+`REGISTERED`. That means `ruleBook.getRuleStatus()` reliably reflects a
+mid-chain failure. You don't have to catch the exception yourself just to
+find out which rule blew up:
 
 ```js
 try {

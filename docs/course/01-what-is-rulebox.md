@@ -62,4 +62,7 @@ You will use `RuleBook` in the next lesson and meet the registry in lesson 7.
 Run `box install rulebox`, restart your app, and move on. There is nothing
 else to configure.
 
+Planning to keep rules in YAML files? Also run `box install bx-yaml`. RuleBox
+does not install it for you. JSON and BoxLang rules need nothing extra.
+
 **Next:** write your first rule.

@@ -267,6 +267,7 @@
     display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 40px; padding-top: 20px;
     border-top: 1px solid var(--rb-line); font-size: 13px; color: var(--rb-muted);
 }
+.rb-foot-right { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
 .rb-social { display: flex; gap: 12px; }
 .rb-social a { color: var(--rb-muted); }
 .rb-social svg { width: 18px; height: 18px; }

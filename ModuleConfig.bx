@@ -9,7 +9,7 @@ class {
 	this.title 				= "rulebox"
 	this.author 			= "Ortus Solutions"
 	this.webURL 			= "https://www.ortussolutions.com"
-	this.description 		= "A natuarl language rule engine for ColdBox apps"
+	this.description 		= "A natural language rule engine for ColdBox apps"
 	// Model Namespace
 	this.modelNamespace		= "rulebox"
 	// Class Mapping
@@ -41,6 +41,8 @@ class {
 			metricsStore   = "InMemoryMetricsStore@rulebox",
 			// Datasource name SQLiteMetricsStore reads/writes, if you opt into it above.
 			datasourceName = "rulebox_visualizer",
+			// Max live-tracker (SSE) connections open at once; each pins two server threads. Over the cap, stream() answers 503.
+			maxStreams     = 25,
 			// SQLiteMetricsStore retention (0 disables either): prune events older than this many days...
 			retentionDays  = 30,
 			// ...and keep at most this many rows. Checked every ~500 inserts, not on every insert.
@@ -110,7 +112,8 @@ class {
 			retentionDays                 : 0,
 			maxStoredEvents               : 0,
 			circuitBreakerThreshold       : 1,
-			circuitBreakerCooldownSeconds : 0
+			circuitBreakerCooldownSeconds : 0,
+			maxStreams                    : 1
 		}
 		for( var key, minimum in minimums ){
 			var value = arguments.visualizer[ key ] ?: ""
