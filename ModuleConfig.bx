@@ -112,10 +112,10 @@ class {
 			circuitBreakerThreshold       : 1,
 			circuitBreakerCooldownSeconds : 0
 		}
-		for( var key in minimums ){
+		for( var key, minimum in minimums ){
 			var value = arguments.visualizer[ key ] ?: ""
-			if( !isNumeric( value ) || value < minimums[ key ] || value != int( value ) ){
-				invalidSetting( "visualizer.#key#", value, "a whole number of #minimums[ key ]# or more" )
+			if( !isNumeric( value ) || value < minimum || value != int( value ) ){
+				invalidSetting( "visualizer.#key#", value, "a whole number of #minimum# or more" )
 			}
 		}
 	}
