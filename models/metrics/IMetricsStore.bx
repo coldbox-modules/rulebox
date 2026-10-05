@@ -8,7 +8,8 @@ interface {
 	/**
 	 * Persist one rule-evaluation event.
 	 *
-	 * @event { rulebookName, ruleName, state, durationMs, timestamp }
+	 * @event { rulebookName, ruleName, state, durationMs, timestamp }, plus { errorType, errorMessage } when
+	 *        the state is FAILED (the message is already cut to 500 characters)
 	 */
 	void function recordEvent( required struct event )
 
@@ -18,7 +19,8 @@ interface {
 	 * @filters Optional filters: { rulebookName }
 	 * @limit Max rows to return
 	 *
-	 * @return An array of { rulebookName, ruleName, state, durationMs, timestamp } structs
+	 * @return An array of { rulebookName, ruleName, state, durationMs, timestamp } structs, plus
+	 *         { errorType, errorMessage } on FAILED events
 	 */
 	array function queryEvents( struct filters={}, numeric limit=50 )
 
@@ -27,7 +29,8 @@ interface {
 	 *
 	 * @rulebookName The rulebook to summarize
 	 *
-	 * @return { rulebookName, totalEvaluations, countsByState, avgDurationMs, totalDurationMs }
+	 * @return { rulebookName, totalEvaluations, countsByState, avgDurationMs, totalDurationMs,
+	 *         completed, failed, completionRate, errorRate } (see RuleHealth::of() for the definitions)
 	 */
 	struct function queryRuleBookSummary( required string rulebookName )
 
@@ -37,9 +40,21 @@ interface {
 	 * @rulebookName The rule's owning rulebook
 	 * @ruleName The rule to summarize
 	 *
-	 * @return { rulebookName, ruleName, totalEvaluations, countsByState, avgDurationMs, minDurationMs, maxDurationMs, lastRunAt }
+	 * @return { rulebookName, ruleName, totalEvaluations, countsByState, avgDurationMs, minDurationMs, maxDurationMs,
+	 *         lastRunAt, completed, failed, completionRate, errorRate, lastError? }. lastError is { type, message, at }
+	 *         for the rule's most recent FAILED evaluation and is absent until one happens.
 	 */
 	struct function queryRuleMetrics( required string rulebookName, required string ruleName )
+
+	/**
+	 * Aggregated stats for every rule of a rulebook that has at least one recorded event, so a dashboard
+	 * can rank rules by error rate or duration.
+	 *
+	 * @rulebookName The rulebook whose rules to summarize
+	 *
+	 * @return An array of queryRuleMetrics() structs, one per rule, in no particular order
+	 */
+	array function queryAllRuleMetrics( required string rulebookName )
 
 	/**
 	 * Every distinct rulebook name that has at least one recorded event.

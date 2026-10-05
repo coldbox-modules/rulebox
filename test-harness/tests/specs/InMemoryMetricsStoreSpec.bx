@@ -82,6 +82,73 @@ class extends="tests.resources.BaseSpec"{
 				expect( metrics.lastRunAt ).toBe( "2" );
 			} );
 
+			it( "reports completed and failed counts and rates for a rule and its rulebook", function(){
+				variables.store.recordEvent( anEvent( state="EXECUTED", durationMs=10 ) );
+				variables.store.recordEvent( anEvent( state="SKIPPED", durationMs=20 ) );
+				variables.store.recordEvent( anEvent( state="STOPPED", durationMs=30 ) );
+				var failed = anEvent( state="FAILED", durationMs=40 );
+				failed.errorType    = "TestBoom";
+				failed.errorMessage = "Kaboom";
+				variables.store.recordEvent( failed );
+
+				var metrics = variables.store.queryRuleMetrics( "rb", "r1" );
+				expect( metrics.completed ).toBe( 3 );
+				expect( metrics.failed ).toBe( 1 );
+				expect( metrics.completionRate ).toBe( 0.75 );
+				expect( metrics.errorRate ).toBe( 0.25 );
+				expect( metrics.avgDurationMs ).toBe( 25 );
+
+				var summary = variables.store.queryRuleBookSummary( "rb" );
+				expect( summary.completed ).toBe( 3 );
+				expect( summary.errorRate ).toBe( 0.25 );
+			} );
+
+			it( "keeps the most recent error of a rule as lastError, and none for a healthy rule", function(){
+				var first = anEvent( state="FAILED", timestamp="2026-01-01T00:00:01.000" );
+				first.errorType    = "TestBoom";
+				first.errorMessage = "first";
+				var second = anEvent( state="FAILED", timestamp="2026-01-01T00:00:02.000" );
+				second.errorType    = "OtherBoom";
+				second.errorMessage = "second";
+				variables.store.recordEvent( first );
+				variables.store.recordEvent( second );
+				variables.store.recordEvent( anEvent( ruleName="healthy" ) );
+
+				var lastError = variables.store.queryRuleMetrics( "rb", "r1" ).lastError;
+				expect( lastError.type ).toBe( "OtherBoom" );
+				expect( lastError.message ).toBe( "second" );
+				expect( lastError.at ).toBe( "2026-01-01T00:00:02.000" );
+				expect( variables.store.queryRuleMetrics( "rb", "healthy" ) ).notToHaveKey( "lastError" );
+			} );
+
+			it( "keeps the error type and message on FAILED events", function(){
+				var failed = anEvent( state="FAILED" );
+				failed.errorType    = "TestBoom";
+				failed.errorMessage = "Kaboom";
+				variables.store.recordEvent( failed );
+
+				var events = variables.store.queryEvents();
+				expect( events[ 1 ].errorType ).toBe( "TestBoom" );
+				expect( events[ 1 ].errorMessage ).toBe( "Kaboom" );
+			} );
+
+			it( "lists the metrics of every rule in a rulebook, and nothing for an unknown rulebook", function(){
+				variables.store.recordEvent( anEvent( ruleName="a", durationMs=5 ) );
+				variables.store.recordEvent( anEvent( ruleName="b", durationMs=50 ) );
+				variables.store.recordEvent( anEvent( rulebookName="other", ruleName="c" ) );
+
+				var list = variables.store.queryAllRuleMetrics( "rb" );
+				expect( list ).toHaveLength( 2 );
+				var byName = {};
+				for( var metrics in list ){
+					byName[ metrics.ruleName ] = metrics;
+				}
+				expect( byName.a.avgDurationMs ).toBe( 5 );
+				expect( byName.b.maxDurationMs ).toBe( 50 );
+				expect( byName.b.rulebookName ).toBe( "rb" );
+				expect( variables.store.queryAllRuleMetrics( "nope" ) ).toBeEmpty();
+			} );
+
 			it( "lists distinct rulebook names that have recorded events", function(){
 				variables.store.recordEvent( anEvent( rulebookName="a" ) );
 				variables.store.recordEvent( anEvent( rulebookName="a" ) );
