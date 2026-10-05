@@ -42,7 +42,15 @@ class {
 			// Datasource name SQLiteMetricsStore reads/writes, if you opt into it above.
 			datasourceName = "rulebox_visualizer",
 			// Max live-tracker (SSE) connections open at once; each pins two server threads. Over the cap, stream() answers 503.
-			maxStreams     = 25
+			maxStreams     = 25,
+			// SQLiteMetricsStore retention (0 disables either): prune events older than this many days...
+			retentionDays  = 30,
+			// ...and keep at most this many rows. Checked every ~500 inserts, not on every insert.
+			maxStoredEvents = 100000,
+			// SQLiteMetricsStore circuit breaker: after this many consecutive failures stop
+			// writing for the cool-down (seconds), logging one error on open and one info on recovery.
+			circuitBreakerThreshold       = 5,
+			circuitBreakerCooldownSeconds = 60
 		}
 	}
 
@@ -101,7 +109,11 @@ class {
 		}
 		// Whole-number settings and the smallest value each accepts
 		var minimums = {
-			maxStreams : 1
+			retentionDays                 : 0,
+			maxStoredEvents               : 0,
+			circuitBreakerThreshold       : 1,
+			circuitBreakerCooldownSeconds : 0,
+			maxStreams                    : 1
 		}
 		for( var key, minimum in minimums ){
 			var value = arguments.visualizer[ key ] ?: ""
