@@ -20,6 +20,7 @@
  * Swap this out entirely via moduleSettings.rulebox.visualizer.metricsStore.
  */
 @singleton
+@threadsafe
 class implements="IMetricsStore"{
 
 	@inject( "coldbox:moduleSettings:rulebox" )
@@ -28,24 +29,84 @@ class implements="IMetricsStore"{
 	@inject( "logbox:logger:{this}" )
 	property name="logger";
 
+	/**
+	 * The datasource events are written to, read from visualizer.datasourceName in onDIComplete()
+	 */
 	property name="datasourceName" type="string";
 
-	// Resolved from settings in onDIComplete(); ModuleConfig fills and validates them
-	variables.breakerThreshold       = 5
-	variables.breakerCooldownMs      = 60000
-	variables.retentionDays          = 30
-	variables.maxStoredEvents        = 100000
-	// Run the retention DELETE once per this many successful inserts
-	variables.pruneEvery             = 500
+	/**
+	 * Consecutive failures that open the circuit, from visualizer.circuitBreakerThreshold
+	 */
+	property name="breakerThreshold" type="numeric" default="5";
 
-	// Breaker / schema state
-	variables.schemaReady            = false
-	variables.consecutiveFailures    = 0
-	variables.circuitOpen            = false
-	variables.circuitOpenedAt        = 0
-	variables.insertsSincePrune      = 0
-	variables.lastError              = ""
+	/**
+	 * How long the circuit stays open before a trial insert, in milliseconds, from
+	 * visualizer.circuitBreakerCooldownSeconds
+	 */
+	property name="breakerCooldownMs" type="numeric" default="60000";
 
+	/**
+	 * Prune events older than this many days, from visualizer.retentionDays. 0 disables it.
+	 */
+	property name="retentionDays" type="numeric" default="30";
+
+	/**
+	 * Keep at most this many rows, from visualizer.maxStoredEvents. 0 disables it.
+	 */
+	property name="maxStoredEvents" type="numeric" default="100000";
+
+	/**
+	 * Run the retention DELETE once per this many successful inserts
+	 */
+	property name="pruneEvery" type="numeric" default="500";
+
+	/**
+	 * Has the events table and its index been created? A failed create is retried by the next recordEvent().
+	 */
+	property name="schemaReady" type="boolean" default="false";
+
+	/**
+	 * Failures in a row since the last successful database call
+	 */
+	property name="consecutiveFailures" type="numeric" default="0";
+
+	/**
+	 * Is the circuit open (tripped and not yet recovered)?
+	 */
+	property name="circuitOpen" type="boolean" default="false";
+
+	/**
+	 * When the circuit opened, or when the last trial was claimed, in milliseconds
+	 */
+	property name="circuitOpenedAt" type="numeric" default="0";
+
+	/**
+	 * Successful inserts since the last retention prune
+	 */
+	property name="insertsSincePrune" type="numeric" default="0";
+
+	/**
+	 * The message of the most recent database failure
+	 */
+	property name="lastError" type="string" default="";
+
+	/**
+	 * Executes SQL: ( sql, params, options ) => result. Null means queryExecute() against the configured
+	 * datasource. Set it with setSqlRunner() to unit-test the breaker and retention logic.
+	 */
+	property name="sqlRunner" type="function";
+
+	/**
+	 * The circuit breaker's clock: () => epoch milliseconds. Null means getTickCount(). Set it with
+	 * setClock() to unit-test the cool-down.
+	 */
+	property name="clock" type="function";
+
+	/**
+	 * Read the visualizer settings (already filled and validated by ModuleConfig) and create the schema
+	 *
+	 * @return This store
+	 */
 	function onDIComplete(){
 		var viz = variables.settings.visualizer
 		variables.datasourceName    = viz.datasourceName
@@ -55,51 +116,6 @@ class implements="IMetricsStore"{
 		variables.maxStoredEvents   = viz.maxStoredEvents
 		ensureSchema( true )
 		return this
-	}
-
-	/**
-	 * Inject the function that executes SQL: ( sql, params, options ) => result. Defaults to
-	 * queryExecute() against the configured datasource. Exists so the breaker/retention logic is unit-testable.
-	 */
-	function setSqlRunner( required function runner ){
-		variables.sqlRunner = arguments.runner
-		return this
-	}
-
-	/**
-	 * Inject the clock used by the circuit breaker: () => epoch milliseconds. Defaults to getTickCount().
-	 */
-	function setClock( required function clock ){
-		variables.clock = arguments.clock
-		return this
-	}
-
-	/**
-	 * Override how many successful inserts happen between retention prunes (default 500).
-	 * Exists so the retention cadence is unit-testable.
-	 *
-	 * @every Number of inserts between prunes
-	 *
-	 * @return This store, to allow chaining
-	 */
-	function setPruneEvery( required numeric every ){
-		variables.pruneEvery = arguments.every
-		return this
-	}
-
-	/**
-	 * Is the circuit currently open (tripped and not yet recovered)? Stays true through the cool-down
-	 * and until a trial insert succeeds.
-	 */
-	boolean function isCircuitOpen(){
-		return variables.circuitOpen
-	}
-
-	/**
-	 * Has the events table and its index been created? A failed create is retried by the next recordEvent().
-	 */
-	boolean function isSchemaReady(){
-		return variables.schemaReady
 	}
 
 	/**
@@ -267,6 +283,11 @@ class implements="IMetricsStore"{
 		}
 	}
 
+	/**
+	 * Persist one rule-evaluation event. A no-op while the circuit is open.
+	 *
+	 * @event { rulebookName, ruleName, state, durationMs, timestamp }
+	 */
 	void function recordEvent( required struct event ){
 		if( !canAttempt() ){
 			return
@@ -302,7 +323,7 @@ class implements="IMetricsStore"{
 	 * The current time in milliseconds, from the injected clock when there is one.
 	 */
 	private numeric function nowMillis(){
-		return structKeyExists( variables, "clock" ) ? variables.clock() : getTickCount()
+		return isNull( variables.clock ) ? getTickCount() : variables.clock()
 	}
 
 	/**
@@ -315,12 +336,20 @@ class implements="IMetricsStore"{
 	 * @return The query result, or whatever the injected runner returns
 	 */
 	private any function runSql( required string sql, struct params={}, struct options={} ){
-		if( structKeyExists( variables, "sqlRunner" ) ){
+		if( !isNull( variables.sqlRunner ) ){
 			return variables.sqlRunner( arguments.sql, arguments.params, arguments.options )
 		}
 		return queryExecute( arguments.sql, arguments.params, { datasource: variables.datasourceName } )
 	}
 
+	/**
+	 * Return recorded events, newest first.
+	 *
+	 * @filters Optional filters: { rulebookName }
+	 * @limit Max rows to return
+	 *
+	 * @return An array of { rulebookName, ruleName, state, durationMs, timestamp } structs
+	 */
 	array function queryEvents( struct filters={}, numeric limit=50 ){
 		var whereClause = arguments.filters.keyExists( "rulebookName" ) ? "WHERE rulebookName = :rulebookName" : ""
 		var params = { limit: { value: arguments.limit, cfsqltype: "integer" } }
@@ -337,6 +366,13 @@ class implements="IMetricsStore"{
 		return q
 	}
 
+	/**
+	 * Aggregated stats for one rulebook across all its recorded rules.
+	 *
+	 * @rulebookName The rulebook to summarize
+	 *
+	 * @return { rulebookName, totalEvaluations, countsByState, avgDurationMs, totalDurationMs }
+	 */
 	struct function queryRuleBookSummary( required string rulebookName ){
 		var q = queryExecute(
 			"
@@ -352,6 +388,14 @@ class implements="IMetricsStore"{
 		return aggregate( q, { rulebookName: arguments.rulebookName } )
 	}
 
+	/**
+	 * Aggregated stats for a single rule within a rulebook.
+	 *
+	 * @rulebookName The rule's owning rulebook
+	 * @ruleName The rule to summarize
+	 *
+	 * @return { rulebookName, ruleName, totalEvaluations, countsByState, avgDurationMs, minDurationMs, maxDurationMs, lastRunAt }
+	 */
 	struct function queryRuleMetrics( required string rulebookName, required string ruleName ){
 		var q = queryExecute(
 			"
@@ -384,6 +428,11 @@ class implements="IMetricsStore"{
 		return summary
 	}
 
+	/**
+	 * Every distinct rulebook name that has at least one recorded event.
+	 *
+	 * @return An array of rulebook names
+	 */
 	array function queryRuleBookNames(){
 		var q = queryExecute(
 			"SELECT DISTINCT rulebookName FROM rulebox_events ORDER BY rulebookName",
@@ -393,6 +442,9 @@ class implements="IMetricsStore"{
 		return q.map( ( row ) => row.rulebookName )
 	}
 
+	/**
+	 * Clear every recorded event.
+	 */
 	void function reset(){
 		queryExecute( "DELETE FROM rulebox_events", {}, { datasource: variables.datasourceName } )
 	}

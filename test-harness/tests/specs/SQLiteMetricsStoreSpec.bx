@@ -153,7 +153,7 @@ class extends="tests.resources.BaseSpec"{
 			it( "creates the table and the (rulebookName, ruleName, id) index on startup", function(){
 				var u = newUnit();
 
-				expect( u.store.isSchemaReady() ).toBeTrue();
+				expect( u.store.getSchemaReady() ).toBeTrue();
 				expect( u.ctx.sql ).toHaveLength( 2 );
 				expect( u.ctx.sql[ 1 ].sql ).toInclude( "CREATE TABLE IF NOT EXISTS rulebox_events" );
 				expect( u.ctx.sql[ 2 ].sql ).toInclude( "CREATE INDEX IF NOT EXISTS" );
@@ -162,14 +162,14 @@ class extends="tests.resources.BaseSpec"{
 
 			it( "remembers a failed schema create and re-attempts it before the first insert", function(){
 				var u = newUnit( failAtStartup=true );
-				expect( u.store.isSchemaReady() ).toBeFalse();
+				expect( u.store.getSchemaReady() ).toBeFalse();
 				expect( u.ctx.logs.warn ).toHaveLength( 1 );
 
 				u.ctx.fail = false;
 				u.ctx.sql  = [];
 				u.store.recordEvent( anUnitEvent() );
 
-				expect( u.store.isSchemaReady() ).toBeTrue();
+				expect( u.store.getSchemaReady() ).toBeTrue();
 				expect( u.ctx.sql[ 1 ].sql ).toInclude( "CREATE TABLE IF NOT EXISTS" );
 				expect( u.ctx.sql[ u.ctx.sql.len() ].sql ).toInclude( "INSERT INTO rulebox_events" );
 				expect( countSql( u.ctx, "INSERT" ) ).toBe( 1 );
@@ -192,11 +192,11 @@ class extends="tests.resources.BaseSpec"{
 
 				u.store.recordEvent( anUnitEvent() );
 				u.store.recordEvent( anUnitEvent() );
-				expect( u.store.isCircuitOpen() ).toBeFalse();
+				expect( u.store.getCircuitOpen() ).toBeFalse();
 				expect( u.ctx.logs.error ).toBeEmpty();
 
 				u.store.recordEvent( anUnitEvent() );
-				expect( u.store.isCircuitOpen() ).toBeTrue();
+				expect( u.store.getCircuitOpen() ).toBeTrue();
 				expect( u.ctx.logs.error ).toHaveLength( 1 );
 				expect( u.ctx.logs.error[ 1 ] ).toInclude( "simulated database failure" );
 			} );
@@ -206,7 +206,7 @@ class extends="tests.resources.BaseSpec"{
 				u.ctx.fail = true;
 				u.store.recordEvent( anUnitEvent() );
 				u.store.recordEvent( anUnitEvent() );
-				expect( u.store.isCircuitOpen() ).toBeTrue();
+				expect( u.store.getCircuitOpen() ).toBeTrue();
 				var attempts = u.ctx.sql.len();
 
 				for( var i = 1; i <= 50; i++ ){
@@ -222,19 +222,19 @@ class extends="tests.resources.BaseSpec"{
 				u.ctx.fail = true;
 				u.store.recordEvent( anUnitEvent() );
 				u.store.recordEvent( anUnitEvent() );
-				expect( u.store.isCircuitOpen() ).toBeTrue();
+				expect( u.store.getCircuitOpen() ).toBeTrue();
 
 				u.ctx.fail = false;
 				u.ctx.now += 59999;
 				var before = u.ctx.sql.len();
 				u.store.recordEvent( anUnitEvent() );
 				expect( u.ctx.sql ).toHaveLength( before );
-				expect( u.store.isCircuitOpen() ).toBeTrue();
+				expect( u.store.getCircuitOpen() ).toBeTrue();
 
 				u.ctx.now += 1;
 				u.store.recordEvent( anUnitEvent() );
 				expect( countSql( u.ctx, "INSERT" ) ).toBe( 3 );
-				expect( u.store.isCircuitOpen() ).toBeFalse();
+				expect( u.store.getCircuitOpen() ).toBeFalse();
 				expect( u.ctx.logs.info ).toHaveLength( 1 );
 
 				u.store.recordEvent( anUnitEvent() );
@@ -255,7 +255,7 @@ class extends="tests.resources.BaseSpec"{
 				u.store.recordEvent( anUnitEvent() );
 
 				expect( u.ctx.sql ).toHaveLength( attempts + 1 );
-				expect( u.store.isCircuitOpen() ).toBeTrue();
+				expect( u.store.getCircuitOpen() ).toBeTrue();
 				expect( u.ctx.logs.error ).toHaveLength( 1 );
 
 				u.ctx.now += 60000;
@@ -275,7 +275,7 @@ class extends="tests.resources.BaseSpec"{
 				u.store.recordEvent( anUnitEvent() );
 				u.store.recordEvent( anUnitEvent() );
 
-				expect( u.store.isCircuitOpen() ).toBeFalse();
+				expect( u.store.getCircuitOpen() ).toBeFalse();
 				expect( u.ctx.logs.error ).toBeEmpty();
 			} );
 
@@ -286,10 +286,10 @@ class extends="tests.resources.BaseSpec"{
 				for( var i = 1; i <= 4; i++ ){
 					u.store.recordEvent( anUnitEvent() );
 				}
-				expect( u.store.isCircuitOpen() ).toBeFalse();
+				expect( u.store.getCircuitOpen() ).toBeFalse();
 
 				u.store.recordEvent( anUnitEvent() );
-				expect( u.store.isCircuitOpen() ).toBeTrue();
+				expect( u.store.getCircuitOpen() ).toBeTrue();
 			} );
 
 			it( "does not throw or log per event when the datasource does not exist (real queryExecute path)", function(){
@@ -308,7 +308,7 @@ class extends="tests.resources.BaseSpec"{
 					store.recordEvent( anUnitEvent() );
 				}
 
-				expect( store.isCircuitOpen() ).toBeTrue();
+				expect( store.getCircuitOpen() ).toBeTrue();
 				expect( logs.error ).toHaveLength( 1 );
 			} );
 
@@ -367,7 +367,7 @@ class extends="tests.resources.BaseSpec"{
 					u.store.recordEvent( anUnitEvent() );
 				}
 
-				expect( u.store.isCircuitOpen() ).toBeFalse();
+				expect( u.store.getCircuitOpen() ).toBeFalse();
 				expect( countSql( u.ctx, "INSERT" ) ).toBe( 10 );
 				expect( u.ctx.logs.error ).toBeEmpty();
 				expect( u.ctx.logs.warn ).toHaveLength( 10 );
