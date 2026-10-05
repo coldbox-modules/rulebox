@@ -68,8 +68,8 @@ class{
 		}
 		if( isStruct( arguments.node ) ){
 			var copy = [:]
-			for( var key in arguments.node ){
-				copy[ key ] = unwrap( arguments.node[ key ] )
+			for( var key, child in arguments.node ){
+				copy[ key ] = unwrap( child )
 			}
 			return copy
 		}
