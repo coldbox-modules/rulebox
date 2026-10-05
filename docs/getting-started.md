@@ -26,6 +26,17 @@ app's `modules/` folder:
 box install rulebox
 ```
 
+### Optional modules
+
+Rules written in BoxLang or JSON need nothing else. Two features rely on
+official BoxLang modules that RuleBox does not install for you, so install
+them only if you use them:
+
+| Feature | Install |
+|---|---|
+| YAML rule files (`YAMLRuleSource`, or `.yaml`/`.yml` files in the convention folder) | `box install bx-yaml` |
+| Visualizer metrics that survive a restart (`SQLiteMetricsStore`) | `box install bx-sqlite`, plus a datasource. See [Rule Visualizer](guides/visualizer.md). |
+
 ## Your first rule
 
 Save this as `models/HelloWorld.bx`:

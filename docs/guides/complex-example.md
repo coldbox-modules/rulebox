@@ -25,9 +25,9 @@ We'll build the rules and track the result using a `Result` object - see
 ```js title="Applicant.bx"
 class{
 
-	property creditScore
-	property cashOnHand
-	property firstTimeHomeBuyer
+	property creditScore;
+	property cashOnHand;
+	property firstTimeHomeBuyer;
 
 	function init( creditScore, cashOnHand, firstTimeHomeBuyer ){
 		variables.creditScore        = arguments.creditScore
@@ -83,95 +83,75 @@ class extends="rulebox.models.RuleBook"{
 
 ## Running it
 
-You'd normally run this from a handler or another service method. Here
-it's run from a BDD test:
+Create the RuleBook, give it a starting rate and the applicant, run it,
+and read the result. Here it is from a handler action:
 
-```js
-describe( "Home Loan Rate Rules", () => {
-	it( "Can calculate a first time home buyer with 20,000 down and 650 credit score", () => {
-		var homeLoans = getInstance( "tests.resources.HomeLoanRateRuleBook" )
+```js title="Loans.bx"
+class{
+
+	function rate( event, rc, prc ){
+		return getInstance( "HomeLoanRateRuleBook" )
 			.withDefaultResult( 4.5 )
-			.given(
-				"applicant",
-				new tests.resources.Applicant( 650, 20000, true )
-			)
-
-		homeLoans.run()
-
-		expect( homeLoans.getResult().isPresent() ).toBeTrue()
-		expect( homeLoans.getResult().getValue() ).toBe( 4.4 )
-	} )
-
-	it( "Can calculate a non first home buyer with 20,000 down and 650 credit score", () => {
-		var homeLoans = getInstance( "tests.resources.HomeLoanRateRuleBook" )
-			.withDefaultResult( 4.5 )
-			.given(
-				"applicant",
-				new tests.resources.Applicant( 650, 20000, false )
-			)
-
-		homeLoans.run()
-
-		expect( homeLoans.getResult().isPresent() ).toBeTrue()
-		expect( homeLoans.getResult().getValue() ).toBe( 5.5 )
-	} )
-} )
-```
-
-## The same example, using plain facts
-
-You don't need a dedicated `Applicant.bx` - named facts work just as
-well:
-
-```js title="HomeLoanRateRuleBook.bx (facts-based)"
-/**
- * This rule book determines rules for a home loan rate using facts
- */
-class extends="rulebox.models.RuleBook"{
-
-	function defineRules(){
-		addRule(
-			newRule()
-				.when( ( facts ) => facts[ "creditScore" ] < 600 )
-				.then( ( facts, result ) => result.setValue( result.getValue() * 4 ) )
-				.stop()
-		)
-
-		addRule(
-			newRule()
-				.when( ( facts ) => facts[ "creditScore" ] < 700 )
-				.then( ( facts, result ) => result.setValue( result.getValue() + 1 ) )
-		)
-
-		addRule(
-			newRule()
-				.when( ( facts ) => facts[ "creditScore" ] >= 700 && facts[ "cashOnHand" ] >= 25000 )
-				.then( ( facts, result ) => result.setValue( result.getValue() - 0.25 ) )
-		)
-
-		addRule(
-			newRule()
-				.when( ( facts ) => facts[ "firstTimeHomeBuyer" ] )
-				.then( ( facts, result ) => result.setValue( result.getValue() * 0.80 ) )
-		)
+			.run( { applicant : new models.Applicant( 650, 20000, true ) } )
+			.getResult()
+			.getValue()
 	}
 
 }
 ```
 
+A first-time buyer with a 650 credit score gets `4.4`: the starting 4.5
+plus one point is 5.5, and 20% off that is 4.4. Without the first-time
+buyer discount (`false`), the answer is `5.5`.
+
+## Testing it
+
+The same rules, checked from a TestBox spec:
+
 ```js
 describe( "Home Loan Rate Rules", () => {
-	it( "Can calculate a first time home buyer with 20,000 down and 650 credit score", () => {
-		var homeLoans = getInstance( "tests.resources.HomeLoanRateRuleBook" )
+	it( "gives a first time buyer with a 650 credit score 4.4", () => {
+		var rate = getInstance( "HomeLoanRateRuleBook" )
 			.withDefaultResult( 4.5 )
-			.given( "creditScore", 650 )
-			.given( "cashOnHand", 20000 )
-			.given( "firstTimeHomeBuyer", true )
+			.run( { applicant : new models.Applicant( 650, 20000, true ) } )
+			.getResult()
+			.getValue()
 
-		homeLoans.run()
+		expect( rate ).toBe( 4.4 )
+	} )
 
-		expect( homeLoans.getResult().isPresent() ).toBeTrue()
-		expect( homeLoans.getResult().getValue() ).toBe( 4.4 )
+	it( "gives a repeat buyer with a 650 credit score 5.5", () => {
+		var rate = getInstance( "HomeLoanRateRuleBook" )
+			.withDefaultResult( 4.5 )
+			.run( { applicant : new models.Applicant( 650, 20000, false ) } )
+			.getResult()
+			.getValue()
+
+		expect( rate ).toBe( 5.5 )
 	} )
 } )
+```
+
+## Plain facts instead of an Applicant
+
+You don't need an `Applicant` class. Named facts work just as well. Only
+the `when` conditions change, to read the facts directly. For example,
+`facts.applicant.getCreditScore() < 600` becomes:
+
+```js
+newRule()
+	.when( ( facts ) => facts.creditScore < 600 )
+	.then( ( facts, result ) => result.setValue( result.getValue() * 4 ) )
+	.stop()
+```
+
+...and you pass the facts in with `run()` (here `HomeLoanRateRuleBook`
+is the version of the rules that reads plain facts):
+
+```js
+getInstance( "HomeLoanRateRuleBook" )
+	.withDefaultResult( 4.5 )
+	.run( { creditScore : 650, cashOnHand : 20000, firstTimeHomeBuyer : true } )
+	.getResult()
+	.getValue()
 ```

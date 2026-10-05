@@ -39,35 +39,123 @@ class{
 
 		var definitions = []
 
-		for( row in rows ){
+		for( var row, rowNumber in rows ){
 			var def = {
 				"name"     : row.name,
-				"priority" : ( row.keyExists( "priority" ) && len( row.priority ) ) ? row.priority : 0,
-				"when"     : ( row.keyExists( "when_json" ) && len( row.when_json ) ) ? jsonDeserialize( row.when_json ) : null,
-				"then"     : ( row.keyExists( "then_json" ) && len( row.then_json ) ) ? jsonDeserialize( row.then_json ) : [],
-				"stop"     : row.keyExists( "stop" ) && row.stop
+				"priority" : ( row.keyExists( "priority" ) && len( row.priority ) ) ? parsePriority( row, rowNumber ) : 0,
+				"when"     : ( row.keyExists( "when_json" ) && len( row.when_json ) ) ? parseJSONColumn( row, "when_json", rowNumber ) : null,
+				"then"     : ( row.keyExists( "then_json" ) && len( row.then_json ) ) ? parseJSONColumn( row, "then_json", rowNumber ) : [],
+				"stop"     : parseStop( row, rowNumber )
 			}
 
 			if( row.keyExists( "active_from" ) && len( row.active_from ) ){
-				def[ "activeFrom" ] = row.active_from
+				def[ "activeFrom" ] = parseDate( row, "active_from", rowNumber )
 			}
 
 			if( row.keyExists( "active_until" ) && len( row.active_until ) ){
-				def[ "activeUntil" ] = row.active_until
+				def[ "activeUntil" ] = parseDate( row, "active_until", rowNumber )
 			}
 
 			if( row.keyExists( "except_json" ) && len( row.except_json ) ){
-				def[ "except" ] = jsonDeserialize( row.except_json )
+				def[ "except" ] = parseJSONColumn( row, "except_json", rowNumber )
 			}
 
 			if( row.keyExists( "using_facts" ) && len( row.using_facts ) ){
+				// trim each fact name so "name, age" yields [ "name", "age" ]
 				def[ "using" ] = listToArray( row.using_facts )
+					.map( ( name ) => trim( name ) )
+					.filter( ( name ) => len( name ) )
 			}
 
 			definitions.append( def )
 		}
 
 		return definitions
+	}
+
+	/**
+	 * Parses the `stop` column leniently: true/false, 1/0, yes/no, y/n (case-insensitive); empty or NULL is false.
+	 *
+	 * @throws RuleBox.InvalidRuleRowException For any other value
+	 */
+	private boolean function parseStop( required struct row, required numeric rowNumber ){
+		if( !arguments.row.keyExists( "stop" ) || isNull( arguments.row.stop ) ){
+			return false
+		}
+
+		var raw = arguments.row.stop
+		if( !isSimpleValue( raw ) ){
+			throwRowError( arguments.row, arguments.rowNumber, "stop", "must be a boolean-like value (true/false, 1/0, yes/no, y/n) but is not a simple value" )
+		}
+
+		var value = lCase( trim( toString( raw ) ) )
+		if( !len( value ) ){
+			return false
+		}
+		if( [ "true", "1", "yes", "y" ].contains( value ) ){
+			return true
+		}
+		if( [ "false", "0", "no", "n" ].contains( value ) ){
+			return false
+		}
+
+		throwRowError( arguments.row, arguments.rowNumber, "stop", "must be a boolean-like value (true/false, 1/0, yes/no, y/n, or empty) but is [#raw#]" )
+	}
+
+	/**
+	 * Deserializes one of the JSON columns, naming the rule/row/column if the JSON is invalid.
+	 *
+	 * @throws RuleBox.InvalidRuleRowException
+	 */
+	private any function parseJSONColumn( required struct row, required string column, required numeric rowNumber ){
+		try {
+			return jsonDeserialize( arguments.row[ arguments.column ] )
+		} catch( any e ){
+			throwRowError( arguments.row, arguments.rowNumber, arguments.column, "does not contain valid JSON", e.message )
+		}
+	}
+
+	/**
+	 * @throws RuleBox.InvalidRuleRowException If the priority is not numeric
+	 */
+	private numeric function parsePriority( required struct row, required numeric rowNumber ){
+		if( !isNumeric( arguments.row.priority ) ){
+			throwRowError( arguments.row, arguments.rowNumber, "priority", "must be numeric but is [#arguments.row.priority#]" )
+		}
+		return arguments.row.priority
+	}
+
+	/**
+	 * @throws RuleBox.InvalidRuleRowException If the value is not a date
+	 */
+	private any function parseDate( required struct row, required string column, required numeric rowNumber ){
+		var value = arguments.row[ arguments.column ]
+		if( !isDate( value ) ){
+			throwRowError( arguments.row, arguments.rowNumber, arguments.column, "must be a valid date but is [#isSimpleValue( value ) ? value : 'a complex value'#]" )
+		}
+		return value
+	}
+
+	/**
+	 * Throws a RuleBox.InvalidRuleRowException whose message names the rule (or 1-based row number when
+	 * the row has no name), the column, and what is wrong.
+	 */
+	private function throwRowError(
+		required struct row,
+		required numeric rowNumber,
+		required string column,
+		required string problem,
+		string detail = ""
+	){
+		var label = ( arguments.row.keyExists( "name" ) && !isNull( arguments.row.name ) && len( trim( arguments.row.name ) ) )
+			? "rule [#arguments.row.name#] (row #arguments.rowNumber#)"
+			: "unnamed rule at row #arguments.rowNumber#"
+
+		throw(
+			type    = "RuleBox.InvalidRuleRowException",
+			message = "DBRuleSource: invalid #label#: column [#arguments.column#] #arguments.problem#.",
+			detail  = arguments.detail
+		)
 	}
 
 }

@@ -27,6 +27,6 @@
     },
     "env":{},
     "scripts":{
-        "onServerInitialInstall":"install bx-esapi --noSave"
+        "onServerInitialInstall":"install bx-esapi,bx-yaml --noSave"
     }
 }
