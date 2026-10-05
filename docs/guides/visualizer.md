@@ -65,8 +65,7 @@ altered. SRI covers the stylesheet and script files themselves, not the icon
 font files that Phosphor's CSS fetches by relative URL. The admin pages also
 need to reach the CDNs, and Alpine.js evaluates expressions with
 `new Function`, so a strict Content-Security-Policy (no `unsafe-eval`) will
-block the UI. If you bump a version in `layouts/Visualizer.bxm`, recompute its
-hash.
+block the UI.
 
 ## Screens
 

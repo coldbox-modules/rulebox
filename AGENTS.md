@@ -101,6 +101,24 @@ This project includes AI-powered development assistance with on-demand guideline
 - Framework config in `config/ColdBox.cfc`
 - Routes in `config/Router.cfc`
 
+### Updating the Visualizer's CDN Assets
+
+The Rule Visualizer UI loads Bootstrap, Alpine.js and Phosphor Icons from CDNs in `layouts/Visualizer.bxm`. Every `<script>` and `<link rel="stylesheet">` is pinned to an exact version and carries a Subresource Integrity hash (`integrity="sha384-..."` plus `crossorigin="anonymous"`). The browser refuses a file whose hash doesn't match, so a version bump without a new hash breaks the UI.
+
+To bump an asset:
+
+1. Change the version in its URL in `layouts/Visualizer.bxm`.
+2. Compute the new hash from the exact URL and paste it into that tag's `integrity` attribute:
+
+   ```bash
+   echo "sha384-$(curl -sSfL "<asset URL>" | openssl dgst -sha384 -binary | openssl base64 -A)"
+   ```
+
+3. Update the version numbers in two more places:
+   - The `loads every CDN script and stylesheet in the layout with Subresource Integrity` spec in `test-harness/tests/specs/VisualizerHandlerSpec.bx`, which asserts the pinned Alpine.js and Bootstrap versions.
+   - The pinned versions listed in `docs/guides/visualizer.md`.
+4. Run the tests, then open the Visualizer and check the browser console for integrity errors.
+
 ### Application Helpers
 
 - `includes/helpers/ApplicationHelper.cfm` - Available in all handlers/views
