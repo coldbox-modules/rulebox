@@ -58,6 +58,15 @@ The UI itself is Bootstrap 5, Alpine.js, and Phosphor Icons, loaded from a
 CDN - there's nothing to build or bundle. The screenshots below use the
 rulebooks in this module's own `test-harness/config/rulebox` folder.
 
+Every CDN asset is pinned to an exact version (Bootstrap 5.3.3, Alpine.js
+3.14.3, Phosphor Icons 2.1.1) and loaded with a Subresource Integrity
+(`integrity="sha384-..."`) hash, so the browser refuses a file that has been
+altered. SRI covers the stylesheet and script files themselves, not the icon
+font files that Phosphor's CSS fetches by relative URL. The admin pages also
+need to reach the CDNs, and Alpine.js evaluates expressions with
+`new Function`, so a strict Content-Security-Policy (no `unsafe-eval`) will
+block the UI.
+
 ## Screens
 
 A one-minute tour of every screen:
@@ -161,7 +170,9 @@ moduleSettings = {
 
 `InMemoryMetricsStore@rulebox` is the default - zero setup, live broadcast
 and the dashboard/metrics screens work immediately after enabling the
-visualizer. The tradeoff: nothing survives a restart.
+visualizer. The tradeoff: nothing survives a restart. Totals and per-rule
+metrics are exact running aggregates, while the recent-activity feed keeps
+only the last 1000 events per rulebook (`maxEventsPerRulebook`).
 
 ### Persisting across restarts: SQLite
 

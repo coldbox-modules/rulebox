@@ -4,6 +4,19 @@
 */
 class extends="tests.resources.BaseSpec"{
 
+	/**
+	 * Load a single rule definition and return the exception it throws, failing the test if it loads fine.
+	 */
+	private any function loadAndCatch( required struct def, any ruleBook ){
+		var target = isNull( arguments.ruleBook ) ? getInstance( "RuleBook@rulebox" ) : arguments.ruleBook
+		try{
+			target.loadRules( new tests.resources.InlineRuleSource( [ arguments.def ] ) )
+		} catch( any e ){
+			return e
+		}
+		fail( "Expected loadRules() to throw for: #jsonSerialize( arguments.def )#" )
+	}
+
 	function run( testResults, testBox ){
 		describe( "Externalized Rule Definitions", function(){
 
@@ -252,23 +265,98 @@ class extends="tests.resources.BaseSpec"{
 				} );
 
 				it( "applies the same grammar end-to-end from YAMLRuleSource, when the optional YAML module is installed", function(){
-					var results = [];
-					var ruleBook = getInstance( "RuleBook@rulebox" )
-						.registerAction( "flagHighRisk", ( facts, result, params ) => { results.append( "highRisk" ); } )
-						.registerAction( "approveApplicant", ( facts, result, params ) => { results.append( "approved:" & params.reason ); } );
-
-					try{
-						ruleBook.loadRules( getInstance(
-							"YAMLRuleSource@rulebox",
-							{ filePath : expandPath( "/tests/resources/rules/credit-rules.yaml" ) }
-						) );
-					} catch( any e ){
-						skip( "boxlang-yaml module is not installed: #e.message#" );
+					if( !yamlModuleInstalled() ){
+						skip( "The optional bx-yaml module is not installed" );
 						return;
 					}
 
-					ruleBook.run( { "creditScore" : 550 } );
-					expect( results ).toBe( [ "highRisk" ] );
+					var yamlFile = writeTempYaml( creditRulesYaml() );
+					try{
+						var yamlResults = [];
+						var yamlBook = getInstance( "RuleBook@rulebox" )
+							.registerAction( "flagHighRisk", ( facts, result, params ) => { yamlResults.append( "highRisk" ); } )
+							.registerAction( "approveApplicant", ( facts, result, params ) => { yamlResults.append( "approved:" & params.reason ); } );
+						yamlBook.loadRules( getInstance( "YAMLRuleSource@rulebox", { filePath : yamlFile } ) );
+
+						// Its JSON twin, which is known-good
+						var jsonResults = [];
+						var jsonBook = getInstance( "RuleBook@rulebox" )
+							.registerAction( "flagHighRisk", ( facts, result, params ) => { jsonResults.append( "highRisk" ); } )
+							.registerAction( "approveApplicant", ( facts, result, params ) => { jsonResults.append( "approved:" & params.reason ); } );
+						jsonBook.loadRules( getInstance(
+							"JSONRuleSource@rulebox",
+							{ filePath : expandPath( "/tests/resources/rules/credit-rules.json" ) }
+						) );
+
+						for( var score in [ 550, 700 ] ){
+							yamlResults = [];
+							jsonResults = [];
+							yamlBook.run( { "creditScore" : score } );
+							jsonBook.run( { "creditScore" : score } );
+							expect( yamlResults ).toBe( jsonResults );
+							expect( yamlResults ).notToBeEmpty();
+						}
+
+						yamlResults = [];
+						yamlBook.run( { "creditScore" : 550 } );
+						expect( yamlResults ).toBe( [ "highRisk" ] );
+
+						yamlResults = [];
+						yamlBook.run( { "creditScore" : 700 } );
+						expect( yamlResults ).toBe( [ "approved:good credit" ] );
+					} finally {
+						fileDelete( yamlFile );
+					}
+				} );
+
+				it( "returns a flat array of rule structs from YAMLRuleSource.load(), keeping legitimately nested arrays intact", function(){
+					if( !yamlModuleInstalled() ){
+						skip( "The optional bx-yaml module is not installed" );
+						return;
+					}
+
+					var yamlFile = writeTempYaml( [
+						"- name: nested",
+						"  then:",
+						"    - action: first",
+						"      params:",
+						"        matrix: [ [ 1, 2 ], [ 3 ] ]",
+						"    - action: second",
+						"- name: second"
+					].toList( char( 10 ) ) );
+					try{
+						var rules = getInstance( "YAMLRuleSource@rulebox", { filePath : yamlFile } ).load();
+
+						expect( rules ).toBeArray();
+						expect( rules ).toHaveLength( 2 );
+						expect( rules[ 1 ] ).toBeStruct();
+						expect( rules[ 1 ].name ).toBe( "nested" );
+						expect( rules[ 1 ].then ).toBeArray();
+						expect( rules[ 1 ].then ).toHaveLength( 2 );
+						expect( rules[ 1 ].then[ 1 ] ).toBeStruct();
+						expect( rules[ 1 ].then[ 1 ].action ).toBe( "first" );
+						expect( rules[ 1 ].then[ 1 ].params.matrix ).toBe( [ [ 1, 2 ], [ 3 ] ] );
+						expect( rules[ 2 ].name ).toBe( "second" );
+					} finally {
+						fileDelete( yamlFile );
+					}
+				} );
+
+				it( "throws RuleBox.YamlModuleMissingException with the install command when the YAML module is absent", function(){
+					if( yamlModuleInstalled() ){
+						skip( "The optional bx-yaml module is installed, so the missing-module error cannot be triggered" );
+						return;
+					}
+
+					var yamlFile = writeTempYaml( creditRulesYaml() );
+					try{
+						var source = getInstance( "YAMLRuleSource@rulebox", { filePath : yamlFile } );
+						expect( function(){
+							source.load();
+						} ).toThrow( "RuleBox.YamlModuleMissingException", "box install bx-yaml" );
+					} finally {
+						fileDelete( yamlFile );
+					}
 				} );
 
 				it( "applies the same grammar end-to-end from DBRuleSource given a pre-built query", function(){
@@ -362,7 +450,365 @@ class extends="tests.resources.BaseSpec"{
 
 			} );
 
+			describe( "loadRules() load-time validation", function(){
+
+				it( "rejects an unknown operator, naming the rule and path", function(){
+					var e = loadAndCatch( { "name" : "badOp", "when" : { "like" : [ "name", "a%" ] } } );
+					expect( e.type ).toBe( "RuleBox.InvalidRuleDefinitionException" );
+					expect( e.message ).toInclude( "'badOp'" );
+					expect( e.message ).toInclude( "when.like" );
+					expect( e.message ).toInclude( "unknown condition operator" );
+				} );
+
+				it( "rejects comparison operands that are not a 2-element array", function(){
+					for( var operand in [ "a", [ "a" ], [ "a", 1, 2 ], {}, 5 ] ){
+						var e = loadAndCatch( { "name" : "badShape", "when" : { "eq" : operand } } );
+						expect( e.type ).toBe( "RuleBox.InvalidRuleDefinitionException" );
+						expect( e.message ).toInclude( "'badShape'" );
+						expect( e.message ).toInclude( "when.eq" );
+						expect( e.message ).toInclude( "2-element array" );
+					}
+				} );
+
+				it( "rejects every comparison operator with a bad shape", function(){
+					for( var op in [ "eq", "neq", "lt", "lte", "gt", "gte", "in" ] ){
+						var e = loadAndCatch( { "name" : "r", "when" : { "#op#" : [ "only-one" ] } } );
+						expect( e.type ).toBe( "RuleBox.InvalidRuleDefinitionException" );
+						expect( e.message ).toInclude( "when.#op#" );
+					}
+				} );
+
+				it( "rejects a comparison whose first operand is not a fact path", function(){
+					var e = loadAndCatch( { "name" : "badPath", "when" : { "lt" : [ {}, 10 ] } } );
+					expect( e.type ).toBe( "RuleBox.InvalidRuleDefinitionException" );
+					expect( e.message ).toInclude( "when.lt[1]" );
+					expect( e.message ).toInclude( "fact path" );
+				} );
+
+				it( "rejects `in` when the second operand is not an array", function(){
+					var e = loadAndCatch( { "name" : "badIn", "when" : { "in" : [ "a", "notAnArray" ] } } );
+					expect( e.type ).toBe( "RuleBox.InvalidRuleDefinitionException" );
+					expect( e.message ).toInclude( "'badIn'" );
+					expect( e.message ).toInclude( "when.in[2]" );
+					expect( e.message ).toInclude( "array" );
+				} );
+
+				it( "rejects `not` given an array instead of a single node", function(){
+					var e = loadAndCatch( { "name" : "badNot", "when" : { "not" : [ { "eq" : [ "a", 1 ] } ] } } );
+					expect( e.type ).toBe( "RuleBox.InvalidRuleDefinitionException" );
+					expect( e.message ).toInclude( "'badNot'" );
+					expect( e.message ).toInclude( "when.not" );
+					expect( e.message ).toInclude( "single condition node" );
+				} );
+
+				it( "rejects and/or given an empty or non-array operand", function(){
+					for( var op in [ "and", "or" ] ){
+						for( var operand in [ [], "x", { "eq" : [ "a", 1 ] } ] ){
+							var e = loadAndCatch( { "name" : "badLogic", "when" : { "#op#" : operand } } );
+							expect( e.type ).toBe( "RuleBox.InvalidRuleDefinitionException" );
+							expect( e.message ).toInclude( "when.#op#" );
+							expect( e.message ).toInclude( "non-empty array" );
+						}
+					}
+				} );
+
+				it( "rejects a node with more than one operator key", function(){
+					var e = loadAndCatch( { "name" : "multi", "when" : { "eq" : [ "a", 1 ], "lt" : [ "b", 2 ] } } );
+					expect( e.type ).toBe( "RuleBox.InvalidRuleDefinitionException" );
+					expect( e.message ).toInclude( "'multi'" );
+					expect( e.message ).toInclude( "2 operator keys" );
+				} );
+
+				it( "rejects an empty condition struct", function(){
+					var e = loadAndCatch( { "name" : "empty", "when" : {} } );
+					expect( e.type ).toBe( "RuleBox.InvalidRuleDefinitionException" );
+					expect( e.message ).toInclude( "empty struct" );
+				} );
+
+				it( "finds a bad branch even when it sits behind short-circuiting and/or", function(){
+					// The first branch is false for the facts below, so run() would never reach the bad one
+					var e = loadAndCatch( {
+						"name" : "deep",
+						"when" : { "and" : [
+							{ "eq" : [ "a", 1 ] },
+							{ "or" : [ { "eq" : [ "b", 2 ] }, { "lt" : [ "c" ] } ] }
+						] }
+					} );
+					expect( e.type ).toBe( "RuleBox.InvalidRuleDefinitionException" );
+					expect( e.message ).toInclude( "'deep'" );
+					expect( e.message ).toInclude( "when.and[2].or[2].lt" );
+				} );
+
+				it( "validates the `except` tree too, with an except. path", function(){
+					var e = loadAndCatch( { "name" : "exc", "when" : { "eq" : [ "a", 1 ] }, "except" : { "not" : "oops" } } );
+					expect( e.type ).toBe( "RuleBox.InvalidRuleDefinitionException" );
+					expect( e.message ).toInclude( "except.not" );
+				} );
+
+				it( "rejects unparseable activeFrom and activeUntil values", function(){
+					for( var key in [ "activeFrom", "activeUntil" ] ){
+						var e = loadAndCatch( { "name" : "badDate", "#key#" : "not a date" } );
+						expect( e.type ).toBe( "RuleBox.InvalidRuleDefinitionException" );
+						expect( e.message ).toInclude( "'badDate'" );
+						expect( e.message ).toInclude( "'#key#'" );
+						expect( e.message ).toInclude( "not a date" );
+					}
+				} );
+
+				it( "accepts valid ISO date strings and date objects", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+						{ "name" : "iso", "activeFrom" : "2026-01-01T00:00:00", "activeUntil" : "2099-01-01T00:00:00" },
+						{ "name" : "obj", "activeFrom" : now(), "activeUntil" : dateAdd( "d", 1, now() ) }
+					] ) );
+					expect( ruleBook.getRules() ).toHaveLength( 2 );
+				} );
+
+				it( "gives a clear message for a predicate reference nested inside and/or/not", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+						.registerPredicate( "isEligible", ( facts, params ) => true );
+
+					var e = loadAndCatch(
+						{ "name" : "nestedPred", "when" : { "and" : [ { "predicate" : "isEligible" } ] } },
+						ruleBook
+					);
+					expect( e.type ).toBe( "RuleBox.InvalidRuleDefinitionException" );
+					expect( e.message ).toInclude( "'nestedPred'" );
+					expect( e.message ).toInclude( "when.and[1].predicate" );
+					expect( e.message ).toInclude( "predicate references are only supported at the top level of when/except" );
+					expect( e.type ).notToBe( "RuleBox.UnknownConditionOperatorException" );
+
+					e = loadAndCatch(
+						{ "name" : "nestedPred2", "when" : { "not" : { "predicate" : "isEligible", "params" : {} } } },
+						ruleBook
+					);
+					expect( e.message ).toInclude( "only supported at the top level" );
+				} );
+
+				it( "still accepts a top-level predicate reference in when and except", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+						.registerPredicate( "yes", ( facts, params ) => true )
+						.registerPredicate( "no", ( facts, params ) => false );
+
+					ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+						{ "name" : "r1", "when" : { "predicate" : "yes" }, "except" : { "predicate" : "no", "params" : { "x" : 1 } }, "then" : [] }
+					] ) );
+
+					expect( ruleBook.dryRun( {} )[ 1 ].wouldExecute ).toBeTrue();
+				} );
+
+				it( "identifies an unnamed rule by its 1-based position in the source", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					var e = {};
+					try{
+						ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+							{ "name" : "fine", "when" : { "eq" : [ "a", 1 ] } },
+							{ "when" : { "eq" : [ "a", 1 ] } },
+							{ "when" : { "gt" : "a" } }
+						] ) );
+					} catch( any ex ){
+						e = ex;
+					}
+					expect( e ).toHaveKey( "type" );
+					expect( e.type ).toBe( "RuleBox.InvalidRuleDefinitionException" );
+					expect( e.message ).toInclude( "##3 (unnamed)" );
+					expect( e.message ).toInclude( "when.gt" );
+				} );
+
+				it( "leaves the book unchanged when any definition in the source is invalid", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+
+					expect( function(){
+						ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+							{ "name" : "good", "when" : { "eq" : [ "a", 1 ] } },
+							{ "name" : "bad", "when" : { "eq" : [ "a" ] } }
+						] ) );
+					} ).toThrow( "RuleBox.InvalidRuleDefinitionException" );
+
+					expect( ruleBook.getRules() ).toBeEmpty();
+				} );
+
+				it( "accepts every valid shape of the grammar", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+						{
+							"name" : "everything",
+							"when" : { "and" : [
+								{ "eq" : [ "a.b", 1 ] },
+								{ "neq" : [ "c", "x" ] },
+								{ "or" : [ { "lt" : [ "d", 5 ] }, { "lte" : [ "d", 5 ] }, { "gt" : [ "e", 0 ] }, { "gte" : [ "e", 0 ] } ] },
+								{ "not" : { "in" : [ "f", [ 1, 2, 3 ] ] } }
+							] },
+							"except" : { "eq" : [ "g", "stop" ] }
+						}
+					] ) );
+					expect( ruleBook.getRules() ).toHaveLength( 1 );
+				} );
+
+			} );
+
+			describe( "DBRuleSource row mapping", function(){
+
+				// Builds a one-row, all-varchar query (as a loosely-typed legacy table would return), with overrides
+				var buildRows = function( struct overrides = {} ){
+					var row = {
+						"name"        : "r1",
+						"priority"    : "5",
+						"active_from" : "",
+						"when_json"   : '{ "eq" : [ "a", 1 ] }',
+						"except_json" : "",
+						"then_json"   : "[]",
+						"stop"        : "false"
+					};
+					row.append( overrides );
+					var rows = queryNew( "name,priority,active_from,when_json,except_json,then_json,stop" );
+					queryAddRow( rows, [ row ] );
+					return rows;
+				};
+
+				var loadFrom = function( required query rows ){
+					return getInstance( "DBRuleSource@rulebox", { query : rows } ).load();
+				};
+
+				// Returns the type/message/detail of whatever loading throws (all empty when nothing is thrown)
+				var captureError = function( required query rows ){
+					var caught = { "type" : "", "message" : "", "detail" : "" };
+					try {
+						loadFrom( rows );
+					} catch( any e ){
+						caught = { "type" : e.type, "message" : e.message, "detail" : e.detail };
+					}
+					return caught;
+				};
+
+				it( "parses lenient `stop` values (true/false, 1/0, yes/no, y/n, empty; case-insensitive)", function(){
+					[ "true", "TRUE", "1", "yes", "Yes", "y", "Y", " y " ].each( function( value ){
+						expect( loadFrom( buildRows( { "stop" : value } ) )[ 1 ].stop ).toBeTrue( "stop [#value#]" );
+					} );
+					[ "false", "False", "0", "no", "NO", "n", "N", "", "  " ].each( function( value ){
+						expect( loadFrom( buildRows( { "stop" : value } ) )[ 1 ].stop ).toBeFalse( "stop [#value#]" );
+					} );
+				} );
+
+				it( "still accepts a real boolean `stop` column", function(){
+					var rows = queryNew( "name,stop", "varchar,bit" );
+					queryAddRow( rows, [ { "name" : "yes", "stop" : true }, { "name" : "no", "stop" : false } ] );
+
+					var defs = loadFrom( rows );
+					expect( defs[ 1 ].stop ).toBeTrue();
+					expect( defs[ 2 ].stop ).toBeFalse();
+				} );
+
+				it( "throws RuleBox.InvalidRuleRowException naming the rule and column for a non-boolean `stop`", function(){
+					var caught = captureError( buildRows( { "name" : "creditCheck", "stop" : "maybe" } ) );
+
+					expect( caught.type ).toBe( "RuleBox.InvalidRuleRowException" );
+					expect( caught.message ).toInclude( "creditCheck" );
+					expect( caught.message ).toInclude( "stop" );
+					expect( caught.message ).toInclude( "maybe" );
+				} );
+
+				it( "names the 1-based row number when the rule has no name", function(){
+					var rows = buildRows();
+					queryAddRow( rows, { "name" : "", "priority" : "1", "when_json" : "", "then_json" : "", "stop" : "bogus" } );
+
+					var caught = captureError( rows );
+
+					expect( caught.type ).toBe( "RuleBox.InvalidRuleRowException" );
+					expect( caught.message ).toInclude( "row 2" );
+				} );
+
+				it( "throws RuleBox.InvalidRuleRowException naming the rule and column for invalid JSON in when_json, except_json and then_json", function(){
+					[ "when_json", "except_json", "then_json" ].each( function( column ){
+						var caught = captureError( buildRows( { "name" : "brokenRule", "#column#" : "{ not json" } ) );
+
+						expect( caught.type ).toBe( "RuleBox.InvalidRuleRowException" );
+						expect( caught.message ).toInclude( "brokenRule" );
+						expect( caught.message ).toInclude( column );
+						// the original parser error is preserved as the detail
+						expect( caught.detail ).notToBeEmpty();
+					} );
+				} );
+
+				it( "throws RuleBox.InvalidRuleRowException for an unparseable priority or date", function(){
+					expect( function(){
+						loadFrom( buildRows( { "name" : "badPriority", "priority" : "high" } ) );
+					} ).toThrow( "RuleBox.InvalidRuleRowException", "badPriority" );
+
+					expect( function(){
+						loadFrom( buildRows( { "name" : "badFrom", "active_from" : "not a date" } ) );
+					} ).toThrow( "RuleBox.InvalidRuleRowException", "active_from" );
+				} );
+
+				it( "still maps valid values, including dates and JSON columns", function(){
+					var defs = loadFrom( buildRows( { "priority" : "7", "active_from" : "2026-01-01", "except_json" : '{ "eq" : [ "b", 2 ] }' } ) );
+
+					expect( defs ).toHaveLength( 1 );
+					expect( val( defs[ 1 ].priority ) ).toBe( 7 );
+					expect( defs[ 1 ].activeFrom ).toBe( "2026-01-01" );
+					expect( defs[ 1 ].when ).toBe( { "eq" : [ "a", 1 ] } );
+					expect( defs[ 1 ].except ).toBe( { "eq" : [ "b", 2 ] } );
+					expect( defs[ 1 ].then ).toBe( [] );
+				} );
+
+				it( "treats NULL optional columns as absent", function(){
+					var rows = queryNew(
+						"name,priority,active_from,active_until,when_json,except_json,then_json,stop,using_facts",
+						"varchar,integer,timestamp,timestamp,varchar,varchar,varchar,bit,varchar"
+					);
+					queryAddRow( rows, 1 );
+					querySetCell( rows, "name", "allNulls", 1 );
+
+					var defs = loadFrom( rows );
+					expect( defs ).toHaveLength( 1 );
+					expect( defs[ 1 ].name ).toBe( "allNulls" );
+					expect( defs[ 1 ].priority ).toBe( 0 );
+					expect( defs[ 1 ].stop ).toBeFalse();
+					expect( defs[ 1 ] ).notToHaveKey( "activeFrom" );
+					expect( defs[ 1 ] ).notToHaveKey( "except" );
+				} );
+
+			} );
+
 		} );
+	}
+
+	/**
+	 * Is the optional bx-yaml module available? Specs skip ONLY when it is genuinely missing.
+	 */
+	private boolean function yamlModuleInstalled(){
+		return structKeyExists( getFunctionList(), "yamlDeserializeFile" )
+	}
+
+	/**
+	 * Write YAML to a throwaway file; the caller deletes it.
+	 */
+	private string function writeTempYaml( required string content ){
+		var path = getTempDirectory() & "rulebox-" & createUUID() & ".yaml"
+		fileWrite( path, arguments.content )
+		return path
+	}
+
+	/**
+	 * The YAML twin of tests/resources/rules/credit-rules.json
+	 */
+	private string function creditRulesYaml(){
+		return [
+			"- name: highRisk",
+			"  priority: 10",
+			"  when:",
+			"    lt: [ creditScore, 600 ]",
+			"  then:",
+			"    - action: flagHighRisk",
+			"  stop: true",
+			"- name: approve",
+			"  when:",
+			"    gte: [ creditScore, 600 ]",
+			"  then:",
+			"    - action: approveApplicant",
+			"      params:",
+			"        reason: good credit"
+		].toList( char( 10 ) )
 	}
 
 }

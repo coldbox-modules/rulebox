@@ -120,6 +120,63 @@ class extends="tests.resources.BaseSpec"{
 				expect( first ).notToBeSameInstanceAs( second );
 			} );
 
+			it( "gives every RuleBook its own copy of inline definitions, so an action mutating params can't leak", function(){
+				var seen     = [];
+				var registry = newRegistry( {
+					rulebooks : {
+						"counter" : {
+							"source"  : [ { "name" : "r1", "then" : [ { "action" : "bump", "params" : { "n" : 0 } } ] } ],
+							"actions" : { "bump" : ( facts, result, params ) => { params.n++; seen.append( params.n ); } }
+						}
+					}
+				} );
+
+				var first  = registry.getRuleBook( "counter" );
+				var second = registry.getRuleBook( "counter" );
+				first.run();
+				second.run();
+				registry.getRuleBook( "counter" ).run();
+
+				// Shared params would have produced [ 1, 2, 3 ]
+				expect( seen ).toBe( [ 1, 1, 1 ] );
+			} );
+
+			it( "does not let a RuleBook's mutations change what the next getRuleBook() builds", function(){
+				var seen     = [];
+				var registry = newRegistry( {
+					rulebooks : {
+						"counter" : {
+							"source"  : [ { "name" : "r1", "then" : [ { "action" : "bump", "params" : { "n" : 10 } } ] } ],
+							"actions" : { "bump" : ( facts, result, params ) => { params.n = params.n + 5; seen.append( params.n ); } }
+						}
+					}
+				} );
+
+				registry.getRuleBook( "counter" ).run();
+				registry.getRuleBook( "counter" ).run();
+
+				expect( seen ).toBe( [ 15, 15 ] );
+			} );
+
+			it( "keeps its stored declaration immutable when the caller edits the settings afterwards", function(){
+				var seen       = [];
+				var inline     = [ { "name" : "r1", "then" : [ { "action" : "record", "params" : { "n" : 1 } } ] } ];
+				var actions    = { "record" : ( facts, result, params ) => { seen.append( params.n ); } };
+				var registry   = newRegistry( {
+					rulebooks : { "stored" : { "source" : inline, "actions" : actions } }
+				} );
+
+				// Mutate everything the caller still holds a reference to
+				inline[ 1 ].then[ 1 ].params.n = 99;
+				actions[ "extra" ]              = ( facts, result, params ) => {};
+
+				var ruleBook = registry.getRuleBook( "stored" );
+				ruleBook.run();
+
+				expect( seen ).toBe( [ 1 ] );
+				expect( ruleBook.getRuleStatus( "r1" ) ).toBe( ruleBook.RULE_STATES.EXECUTED );
+			} );
+
 			it( "auto-discovers *.json files from the convention folder", function(){
 				var registry = getInstance( "RuleBookRegistry@rulebox" );
 				var ruleBook = registry.getRuleBook( "testconvention" );
@@ -195,6 +252,36 @@ class extends="tests.resources.BaseSpec"{
 					} ).toThrow( "RuleBox.DuplicateRuleBookException" );
 				} );
 
+			} );
+
+		} );
+
+		describe( "InlineRuleSource", function(){
+
+			it( "load() hands out an independent deep copy on every call", function(){
+				var source = new rulebox.models.InlineRuleSource( [
+					{ "name" : "r1", "then" : [ { "action" : "a", "params" : { "n" : 1 } } ] }
+				] );
+
+				var first = source.load();
+				first[ 1 ].then[ 1 ].params.n = 99;
+				first[ 1 ].name               = "mutated";
+				first.append( { "name" : "extra" } );
+
+				var second = source.load();
+
+				expect( second ).toHaveLength( 1 );
+				expect( second[ 1 ].name ).toBe( "r1" );
+				expect( second[ 1 ].then[ 1 ].params.n ).toBe( 1 );
+			} );
+
+			it( "is not affected by the caller mutating the array it was built from", function(){
+				var definitions = [ { "name" : "r1", "then" : [ { "action" : "a", "params" : { "n" : 1 } } ] } ];
+				var source      = new rulebox.models.InlineRuleSource( definitions );
+
+				definitions[ 1 ].then[ 1 ].params.n = 99;
+
+				expect( source.load()[ 1 ].then[ 1 ].params.n ).toBe( 1 );
 			} );
 
 		} );
