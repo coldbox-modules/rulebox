@@ -1,0 +1,16 @@
+<bx:output>
+<bx:if variables.searchProviderName neq 'local'>
+	<div id="bxsites-search-pagefind" class="bxsites-search-#encodeForHtml( variables.searchProviderName )#"></div>
+<bx:else>
+	<div class="bxsites-search position-relative">
+		<input
+			type="search"
+			id="bxsites-search-input"
+			class="form-control"
+			placeholder="#encodeForHTML( variables.strings.searchPlaceholder )#"
+			aria-label="#encodeForHTML( variables.strings.searchAriaLabel )#">
+		<kbd class="bxsites-search-kbd" aria-hidden="true">Ctrl K</kbd>
+		<ul id="bxsites-search-results" class="bxsites-search-results list-unstyled"></ul>
+	</div>
+</bx:if>
+</bx:output>

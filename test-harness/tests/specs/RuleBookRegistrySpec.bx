@@ -128,6 +128,75 @@ class extends="tests.resources.BaseSpec"{
 				expect( ruleBook.getRuleStatus( "conventionRule" ) ).toBe( ruleBook.RULE_STATES.REGISTERED );
 			} );
 
+			describe( "convention-folder discovery", function(){
+
+				/**
+				 * Builds a throwaway convention folder under the test-harness webroot holding the
+				 * given file names (each with one valid rule) and sub-directories, builds a registry
+				 * over it and returns that registry's declared names. Always cleans the folder up.
+				 */
+				var discoverNames = function( array files = [], array dirs = [] ){
+					var relPath = "tests/resources/conv-#createUUID()#";
+					var absPath = expandPath( "/" & relPath );
+					directoryCreate( absPath );
+					try {
+						for( var fileName in arguments.files ){
+							fileWrite( absPath & "/" & fileName, "[ { ""name"": ""r1"" } ]" );
+						}
+						for( var dirName in arguments.dirs ){
+							directoryCreate( absPath & "/" & dirName );
+						}
+						var registry = newRegistry( { conventionPath : relPath, rulebooks : {} } );
+						return registry.getRuleBookNames().sort( "textNoCase" );
+					} finally {
+						if( directoryExists( absPath ) ){
+							directoryDelete( absPath, true );
+						}
+					}
+				};
+
+				it( "ignores a directory whose name looks like a rule file", function(){
+					expect( discoverNames( [ "real.json" ], [ "dir.json", "dir2.yaml" ] ) ).toBe( [ "real" ] );
+				} );
+
+				it( "ignores hidden dotfiles", function(){
+					expect( discoverNames( [ "visible.json", ".hidden.json", ".hidden.yaml" ] ) ).toBe( [ "visible" ] );
+				} );
+
+				it( "matches the extension case-insensitively and still names it without the extension", function(){
+					expect( discoverNames( [ "B.JSON", "c.Json" ] ) ).toBe( [ "B", "c" ] );
+				} );
+
+				it( "discovers .json, .yaml and .yml files and ignores other extensions", function(){
+					expect(
+						discoverNames( [ "a.json", "b.yaml", "c.yml", "d.YML", "notes.txt", "e.json.bak", "noext" ] )
+					).toBe( [ "a", "b", "c", "d" ] );
+				} );
+
+				it( "throws RuleBox.DuplicateRuleBookException naming both files for a.json plus a.yaml", function(){
+					var caught = "";
+					try {
+						discoverNames( [ "a.json", "a.yaml" ] );
+					} catch( any e ){
+						caught = e;
+					}
+					expect( isSimpleValue( caught ) ).toBeFalse( "expected an exception to be thrown" );
+					expect( caught.type ).toBe( "RuleBox.DuplicateRuleBookException" );
+					expect( caught.message ).toInclude( "a.json" );
+					expect( caught.message ).toInclude( "a.yaml" );
+				} );
+
+				it( "treats a.json and a.yml (or a.yaml and a.YML) as duplicates too", function(){
+					expect( function(){
+						discoverNames( [ "a.json", "a.yml" ] );
+					} ).toThrow( "RuleBox.DuplicateRuleBookException" );
+					expect( function(){
+						discoverNames( [ "a.yaml", "a.YML" ] );
+					} ).toThrow( "RuleBox.DuplicateRuleBookException" );
+				} );
+
+			} );
+
 		} );
 
 		describe( "The rulebook WireBox DSL", function(){
