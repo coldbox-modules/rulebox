@@ -11,8 +11,19 @@
  */
 class{
 
+	/**
+	 * Datasource to run `sql` against. Empty means use the pre-built `query` instead.
+	 */
 	property name="datasource" type="string";
+
+	/**
+	 * SQL that returns one row per rule definition, run against `datasource`
+	 */
 	property name="sql" type="string";
+
+	/**
+	 * A pre-built query of rule rows, used when no datasource is given
+	 */
 	property name="query" type="query";
 
 	/**

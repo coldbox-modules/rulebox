@@ -13,7 +13,9 @@
  * an independent deep copy of the rule definitions, so mutating a rule's `params` (or anything else
  * in a definition) in one RuleBook never leaks into another or back into the stored declaration.
  */
-class singleton{
+@singleton
+@threadsafe
+class{
 
 	@inject( "wirebox" )
 	property name="wirebox";
@@ -26,6 +28,9 @@ class singleton{
 	 */
 	property name="definitions" type="struct";
 
+	/**
+	 * Discover and normalize every declared rulebook once the settings are injected
+	 */
 	function onDIComplete(){
 		reload()
 	}
@@ -40,9 +45,9 @@ class singleton{
 	RuleBookRegistry function reload(){
 		var discovered = discoverConventionRuleBooks()
 
-		var configuredRuleBooks = variables.settings.keyExists( "rulebooks" ) ? variables.settings.rulebooks : {}
-		for( var name in configuredRuleBooks ){
-			discovered[ name ] = normalizeDefinition( configuredRuleBooks[ name ], discovered.keyExists( name ) ? discovered[ name ] : {} )
+		var configuredRuleBooks = variables.settings.rulebooks ?: {}
+		for( var name, configured in configuredRuleBooks ){
+			discovered[ name ] = normalizeDefinition( configured, discovered[ name ] ?: {} )
 		}
 
 		variables.definitions = discovered
@@ -79,11 +84,11 @@ class singleton{
 		var def      = variables.definitions[ arguments.name ]
 		var ruleBook = wirebox.getInstance( name: "RuleBook@rulebox", initArguments: { name: arguments.name } )
 
-		for( var actionName in def.actions ){
-			ruleBook.registerAction( actionName, def.actions[ actionName ] )
+		for( var actionName, action in def.actions ){
+			ruleBook.registerAction( actionName, action )
 		}
-		for( var predicateName in def.predicates ){
-			ruleBook.registerPredicate( predicateName, def.predicates[ predicateName ] )
+		for( var predicateName, predicate in def.predicates ){
+			ruleBook.registerPredicate( predicateName, predicate )
 		}
 
 		ruleBook.loadRules( resolveSource( def.source ) )
@@ -102,7 +107,7 @@ class singleton{
 	private struct function discoverConventionRuleBooks(){
 		var found          = {}
 		var sources        = {}
-		var conventionPath = variables.settings.keyExists( "conventionPath" ) ? variables.settings.conventionPath : "config/rulebox"
+		var conventionPath = variables.settings.conventionPath ?: "config/rulebox"
 		var expandedPath   = toAppPath( conventionPath )
 
 		if( !directoryExists( expandedPath ) ){
@@ -153,9 +158,9 @@ class singleton{
 	 */
 	private struct function normalizeDefinition( required any entry, required struct existing ){
 		var normalized = {
-			source     : existing.keyExists( "source" ) ? existing.source : "",
-			actions    : existing.keyExists( "actions" ) ? existing.actions : {},
-			predicates : existing.keyExists( "predicates" ) ? existing.predicates : {}
+			source     : existing.source ?: "",
+			actions    : existing.actions ?: {},
+			predicates : existing.predicates ?: {}
 		}
 
 		if( isStruct( arguments.entry ) ){
@@ -208,9 +213,9 @@ class singleton{
 
 		if( isStruct( arguments.source ) && arguments.source.keyExists( "type" ) && arguments.source.type == "db" ){
 			var dbArgs = {}
-			for( var key in arguments.source ){
+			for( var key, value in arguments.source ){
 				if( key != "type" ){
-					dbArgs[ key ] = arguments.source[ key ]
+					dbArgs[ key ] = value
 				}
 			}
 			return wirebox.getInstance( name: "DBRuleSource@rulebox", initArguments: dbArgs )

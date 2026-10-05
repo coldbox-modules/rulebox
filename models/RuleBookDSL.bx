@@ -8,6 +8,9 @@
  */
 class{
 
+	/**
+	 * The WireBox injector that registered this DSL, used to resolve the registry
+	 */
 	property name="injector";
 
 	/**
