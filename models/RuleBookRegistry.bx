@@ -38,11 +38,11 @@ class singleton{
 		var discovered = discoverConventionRuleBooks()
 
 		var configuredRuleBooks = variables.settings.keyExists( "rulebooks" ) ? variables.settings.rulebooks : {}
-		for( var name in configuredRuleBooks ){
-			if( isNull( configuredRuleBooks[ name ] ) ){
+		for( var name, configured in configuredRuleBooks ){
+			if( isNull( configured ) ){
 				throwInvalidDeclaration( name, "the declaration is null" )
 			}
-			discovered[ name ] = normalizeDefinition( name, configuredRuleBooks[ name ], discovered.keyExists( name ) ? discovered[ name ] : {} )
+			discovered[ name ] = normalizeDefinition( name, configured, discovered.keyExists( name ) ? discovered[ name ] : {} )
 		}
 
 		variables.definitions = discovered
@@ -78,11 +78,11 @@ class singleton{
 		var def      = variables.definitions[ arguments.name ]
 		var ruleBook = wirebox.getInstance( name: "RuleBook@rulebox", initArguments: { name: arguments.name } )
 
-		for( var actionName in def.actions ){
-			ruleBook.registerAction( actionName, def.actions[ actionName ] )
+		for( var actionName, action in def.actions ){
+			ruleBook.registerAction( actionName, action )
 		}
-		for( var predicateName in def.predicates ){
-			ruleBook.registerPredicate( predicateName, def.predicates[ predicateName ] )
+		for( var predicateName, predicate in def.predicates ){
+			ruleBook.registerPredicate( predicateName, predicate )
 		}
 
 		// Nothing is cached: every call re-reads the source file / re-runs the SQL, by design
@@ -224,9 +224,9 @@ class singleton{
 
 		if( isStruct( arguments.source ) && arguments.source.keyExists( "type" ) && arguments.source.type == "db" ){
 			var dbArgs = {}
-			for( var key in arguments.source ){
+			for( var key, value in arguments.source ){
 				if( key != "type" ){
-					dbArgs[ key ] = arguments.source[ key ]
+					dbArgs[ key ] = value
 				}
 			}
 			return wirebox.getInstance( name: "DBRuleSource@rulebox", initArguments: dbArgs )
