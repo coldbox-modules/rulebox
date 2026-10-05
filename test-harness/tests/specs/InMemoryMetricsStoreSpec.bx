@@ -149,6 +149,41 @@ class extends="tests.resources.BaseSpec"{
 				expect( variables.store.queryAllRuleMetrics( "nope" ) ).toBeEmpty();
 			} );
 
+			it( "stores each distinct error of a rule once with a count, and keeps traces out of the feed", function(){
+				var failure = ( fingerprint, message, timestamp ) => {
+					var event = anEvent( state="FAILED", timestamp=timestamp );
+					event.errorType          = "TestBoom";
+					event.errorMessage       = message;
+					event.errorFingerprint   = fingerprint;
+					event.errorCausedBy      = [ { type: "Cause", message: "why" } ];
+					event.errorStackTrace    = [ "run() /app/Rules.bx:4" ];
+					event.errorRawStackTrace = "java trace";
+					return event;
+				};
+				variables.store.recordEvent( failure( "fpA", "A", "2026-01-01T00:00:01.000" ) );
+				variables.store.recordEvent( failure( "fpA", "A", "2026-01-01T00:00:02.000" ) );
+				variables.store.recordEvent( failure( "fpB", "B", "2026-01-01T00:00:03.000" ) );
+
+				var errors = variables.store.queryRuleErrors( "rb", "r1" );
+				expect( errors ).toHaveLength( 2 );
+				expect( errors[ 1 ].fingerprint ).toBe( "fpB" );
+				expect( errors[ 2 ].count ).toBe( 2 );
+				expect( errors[ 2 ].firstAt ).toBe( "2026-01-01T00:00:01.000" );
+				expect( errors[ 2 ].lastAt ).toBe( "2026-01-01T00:00:02.000" );
+				expect( errors[ 2 ].causedBy[ 1 ].type ).toBe( "Cause" );
+				expect( errors[ 2 ].stackTrace ).toBe( [ "run() /app/Rules.bx:4" ] );
+				expect( errors[ 2 ].rawStackTrace ).toBe( "java trace" );
+				expect( variables.store.queryRuleErrors( "rb", "r1", 1 ) ).toHaveLength( 1 );
+				expect( variables.store.queryRuleErrors( "rb", "nope" ) ).toBeEmpty();
+				expect( variables.store.queryRuleMetrics( "rb", "r1" ).lastError.fingerprint ).toBe( "fpB" );
+
+				var feed = variables.store.queryEvents();
+				expect( feed[ 1 ].errorFingerprint ).toBe( "fpB" );
+				expect( feed[ 1 ] ).notToHaveKey( "errorStackTrace" );
+				expect( feed[ 1 ] ).notToHaveKey( "errorRawStackTrace" );
+				expect( feed[ 1 ] ).notToHaveKey( "errorCausedBy" );
+			} );
+
 			it( "lists distinct rulebook names that have recorded events", function(){
 				variables.store.recordEvent( anEvent( rulebookName="a" ) );
 				variables.store.recordEvent( anEvent( rulebookName="a" ) );

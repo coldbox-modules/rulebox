@@ -35,6 +35,8 @@ Both loop variables are function-local, with or without `var`. Keep a classic `f
 - Use elvis for defaults: `s.k ?: default`, not `s.keyExists( "k" ) ? s.k : default` or `isNull( x ) ? default : x`. `?:` falls back only on null or a missing key (deep paths included), never on `""`, `false` or `0`, and its right side runs only when needed.
 - Use safe navigation for a single call on something that may be null: `obj?.method()`, not `if( !isNull( obj ) ){ obj.method() }`.
 - BoxLang does truthy comparisons and type coercion behind the scenes. Don't add Java-style conversions or casts it already does.
+- End back-to-back `param` statements with `;` (`param name="rc.name" default="";`). Without it, BoxLang 1.18 parses two `param` lines in a row as one statement and silently sets neither.
+- Strings have no backslash escapes: `"\\"` is two backslashes, `"\"` is one.
 
 ## Static
 

@@ -20,15 +20,17 @@
 				<thead class="sticky-top bg-body-tertiary">
 					<tr><th>Time</th><th>Rulebook</th><th>Rule</th><th>State</th><th>Duration</th></tr>
 				</thead>
-				<tbody>
-					<template x-for="(evt, i) in events" :key="i">
-						<tr :class="evt.state === 'FAILED' && 'rb-row-failed'">
+				<!--- One tbody per event: its row, then (FAILED only) its expandable error details --->
+				<template x-for="(evt, i) in events" :key="i">
+					<tbody class="border-top-0">
+						<tr :class="evt.state === 'FAILED' && 'rb-row-failed'" :role="evt.errorType ? 'button' : null" @click="evt.errorType && ( evt.open = !evt.open )">
 							<td class="text-nowrap" x-text="evt.timestamp"></td>
 							<td x-text="evt.rulebookName"></td>
 							<td>
 								<span x-text="evt.ruleName"></span>
 								<template x-if="evt.errorType">
 									<div class="small text-truncate" style="max-width: 340px" :title="evt.errorType + ': ' + ( evt.errorMessage ?? '' )">
+										<i class="ph" :class="evt.open ? 'ph-caret-up' : 'ph-caret-down'"></i>
 										<span class="fw-medium rb-error-text" x-text="evt.errorType"></span>: <span x-text="evt.errorMessage"></span>
 									</div>
 								</template>
@@ -38,8 +40,29 @@
 							</td>
 							<td class="text-nowrap" x-text="Number( evt.durationMs ).toFixed( 2 ) + 'ms'"></td>
 						</tr>
-					</template>
-					<tr x-show="!events.length">
+						<tr x-show="evt.open" x-cloak>
+							<td colspan="5" class="rb-errors-cell">
+								<div class="rb-error-card">
+									<div class="small mb-2" x-text="evt.errorMessage"></div>
+									<template x-for="( cause, depth ) in ( evt.errorCausedBy ?? [] )" :key="depth">
+										<div class="small rb-cause" :style="'margin-left:' + ( depth * 12 ) + 'px'">
+											<span class="text-secondary">Caused by</span>
+											<span class="fw-medium rb-error-text" x-text="cause.type"></span>:
+											<span x-text="cause.message"></span>
+										</div>
+									</template>
+									<pre class="rb-trace" x-show="( evt.errorStackTrace ?? [] ).length" x-text="( evt.errorStackTrace ?? [] ).map( ( frame ) => 'at ' + frame ).join( '\n' )"></pre>
+									<details x-show="evt.errorRawStackTrace">
+										<summary class="small text-secondary">Raw Java stack trace</summary>
+										<pre class="rb-trace rb-trace-raw" x-text="evt.errorRawStackTrace"></pre>
+									</details>
+								</div>
+							</td>
+						</tr>
+					</tbody>
+				</template>
+				<tbody x-show="!events.length">
+					<tr>
 						<td colspan="5" class="text-secondary text-center py-4">Waiting for rule evaluations&hellip; run a rulebook to see events here.</td>
 					</tr>
 				</tbody>
@@ -63,6 +86,7 @@
 				this.source.addEventListener( 'rule', ( e ) => {
 					if( this.paused ) return
 					const evt = JSON.parse( e.data )
+					evt.open = false
 					this.events.unshift( evt )
 					if( this.events.length > this.maxRows ){
 						this.events.length = this.maxRows

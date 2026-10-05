@@ -50,6 +50,7 @@
 											<span class="fw-medium rb-error-text">#htmlEditFormat( rule.lastError.type )#</span>:
 											<span class="text-secondary">#htmlEditFormat( rule.lastError.message )#</span>
 										</div>
+										<a class="small" href="#prc.vizLink( 'metrics' )#?name=#urlEncodedFormat( rule.rulebookName )#&rule=#urlEncodedFormat( rule.ruleName )#">Errors and stack traces</a>
 									</bx:if>
 								</td>
 								<td class="text-end text-nowrap">#numberFormat( rule.failed )# / #numberFormat( rule.totalEvaluations )#</td>

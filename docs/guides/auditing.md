@@ -128,10 +128,24 @@ writeDump( metrics )
 	"completionRate"   : 0.976,
 	"errorRate"        : 0.024,
 	"lastError"        : {
-		"type"    : "CreditService.TimeoutException",
-		"message" : "Credit service did not answer in time",
-		"at"      : "2026-10-05T16:54:53"
-	}
+		"type"        : "CreditService.TimeoutException",
+		"message"     : "Credit service did not answer in time",
+		"at"          : "2026-10-05T16:54:53",
+		"fingerprint" : "9F2C..."
+	},
+	"errors"           : [
+		{
+			"fingerprint"   : "9F2C...",
+			"type"          : "CreditService.TimeoutException",
+			"message"       : "Credit service did not answer in time",
+			"causedBy"      : [ { "type" : "java.net.SocketTimeoutException", "message" : "Read timed out" } ],
+			"stackTrace"    : [ "scoreApplicant() /app/models/CreditService.bx:42", "..." ],
+			"rawStackTrace" : "ortus.boxlang.runtime.types.exceptions.CustomException: ...",
+			"count"         : 1,
+			"firstAt"       : "2026-10-05T16:54:53",
+			"lastAt"        : "2026-10-05T16:54:53"
+		}
+	]
 	// ...plus minDurationMs, maxDurationMs, lastDurationMs, firstRunAt, lastRunAt
 }
 ```
@@ -141,9 +155,14 @@ writeDump( metrics )
   `SKIPPED`, `STOPPED`); `failed` counts the ones that threw (`FAILED`). The
   rates divide them by `totalEvaluations` and are `0` before the first run
 - `lastError` appears once the rule has failed: the exception's type and
-  message (cut to 500 characters) and when it happened. The stack trace and
-  the exception's detail are never kept, and the exception is still re-thrown
-  to your code
+  message (cut to 500 characters), when it happened, and its fingerprint. The
+  exception is still re-thrown to your code
+- `errors` lists the rule's distinct errors, most recently seen first. The same
+  error (same type, message, cause chain and frames in the rule's own code) is
+  one entry whose `count` goes up; it is never added twice. Each keeps the
+  cause chain (up to 5 deep), up to 10 BoxLang stack frames and the raw Java
+  trace cut to 4000 characters, never the exception's `detail`. A rule keeps its
+  10 most recently seen errors
 - Duration covers the whole evaluation, so a rule that is slow to *check*
   shows up even when it never fires
 - A rule that was never evaluated (or doesn't exist) returns the same

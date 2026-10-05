@@ -364,6 +364,66 @@ class extends="tests.resources.BaseSpec"{
 				}
 			} );
 
+			it( "apiRuleErrors() returns a rule's distinct errors once each, with counts, causes and traces", function(){
+				var bus = getInstance( "RuleEventBus@rulebox" );
+				var failure = {
+					rulebookName       : "testconvention",
+					ruleName           : "brokenRule",
+					state              : "FAILED",
+					durationMs         : 1,
+					timestamp          : "2026-01-01T00:00:01.000",
+					errorType          : "TestBoom",
+					errorMessage       : "Kaboom",
+					errorFingerprint   : "fpHandler",
+					errorCausedBy      : [ { type: "Cause", message: "<b>why</b>" } ],
+					errorStackTrace    : [ "run() /app/Rules.bx:4" ],
+					errorRawStackTrace : "java trace"
+				};
+				try{
+					bus.publish( failure );
+					bus.publish( failure.copy().append( { timestamp: "2026-01-01T00:00:02.000" } ) );
+					url.name = "testconvention";
+					url.rule = "brokenRule";
+
+					var errors = jsonDeserialize( execute( event="rulebox:visualizer.apiRuleErrors", renderResults=true ).getRenderedContent() );
+
+					expect( errors ).toHaveLength( 1 );
+					expect( errors[ 1 ].count ).toBe( 2 );
+					expect( errors[ 1 ].lastAt ).toBe( "2026-01-01T00:00:02.000" );
+					expect( errors[ 1 ].causedBy[ 1 ].message ).toBe( "<b>why</b>" );
+					expect( errors[ 1 ].stackTrace ).toBe( [ "run() /app/Rules.bx:4" ] );
+				} finally {
+					getInstance( "InMemoryMetricsStore@rulebox" ).reset();
+					structDelete( url, "name" );
+					structDelete( url, "rule" );
+				}
+			} );
+
+			it( "apiRuleErrors() 404s for an unknown rulebook", function(){
+				url.name = "nope";
+				try{
+					var event = execute( event="rulebox:visualizer.apiRuleErrors", renderResults=true );
+
+					expect( event.getRenderData().statusCode ).toBe( 404 );
+				} finally {
+					structDelete( url, "name" );
+				}
+			} );
+
+			it( "metrics() opens the errors of the rule named in rc.rule, HTML-encoded", function(){
+				url.name = "testconvention";
+				url.rule = "<img src=x>";
+				try{
+					var content = execute( event="rulebox:visualizer.metrics", renderResults=true ).getRenderedContent();
+
+					expect( content ).toInclude( "&quot;rule&quot;:&quot;&lt;img src=x&gt;&quot;" );
+					expect( content ).notToInclude( "<img src=x>" );
+				} finally {
+					structDelete( url, "name" );
+					structDelete( url, "rule" );
+				}
+			} );
+
 			describe( "stream() connection cap", function(){
 
 				// Fresh request context per spec: execute() otherwise reuses the previous spec's

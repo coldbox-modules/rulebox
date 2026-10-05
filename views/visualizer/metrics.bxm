@@ -2,7 +2,7 @@
 <h1 class="h3 mb-4">Metrics</h1>
 
 <div
-	x-data="rbMetrics( #htmlEditFormat( jsonSerialize( prc.rulebookNames ) )#, '#prc.vizLink( 'apiMetrics' )#' )"
+	x-data="rbMetrics( #htmlEditFormat( jsonSerialize( prc.rulebookNames ) )#, '#prc.vizLink( 'apiMetrics' )#', #htmlEditFormat( jsonSerialize( { errorsUrl: prc.vizLink( 'apiRuleErrors' ), name: prc.selectedName, rule: prc.selectedRule } ) )# )"
 	x-init="load()"
 >
 	<div class="d-flex align-items-center gap-2 mb-4">
@@ -60,8 +60,9 @@
 						<th>Last error</th>
 					</tr>
 				</thead>
-				<tbody>
-					<template x-for="rule in sortedRules()" :key="rule.ruleName">
+				<!--- One tbody per rule: its row, then its errors panel (an x-for template needs a single root) --->
+				<template x-for="rule in sortedRules()" :key="rule.ruleName">
+					<tbody class="border-top-0">
 						<tr :class="rule.failed && 'rb-row-failed'">
 							<td class="fw-medium" x-text="rule.ruleName"></td>
 							<td class="text-end" x-text="rule.totalEvaluations"></td>
@@ -71,16 +72,52 @@
 							<td class="text-end text-secondary" x-text="ms( rule.maxDurationMs )"></td>
 							<td class="small">
 								<template x-if="rule.lastError">
-									<div>
-										<span class="fw-medium rb-error-text" x-text="rule.lastError.type"></span>
-										<div class="text-secondary text-truncate" style="max-width: 320px" :title="rule.lastError.message" x-text="rule.lastError.message"></div>
+									<div style="max-width: 260px">
+										<div class="fw-medium rb-error-text text-truncate" :title="rule.lastError.type" x-text="rule.lastError.type"></div>
+										<div class="text-secondary text-truncate" :title="rule.lastError.message" x-text="rule.lastError.message"></div>
 										<div class="text-secondary" style="font-size:.7rem" x-text="rule.lastError.at"></div>
+										<button type="button" class="btn btn-link btn-sm p-0 mt-1 rb-errors-toggle" @click="toggleErrors( rule.ruleName )">
+											<i class="ph" :class="openRule === rule.ruleName ? 'ph-caret-up' : 'ph-caret-down'"></i>
+											<span x-text="openRule === rule.ruleName ? 'Hide errors' : 'Show errors'"></span>
+										</button>
 									</div>
 								</template>
 							</td>
 						</tr>
-					</template>
-					<tr x-show="!( summary.rules ?? [] ).length">
+						<template x-if="openRule === rule.ruleName">
+						<tr>
+							<td colspan="7" class="rb-errors-cell">
+								<div class="text-secondary small py-2" x-show="errorsLoading">Loading errors&hellip;</div>
+								<template x-for="err in errors" :key="err.fingerprint">
+									<div class="rb-error-card">
+										<div class="d-flex align-items-start gap-2 flex-wrap">
+											<span class="fw-medium rb-error-text" x-text="err.type"></span>
+											<span class="badge border rb-badge-FAILED" x-text="err.count + ( err.count === 1 ? ' time' : ' times' )"></span>
+											<span class="text-secondary small ms-auto" x-text="'first ' + err.firstAt + ' · last ' + err.lastAt"></span>
+										</div>
+										<div class="small mb-2" x-text="err.message"></div>
+										<template x-for="( cause, depth ) in err.causedBy" :key="depth">
+											<div class="small rb-cause" :style="'margin-left:' + ( depth * 12 ) + 'px'">
+												<span class="text-secondary">Caused by</span>
+												<span class="fw-medium rb-error-text" x-text="cause.type"></span>:
+												<span x-text="cause.message"></span>
+											</div>
+										</template>
+										<pre class="rb-trace" x-show="err.stackTrace.length" x-text="err.stackTrace.map( ( frame ) => 'at ' + frame ).join( '\n' )"></pre>
+										<details x-show="err.rawStackTrace">
+											<summary class="small text-secondary">Raw Java stack trace</summary>
+											<pre class="rb-trace rb-trace-raw" x-text="err.rawStackTrace"></pre>
+										</details>
+									</div>
+								</template>
+								<div class="text-secondary small py-2" x-show="!errorsLoading && !errors.length">No error details recorded for this rule.</div>
+							</td>
+						</tr>
+						</template>
+					</tbody>
+				</template>
+				<tbody x-show="!( summary.rules ?? [] ).length">
+					<tr>
 						<td colspan="7" class="text-secondary text-center py-4">No rule has run yet in this rulebook.</td>
 					</tr>
 				</tbody>
@@ -110,11 +147,14 @@
 </div>
 
 <script>
-	function rbMetrics( rulebookNames, apiUrl ){
+	function rbMetrics( rulebookNames, apiUrl, options ){
 		return {
 			rulebookNames,
-			rulebookName: rulebookNames[ 0 ] ?? '',
+			rulebookName: options.name || ( rulebookNames[ 0 ] ?? '' ),
 			summary: {},
+			openRule: '',
+			errors: [],
+			errorsLoading: false,
 			sortKey: 'errorRate',
 			sortDesc: true,
 			columns: [
@@ -140,10 +180,30 @@
 					return b.avgDurationMs - a.avgDurationMs
 				} )
 			},
+			// Each distinct error once, with its count, causes and trimmed traces (apiRuleErrors)
+			async toggleErrors( ruleName ){
+				if( this.openRule === ruleName ){
+					this.openRule = ''
+					return
+				}
+				this.openRule = ruleName
+				this.errors = []
+				this.errorsLoading = true
+				const res = await fetch( options.errorsUrl + '?name=' + encodeURIComponent( this.rulebookName ) + '&rule=' + encodeURIComponent( ruleName ) )
+				this.errors = res.ok ? await res.json() : []
+				this.errorsLoading = false
+			},
 			async load(){
 				if( !this.rulebookName ) return
+				this.openRule = ''
 				const res = await fetch( apiUrl + '?name=' + encodeURIComponent( this.rulebookName ) )
 				this.summary = res.ok ? await res.json() : {}
+				// Opened from a link with ?rule=: show that rule's errors once
+				if( options.rule ){
+					const rule = options.rule
+					options.rule = ''
+					await this.toggleErrors( rule )
+				}
 			}
 		}
 	}

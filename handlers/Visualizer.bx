@@ -200,10 +200,14 @@ class{
 	}
 
 	/**
-	 * Metrics/stats dashboard shell.
+	 * Metrics/stats dashboard shell. rc.name preselects a rulebook and rc.rule opens that rule's errors.
 	 */
 	function metrics( event, rc, prc ){
+		param name="rc.name" default="";
+		param name="rc.rule" default="";
 		prc.rulebookNames = registry.getRuleBookNames()
+		prc.selectedName  = prc.rulebookNames.contains( rc.name ) ? rc.name : ""
+		prc.selectedRule  = prc.selectedName.len() ? rc.rule : ""
 	}
 
 	/**
@@ -222,6 +226,23 @@ class{
 		}
 
 		event.renderData( data=store.queryEvents( limit=100 ), type="json" )
+	}
+
+	/**
+	 * JSON action backing the Metrics screen's error panel: the distinct errors of rule rc.rule in
+	 * rulebook rc.name, most recently seen first, each with its count, cause chain and trimmed traces.
+	 * Answers 404 for an unknown rulebook.
+	 */
+	function apiRuleErrors( event, rc, prc ){
+		param name="rc.name" default="";
+		param name="rc.rule" default="";
+
+		if( !rc.name.len() || !registry.getRuleBookNames().contains( rc.name ) ){
+			event.renderData( data={ error: "Unknown rulebook '#rc.name#'." }, statusCode=404, type="json" )
+			return
+		}
+
+		event.renderData( data=getMetricsStore().queryRuleErrors( rc.name, rc.rule ), type="json" )
 	}
 
 	/**

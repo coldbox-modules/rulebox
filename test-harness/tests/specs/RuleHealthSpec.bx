@@ -65,6 +65,107 @@ class extends="tests.resources.BaseSpec"{
 				expect( RuleHealth::problemRules( [] ) ).toBeEmpty();
 			} );
 
+				} );
+
+		describe( "RuleHealth error details", function(){
+
+			// Throw from a nested call and wrap the cause, so the error has frames and a cause chain
+			function failingInner( message ){
+				throw( type = "Bureau.TimeoutException", message = arguments.message );
+			}
+			function failingOuter( message ){
+				try{
+					failingInner( arguments.message );
+				} catch( any e ){
+					throw( type = "Scoring.Exception", message = "Scoring failed", object = e );
+				}
+			}
+			function caught( message="Bureau did not answer" ){
+				try{
+					failingOuter( arguments.message );
+				} catch( any e ){
+					return RuleHealth::errorOf( e );
+				}
+			}
+
+			it( "keeps the type, message, cause chain and BoxLang frames of an exception", function(){
+				var error = caught();
+
+				expect( error.type ).toBe( "Scoring.Exception" );
+				expect( error.message ).toBe( "Scoring failed" );
+				expect( error.causedBy ).toBe( [ { type: "Bureau.TimeoutException", message: "Bureau did not answer" } ] );
+				expect( error.stackTrace[ 1 ] ).toInclude( "failingOuter() " );
+				expect( error.stackTrace[ 1 ] ).toInclude( "RuleHealthSpec.bx:" );
+				expect( error.rawStackTrace ).toInclude( "Scoring failed" );
+				expect( error ).notToHaveKey( "detail" );
+			} );
+
+			// Called from one place, so the frames match; outside a rule, every frame counts
+			function caughtAll( required array messages ){
+				return arguments.messages.map( ( message ) => caught( message ) );
+			}
+
+			it( "gives the same error the same fingerprint, and a different one another", function(){
+				var errors = caughtAll( [ "Bureau did not answer", "Bureau did not answer", "Bureau refused" ] );
+
+				expect( errors[ 1 ].fingerprint ).toBe( errors[ 2 ].fingerprint );
+				expect( errors[ 1 ].fingerprint ).notToBe( errors[ 3 ].fingerprint );
+			} );
+
+			it( "trims frames, causes and the raw trace", function(){
+				var deep = { type: "Deep", message: "level 1" };
+				var current = deep;
+				for( var level = 2; level <= 9; level++ ){
+					current.cause = { type: "Deep", message: "level #level#" };
+					current = current.cause;
+				}
+				var frames = [];
+				for( var i = 1; i <= 25; i++ ){
+					frames.append( { template: "/app/Rules.bx", line: i, function: "step#i#" } );
+				}
+				var error = RuleHealth::errorOf( { type: "Top", message: "top", cause: deep, tagContext: frames, stackTrace: repeatString( "x", 9000 ) } );
+
+				expect( error.causedBy ).toHaveLength( 5 );
+				expect( error.stackTrace ).toHaveLength( 10 );
+				expect( error.stackTrace[ 1 ] ).toBe( "step1() /app/Rules.bx:1" );
+				expect( error.rawStackTrace.len() ).toBe( 4000 );
+			} );
+
+			it( "names a Java exception by its class", function(){
+				try{
+					createObject( "java", "java.lang.Integer" ).parseInt( "abc" );
+				} catch( any e ){
+					expect( RuleHealth::errorOf( e ).type ).toBe( "java.lang.NumberFormatException" );
+				}
+			} );
+
+			it( "counts a repeated error instead of adding it again, and keeps the most recent first", function(){
+				var errors = [];
+				var caughtErrors = caughtAll( [ "Bureau did not answer", "Bureau refused", "Bureau did not answer" ] );
+
+				RuleHealth::foldError( errors, caughtErrors[ 1 ], "t1" );
+				RuleHealth::foldError( errors, caughtErrors[ 2 ], "t2" );
+				RuleHealth::foldError( errors, caughtErrors[ 3 ], "t3" );
+
+				expect( errors ).toHaveLength( 2 );
+				expect( errors[ 1 ].fingerprint ).toBe( caughtErrors[ 1 ].fingerprint );
+				expect( errors[ 1 ].count ).toBe( 2 );
+				expect( errors[ 1 ].firstAt ).toBe( "t1" );
+				expect( errors[ 1 ].lastAt ).toBe( "t3" );
+				expect( errors[ 2 ].count ).toBe( 1 );
+			} );
+
+			it( "keeps at most 10 distinct errors, dropping the least recently seen", function(){
+				var errors = [];
+				for( var i = 1; i <= 12; i++ ){
+					RuleHealth::foldError( errors, { fingerprint: "f#i#", type: "T", message: "m#i#" }, "t#i#" );
+				}
+
+				expect( errors ).toHaveLength( 10 );
+				expect( errors[ 1 ].fingerprint ).toBe( "f12" );
+				expect( errors[ 10 ].fingerprint ).toBe( "f3" );
+			} );
+
 		} );
 	}
 

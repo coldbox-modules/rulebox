@@ -83,7 +83,8 @@ lesson 5 with a button. Nothing is executed or recorded.
 just one RuleBook instance. The **Rule health** table shows each rule's
 completion rate, error rate, durations and last error. Remember lesson 8: when
 a rule throws, the error still reaches your code, and the Visualizer also
-records its type and message here.
+records it here. Open **Show errors** to see each distinct
+error once, with how many times it happened, what caused it, and where.
 
 **Live Tracker.** Every rule evaluation, as it happens. Run your handler
 from lesson 7 in another tab and watch the rows arrive. A failed evaluation

@@ -24,7 +24,8 @@ class implements="IMetricsStore"{
 	 * Exact running aggregates, keyed by rulebook name. Updated on every recordEvent() and never evicted,
 	 * so summaries stay correct no matter how many events have rolled out of the feed. Each value is
 	 * { totals, rules } where totals and rules[ ruleName ] share the shape
-	 * { totalEvaluations, countsByState, totalDurationMs, minDurationMs, maxDurationMs, lastRunAt }.
+	 * { totalEvaluations, countsByState, totalDurationMs, minDurationMs, maxDurationMs, lastRunAt }. A rule's
+	 * aggregate also keeps lastError and errors, its distinct errors (see RuleHealth::foldError()).
 	 */
 	property name="aggregatesByRulebook" type="struct";
 
@@ -40,6 +41,13 @@ class implements="IMetricsStore"{
 	property name="sequence" type="numeric";
 
 	/**
+	 * Fields of a FAILED event that are kept once per distinct error, never in the event feed
+	 */
+	static {
+		ERROR_DETAIL_FIELDS = [ "errorCausedBy", "errorStackTrace", "errorRawStackTrace" ]
+	}
+
+	/**
 	 * Constructor: an empty store
 	 *
 	 * @return This store
@@ -53,14 +61,19 @@ class implements="IMetricsStore"{
 
 	/**
 	 * Persist one rule-evaluation event: append it to its rulebook's feed (capped at
-	 * maxEventsPerRulebook) and fold it into the running aggregates.
+	 * maxEventsPerRulebook) and fold it into the running aggregates. A FAILED event's error is stored
+	 * once per distinct error in the rule's aggregate; the feed keeps only its type, message and
+	 * fingerprint, never another copy of the stack trace.
 	 *
-	 * @event { rulebookName, ruleName, state, durationMs, timestamp }
+	 * @event { rulebookName, ruleName, state, durationMs, timestamp }, plus the error fields on FAILED
 	 */
 	void function recordEvent( required struct event ){
 		lock name="rulebox_inmemory_metrics" type="exclusive" timeout="5"{
 			var rulebookName = arguments.event.rulebookName
 			var stored = arguments.event.copy()
+			for( var heavy in static.ERROR_DETAIL_FIELDS ){
+				stored.delete( heavy )
+			}
 
 			// Recent-activity feed, bounded per rulebook
 			variables.sequence++
@@ -83,6 +96,9 @@ class implements="IMetricsStore"{
 			}
 			accumulate( aggregates.totals, stored )
 			accumulate( aggregates.rules[ stored.ruleName ], stored )
+			if( stored.state == "FAILED" && stored.keyExists( "errorFingerprint" ) ){
+				RuleHealth::foldError( aggregates.rules[ stored.ruleName ].errors, errorOfEvent( arguments.event ), stored.timestamp )
+			}
 		}
 	}
 
@@ -170,6 +186,22 @@ class implements="IMetricsStore"{
 	}
 
 	/**
+	 * A rule's distinct errors, most recently seen first. Each is stored once with a count.
+	 *
+	 * @rulebookName The rule's owning rulebook
+	 * @ruleName The rule
+	 * @limit Max errors to return
+	 *
+	 * @return An array of { fingerprint, type, message, causedBy, stackTrace, rawStackTrace, count, firstAt, lastAt }
+	 */
+	array function queryRuleErrors( required string rulebookName, required string ruleName, numeric limit=10 ){
+		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
+			var errors = variables.aggregatesByRulebook[ arguments.rulebookName ].rules[ arguments.ruleName ].errors ?: []
+			return duplicate( errors.len() > arguments.limit ? errors.slice( 1, arguments.limit ) : errors )
+		}
+	}
+
+	/**
 	 * Every distinct rulebook name that has at least one recorded event.
 	 *
 	 * @return An array of rulebook names
@@ -200,7 +232,8 @@ class implements="IMetricsStore"{
 			totalDurationMs  : 0,
 			minDurationMs    : 0,
 			maxDurationMs    : 0,
-			lastRunAt        : ""
+			lastRunAt        : "",
+			errors           : []
 		}
 	}
 
@@ -224,10 +257,29 @@ class implements="IMetricsStore"{
 		agg.lastRunAt = arguments.event.timestamp
 		if( state == "FAILED" && arguments.event.keyExists( "errorType" ) ){
 			agg.lastError = {
-				"type"    : arguments.event.errorType,
-				"message" : arguments.event.errorMessage ?: "",
-				"at"      : arguments.event.timestamp
+				"type"        : arguments.event.errorType,
+				"message"     : arguments.event.errorMessage ?: "",
+				"at"          : arguments.event.timestamp,
+				"fingerprint" : arguments.event.errorFingerprint ?: ""
 			}
+		}
+	}
+
+	/**
+	 * Rebuild a RuleHealth::errorOf() struct from a FAILED event's error fields
+	 *
+	 * @event The FAILED event
+	 *
+	 * @return { fingerprint, type, message, causedBy, stackTrace, rawStackTrace }
+	 */
+	private struct function errorOfEvent( required struct event ){
+		return {
+			"fingerprint"   : arguments.event.errorFingerprint,
+			"type"          : arguments.event.errorType ?: "",
+			"message"       : arguments.event.errorMessage ?: "",
+			"causedBy"      : duplicate( arguments.event.errorCausedBy ?: [] ),
+			"stackTrace"    : duplicate( arguments.event.errorStackTrace ?: [] ),
+			"rawStackTrace" : arguments.event.errorRawStackTrace ?: ""
 		}
 	}
 

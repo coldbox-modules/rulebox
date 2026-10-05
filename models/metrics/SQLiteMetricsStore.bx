@@ -13,7 +13,10 @@
  *   when it opens and one info line when it recovers. While open, recordEvent() is a cheap no-op.
  * - Schema: a failed schema create is remembered and re-attempted by the next recordEvent().
  *   An index on (rulebookName, ruleName, id) backs the per-rule metrics queries. A table created by
- *   an older RuleBox gets the errorType/errorMessage columns added in place on startup.
+ *   an older RuleBox gets the errorType/errorMessage/errorFingerprint columns added in place on startup.
+ * - Errors: each distinct error of a rule is ONE row in rulebox_errors (keyed by its fingerprint) with a
+ *   count; a repeat is an upsert that bumps the count. Event rows carry only the fingerprint, never the
+ *   trace. A rule keeps its RuleHealth MAX_DISTINCT_ERRORS most recently seen errors.
  * - Retention: visualizer.retentionDays (30) and visualizer.maxStoredEvents (100000) are enforced
  *   by a cheap DELETE every pruneEvery (500) inserts - never on every insert. 0 disables either.
  * - recordEvent() still performs a synchronous INSERT on the calling thread (a documented trade-off).
@@ -201,7 +204,8 @@ class implements="IMetricsStore"{
 	}
 
 	/**
-	 * The DDL ensureSchema() runs: the table, then the index backing the per-rule metrics queries.
+	 * The DDL ensureSchema() runs: the events table, the index backing the per-rule metrics queries,
+	 * and the distinct-errors table.
 	 *
 	 * @return An array of SQL statements
 	 */
@@ -216,10 +220,27 @@ class implements="IMetricsStore"{
 				durationMs REAL NOT NULL,
 				timestamp TEXT NOT NULL,
 				errorType TEXT,
-				errorMessage TEXT
+				errorMessage TEXT,
+				errorFingerprint TEXT
 			)
 			",
-			"CREATE INDEX IF NOT EXISTS idx_rulebox_events_rule ON rulebox_events ( rulebookName, ruleName, id )"
+			"CREATE INDEX IF NOT EXISTS idx_rulebox_events_rule ON rulebox_events ( rulebookName, ruleName, id )",
+			"
+			CREATE TABLE IF NOT EXISTS rulebox_errors (
+				rulebookName TEXT NOT NULL,
+				ruleName TEXT NOT NULL,
+				fingerprint TEXT NOT NULL,
+				errorType TEXT NOT NULL,
+				errorMessage TEXT,
+				causedBy TEXT,
+				stackTrace TEXT,
+				rawStackTrace TEXT,
+				occurrences INTEGER NOT NULL,
+				firstAt TEXT NOT NULL,
+				lastAt TEXT NOT NULL,
+				PRIMARY KEY ( rulebookName, ruleName, fingerprint )
+			)
+			"
 		]
 	}
 
@@ -232,7 +253,7 @@ class implements="IMetricsStore"{
 	 */
 	array function buildUpgradeStatements( required array existingColumns ){
 		var have = arguments.existingColumns.map( ( name ) => lCase( name ) )
-		return [ "errorType", "errorMessage" ]
+		return [ "errorType", "errorMessage", "errorFingerprint" ]
 			.filter( ( column ) => !have.contains( lCase( column ) ) )
 			.map( ( column ) => "ALTER TABLE rulebox_events ADD COLUMN #column# TEXT" )
 	}
@@ -257,8 +278,57 @@ class implements="IMetricsStore"{
 				sql    : "DELETE FROM rulebox_events WHERE timestamp < :cutoff",
 				params : { cutoff: { value: cutoff, cfsqltype: "varchar" } }
 			} )
+			statements.append( {
+				sql    : "DELETE FROM rulebox_errors WHERE lastAt < :cutoff",
+				params : { cutoff: { value: cutoff, cfsqltype: "varchar" } }
+			} )
 		}
 		return statements
+	}
+
+	/**
+	 * The statements that count one FAILED event's error: an upsert that inserts the error the first time
+	 * its fingerprint is seen for the rule and only bumps occurrences and lastAt after that, then a DELETE
+	 * that keeps the rule's RuleHealth MAX_DISTINCT_ERRORS most recently seen errors.
+	 *
+	 * @event A FAILED event with the error fields
+	 *
+	 * @return An array of { sql, params }
+	 */
+	array function buildErrorStatements( required struct event ){
+		var rule = {
+			rulebookName : { value: arguments.event.rulebookName, cfsqltype: "varchar" },
+			ruleName     : { value: arguments.event.ruleName, cfsqltype: "varchar" }
+		}
+		return [
+			{
+				sql    : "
+					INSERT INTO rulebox_errors ( rulebookName, ruleName, fingerprint, errorType, errorMessage, causedBy, stackTrace, rawStackTrace, occurrences, firstAt, lastAt )
+					VALUES ( :rulebookName, :ruleName, :fingerprint, :errorType, :errorMessage, :causedBy, :stackTrace, :rawStackTrace, 1, :at, :at )
+					ON CONFLICT ( rulebookName, ruleName, fingerprint ) DO UPDATE SET occurrences = occurrences + 1, lastAt = excluded.lastAt
+				",
+				params : rule.copy().append( {
+					fingerprint   : { value: arguments.event.errorFingerprint, cfsqltype: "varchar" },
+					errorType     : { value: arguments.event.errorType ?: "", cfsqltype: "varchar" },
+					errorMessage  : { value: arguments.event.errorMessage ?: "", cfsqltype: "varchar" },
+					causedBy      : { value: jsonSerialize( arguments.event.errorCausedBy ?: [] ), cfsqltype: "varchar" },
+					stackTrace    : { value: jsonSerialize( arguments.event.errorStackTrace ?: [] ), cfsqltype: "varchar" },
+					rawStackTrace : { value: arguments.event.errorRawStackTrace ?: "", cfsqltype: "varchar" },
+					at            : { value: arguments.event.timestamp, cfsqltype: "varchar" }
+				} )
+			},
+			{
+				sql    : "
+					DELETE FROM rulebox_errors
+					WHERE rulebookName = :rulebookName AND ruleName = :ruleName AND fingerprint NOT IN (
+						SELECT fingerprint FROM rulebox_errors
+						WHERE rulebookName = :rulebookName AND ruleName = :ruleName
+						ORDER BY lastAt DESC, rowid DESC LIMIT :keep
+					)
+				",
+				params : rule.copy().append( { keep: { value: RuleHealth::MAX_DISTINCT_ERRORS, cfsqltype: "integer" } } )
+			}
+		]
 	}
 
 	/**
@@ -309,7 +379,8 @@ class implements="IMetricsStore"{
 	/**
 	 * Persist one rule-evaluation event. A no-op while the circuit is open.
 	 *
-	 * @event { rulebookName, ruleName, state, durationMs, timestamp }, plus { errorType, errorMessage } on FAILED
+	 * @event { rulebookName, ruleName, state, durationMs, timestamp }, plus the RuleHealth::errorOf() fields
+	 *        as errorType, errorMessage, errorFingerprint, errorCausedBy, errorStackTrace, errorRawStackTrace on FAILED
 	 */
 	void function recordEvent( required struct event ){
 		if( !canAttempt() ){
@@ -322,7 +393,7 @@ class implements="IMetricsStore"{
 
 		try{
 			runSql(
-				"INSERT INTO rulebox_events ( rulebookName, ruleName, state, durationMs, timestamp, errorType, errorMessage ) VALUES ( :rulebookName, :ruleName, :state, :durationMs, :timestamp, :errorType, :errorMessage )",
+				"INSERT INTO rulebox_events ( rulebookName, ruleName, state, durationMs, timestamp, errorType, errorMessage, errorFingerprint ) VALUES ( :rulebookName, :ruleName, :state, :durationMs, :timestamp, :errorType, :errorMessage, :errorFingerprint )",
 				{
 					rulebookName : { value: arguments.event.rulebookName, cfsqltype: "varchar" },
 					ruleName     : { value: arguments.event.ruleName, cfsqltype: "varchar" },
@@ -330,9 +401,15 @@ class implements="IMetricsStore"{
 					durationMs   : { value: arguments.event.durationMs, cfsqltype: "double" },
 					timestamp    : { value: arguments.event.timestamp, cfsqltype: "varchar" },
 					errorType    : { value: arguments.event.errorType ?: "", cfsqltype: "varchar", null: isNull( arguments.event.errorType ) },
-					errorMessage : { value: arguments.event.errorMessage ?: "", cfsqltype: "varchar", null: isNull( arguments.event.errorMessage ) }
+					errorMessage : { value: arguments.event.errorMessage ?: "", cfsqltype: "varchar", null: isNull( arguments.event.errorMessage ) },
+					errorFingerprint : { value: arguments.event.errorFingerprint ?: "", cfsqltype: "varchar", null: isNull( arguments.event.errorFingerprint ) }
 				}
 			)
+			if( arguments.event.state == "FAILED" && !isNull( arguments.event.errorFingerprint ) ){
+				for( var stmt in buildErrorStatements( arguments.event ) ){
+					runSql( stmt.sql, stmt.params )
+				}
+			}
 		} catch( any e ){
 			recordFailure( "#e.message# #e.detail#" )
 			return
@@ -376,7 +453,7 @@ class implements="IMetricsStore"{
 	 * @limit Max rows to return
 	 *
 	 * @return An array of { rulebookName, ruleName, state, durationMs, timestamp } structs, plus
-	 *         { errorType, errorMessage } on FAILED events
+	 *         { errorType, errorMessage, errorFingerprint } on FAILED events
 	 */
 	array function queryEvents( struct filters={}, numeric limit=50 ){
 		var whereClause = arguments.filters.keyExists( "rulebookName" ) ? "WHERE rulebookName = :rulebookName" : ""
@@ -386,7 +463,7 @@ class implements="IMetricsStore"{
 		}
 
 		var events = queryExecute(
-			"SELECT rulebookName, ruleName, state, durationMs, timestamp, errorType, errorMessage FROM rulebox_events #whereClause# ORDER BY id DESC LIMIT :limit",
+			"SELECT rulebookName, ruleName, state, durationMs, timestamp, errorType, errorMessage, errorFingerprint FROM rulebox_events #whereClause# ORDER BY id DESC LIMIT :limit",
 			params,
 			{ datasource: variables.datasourceName, returnType: "array" }
 		)
@@ -396,6 +473,7 @@ class implements="IMetricsStore"{
 			if( !len( event.errorType ?: "" ) ){
 				event.delete( "errorType" )
 				event.delete( "errorMessage" )
+				event.delete( "errorFingerprint" )
 			}
 		}
 		return events
@@ -450,6 +528,46 @@ class implements="IMetricsStore"{
 	}
 
 	/**
+	 * A rule's distinct errors, most recently seen first. Each is one row with a count.
+	 *
+	 * @rulebookName The rule's owning rulebook
+	 * @ruleName The rule
+	 * @limit Max errors to return
+	 *
+	 * @return An array of { fingerprint, type, message, causedBy, stackTrace, rawStackTrace, count, firstAt, lastAt }
+	 */
+	array function queryRuleErrors( required string rulebookName, required string ruleName, numeric limit=10 ){
+		var rows = queryExecute(
+			"
+			SELECT fingerprint, errorType, errorMessage, causedBy, stackTrace, rawStackTrace, occurrences, firstAt, lastAt
+			FROM rulebox_errors
+			WHERE rulebookName = :rulebookName AND ruleName = :ruleName
+			ORDER BY lastAt DESC, rowid DESC
+			LIMIT :limit
+			",
+			{
+				rulebookName : { value: arguments.rulebookName, cfsqltype: "varchar" },
+				ruleName     : { value: arguments.ruleName, cfsqltype: "varchar" },
+				limit        : { value: arguments.limit, cfsqltype: "integer" }
+			},
+			{ datasource: variables.datasourceName, returnType: "array" }
+		)
+		return rows.map( ( row ) => {
+			return {
+				"fingerprint"   : row.fingerprint,
+				"type"          : row.errorType,
+				"message"       : row.errorMessage ?: "",
+				"causedBy"      : len( row.causedBy ?: "" ) ? jsonDeserialize( row.causedBy ) : [],
+				"stackTrace"    : len( row.stackTrace ?: "" ) ? jsonDeserialize( row.stackTrace ) : [],
+				"rawStackTrace" : row.rawStackTrace ?: "",
+				"count"         : row.occurrences,
+				"firstAt"       : row.firstAt,
+				"lastAt"        : row.lastAt
+			}
+		} )
+	}
+
+	/**
 	 * Every distinct rulebook name that has at least one recorded event.
 	 *
 	 * @return An array of rulebook names
@@ -468,6 +586,7 @@ class implements="IMetricsStore"{
 	 */
 	void function reset(){
 		queryExecute( "DELETE FROM rulebox_events", {}, { datasource: variables.datasourceName } )
+		queryExecute( "DELETE FROM rulebox_errors", {}, { datasource: variables.datasourceName } )
 	}
 
 	/**
@@ -508,7 +627,7 @@ class implements="IMetricsStore"{
 		)
 		var lastErrors = queryExecute(
 			"
-			SELECT e.ruleName, e.errorType, e.errorMessage, e.timestamp
+			SELECT e.ruleName, e.errorType, e.errorMessage, e.errorFingerprint, e.timestamp
 			FROM rulebox_events e
 			JOIN (
 				SELECT MAX(id) AS lastId FROM rulebox_events
@@ -537,7 +656,7 @@ class implements="IMetricsStore"{
 		}
 		for( var row in lastErrors ){
 			if( summaries.keyExists( row.ruleName ) ){
-				summaries[ row.ruleName ].lastError = { "type": row.errorType, "message": row.errorMessage ?: "", "at": row.timestamp }
+				summaries[ row.ruleName ].lastError = { "type": row.errorType, "message": row.errorMessage ?: "", "at": row.timestamp, "fingerprint": row.errorFingerprint ?: "" }
 			}
 		}
 		return summaries

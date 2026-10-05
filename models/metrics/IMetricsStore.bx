@@ -8,8 +8,10 @@ interface {
 	/**
 	 * Persist one rule-evaluation event.
 	 *
-	 * @event { rulebookName, ruleName, state, durationMs, timestamp }, plus { errorType, errorMessage } when
-	 *        the state is FAILED (the message is already cut to 500 characters)
+	 * @event { rulebookName, ruleName, state, durationMs, timestamp }, plus, when the state is FAILED,
+	 *        { errorType, errorMessage, errorFingerprint, errorCausedBy, errorStackTrace, errorRawStackTrace },
+	 *        already trimmed by RuleHealth::errorOf(). Store an error once per distinct errorFingerprint per rule
+	 *        and count repeats (RuleHealth::foldError() does this for an array); don't copy the trace per event.
 	 */
 	void function recordEvent( required struct event )
 
@@ -20,7 +22,7 @@ interface {
 	 * @limit Max rows to return
 	 *
 	 * @return An array of { rulebookName, ruleName, state, durationMs, timestamp } structs, plus
-	 *         { errorType, errorMessage } on FAILED events
+	 *         { errorType, errorMessage, errorFingerprint } on FAILED events (no stack trace; see queryRuleErrors())
 	 */
 	array function queryEvents( struct filters={}, numeric limit=50 )
 
@@ -41,8 +43,9 @@ interface {
 	 * @ruleName The rule to summarize
 	 *
 	 * @return { rulebookName, ruleName, totalEvaluations, countsByState, avgDurationMs, minDurationMs, maxDurationMs,
-	 *         lastRunAt, completed, failed, completionRate, errorRate, lastError? }. lastError is { type, message, at }
-	 *         for the rule's most recent FAILED evaluation and is absent until one happens.
+	 *         lastRunAt, completed, failed, completionRate, errorRate, lastError? }. lastError is
+	 *         { type, message, at, fingerprint } for the rule's most recent FAILED evaluation and is absent until one
+	 *         happens.
 	 */
 	struct function queryRuleMetrics( required string rulebookName, required string ruleName )
 
@@ -55,6 +58,18 @@ interface {
 	 * @return An array of queryRuleMetrics() structs, one per rule, in no particular order
 	 */
 	array function queryAllRuleMetrics( required string rulebookName )
+
+	/**
+	 * A rule's distinct errors, most recently seen first. The same error (same fingerprint) is one entry
+	 * with a count, however many times it happened.
+	 *
+	 * @rulebookName The rule's owning rulebook
+	 * @ruleName The rule
+	 * @limit Max errors to return
+	 *
+	 * @return An array of { fingerprint, type, message, causedBy, stackTrace, rawStackTrace, count, firstAt, lastAt }
+	 */
+	array function queryRuleErrors( required string rulebookName, required string ruleName, numeric limit=10 )
 
 	/**
 	 * Every distinct rulebook name that has at least one recorded event.

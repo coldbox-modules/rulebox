@@ -90,7 +90,9 @@ Click any screenshot to enlarge it:
 :::
 ::: image src="../assets/visualizer/metrics.png" alt="The Metrics screen for fraudcheck: evaluations, average duration, completion and error rates, a rule health table with a failing rule and its last error, and outcomes by state" caption="Metrics"
 :::
-::: image src="../assets/visualizer/live.png" alt="The Live Tracker: a Live badge and a table of rule evaluations streaming in, each with time, rulebook, rule, state and duration, with a FAILED row highlighted and its error shown" caption="Live Tracker"
+::: image src="../assets/visualizer/metrics-errors.png" alt="A failing rule's errors on the Metrics screen: two distinct errors, each with how many times it happened, first and last seen, a Caused by line and its BoxLang stack frames" caption="A rule's errors and stack traces"
+
+::: image src="../assets/visualizer/live.png" alt="The Live Tracker: rule evaluations streaming in, with a FAILED row expanded to show its message and BoxLang stack frames" caption="Live Tracker"
 :::
 :::
 
@@ -150,6 +152,13 @@ and last error. It starts with the highest error rate on top; click any column
 heading to sort by it (click again to flip the order), for example **Avg** to
 find the slow ones.
 
+Under a failing rule's last error, **Show errors** opens the rule's distinct
+errors. Each shows its type and message, how many times it
+happened, when it was first and last seen, the **Caused by** chain, the BoxLang
+stack frames, and a **Raw Java stack trace** you can expand. The
+**Errors and stack traces** link on the dashboard and **Show errors and stack
+traces** in the chain view open the same panel.
+
 #### Rule health
 
 Every evaluation of a rule ends in one of the `RULE_STATES`. For health:
@@ -162,9 +171,30 @@ Every evaluation of a rule ends in one of the `RULE_STATES`. For health:
 - **Completion rate** and **error rate** are completed or failed divided by
   all evaluations. Both are `0` before the first evaluation.
 - **Last error** is the most recent failure's exception **type** and
-  **message**, cut to 500 characters, and when it happened. RuleBox never keeps
-  the stack trace or the exception's detail, which can carry data you don't
-  want on a dashboard. The exception is still re-thrown to your code.
+  **message**, and when it happened. The exception is still re-thrown to your
+  code.
+
+#### Errors and stack traces
+
+For every failure RuleBox keeps, trimmed:
+
+| Field | What is kept |
+| --- | --- |
+| `type`, `message` | The exception type (the Java class name for a Java exception) and message, cut to 500 characters |
+| `causedBy` | The "caused by" chain, up to 5 deep, each as `{ type, message }` |
+| `stackTrace` | Up to 10 BoxLang frames (your code), as `function() /path/File.bx:line` |
+| `rawStackTrace` | The Java stack trace, cut to 4000 characters |
+
+The exception's `detail` is never kept.
+
+**The same error is stored once.** Each error gets a fingerprint from its type,
+message, cause chain and the rule's own frames (the code that ran inside the
+rule, not RuleBook or whatever called it). A repeat of the same error only adds
+1 to its `count` and moves its `lastAt`, however many times it happens or from
+which handler. A rule keeps its 10 most recently seen distinct errors.
+
+> Stack traces show file paths and function names. That is one more reason to
+> secure `/rulebox-visualizer` before you enable it outside development.
 
 RuleBox has no per-rule timeouts, so a slow rule shows up through its average
 and maximum duration rather than as a failure.
@@ -175,7 +205,7 @@ Every rule evaluation, across every rulebook, streamed to the browser as it
 happens via [BoxLang's `SSE()`](https://boxlang.ortusbooks.com/boxlang-framework/server-sent-events).
 Each row shows the time, rulebook, rule, outcome state, and duration. A
 `FAILED` row is highlighted in red with the error type and message under the
-rule name. Use
+rule name; click it to expand the cause chain and stack traces. Use
 **Pause** to freeze the table while you read it; the table keeps the latest
 200 rows.
 
@@ -283,12 +313,15 @@ under `visualizer` and are optional:
 - The `rulebox_events` table has an index on `(rulebookName, ruleName, id)` for
   the per-rule metrics queries (created automatically; existing tables get it
   on the next startup).
-- A `FAILED` event stores its error type and message in the `errorType` and
-  `errorMessage` columns. A table created by an older RuleBox gets both
-  columns added in place on the next startup; its existing rows have no error
-  details.
-- Rule health is computed from the stored events, so retention also limits
-  it: once a rule's last failure is pruned, it no longer has a last error.
+- A `FAILED` event row stores only its error type, message and fingerprint
+  (`errorType`, `errorMessage`, `errorFingerprint`). The error itself, with its
+  causes and traces, is one row per rule and fingerprint in `rulebox_errors`;
+  a repeat is an upsert that adds 1 to its count. A table created by an older
+  RuleBox gets the new columns and table on the next startup; its existing rows
+  have no error details.
+- Retention also applies to errors: `retentionDays` deletes errors not seen
+  since the cutoff, and each rule keeps its 10 most recently seen errors. Once
+  a rule's last failed event is pruned, it no longer has a last error.
 - If writes keep failing (a missing datasource, a locked or full database), the
   store logs **one** error when the breaker opens, skips persistence for the
   cool-down (live broadcast keeps working), then retries once and logs **one**
@@ -303,22 +336,29 @@ under `visualizer` and are optional:
 
 Implement `IMetricsStore@rulebox` (`recordEvent`, `queryEvents`,
 `queryRuleBookSummary`, `queryRuleMetrics`, `queryAllRuleMetrics`,
-`queryRuleBookNames`, `reset`) and point `metricsStore` at your WireBox
+`queryRuleErrors`, `queryRuleBookNames`, `reset`) and point `metricsStore` at your WireBox
 mapping - a Redis-backed store, a real RDBMS table via `qb`, whatever fits
 your app.
 
 The interface's docblocks describe each shape. In short:
 
-- A `FAILED` event passed to `recordEvent()` carries `errorType` and
-  `errorMessage`; `queryEvents()` returns them on `FAILED` events only.
+- A `FAILED` event passed to `recordEvent()` carries `errorType`,
+  `errorMessage`, `errorFingerprint`, `errorCausedBy`, `errorStackTrace` and
+  `errorRawStackTrace`. Store each distinct `errorFingerprint` once per rule and
+  count repeats; `RuleHealth::foldError( errors, error, at )` does that for an
+  array. `queryEvents()` returns `errorType`, `errorMessage` and
+  `errorFingerprint` on `FAILED` events only.
 - Summaries add `completed`, `failed`, `completionRate`, `errorRate` and
   `avgDurationMs`. `rulebox.models.metrics.RuleHealth::of( countsByState,
   totalEvaluations, totalDurationMs )` computes them, so your store reports
   them the same way.
 - Rule metrics also add `minDurationMs`, `maxDurationMs`, `lastRunAt`, and
-  `lastError` (`{ type, message, at }`) once the rule has failed.
+  `lastError` (`{ type, message, at, fingerprint }`) once the rule has failed.
 - `queryAllRuleMetrics( rulebookName )` returns the rule metrics of every rule
   that has run, for the dashboard panels and the Rule health table.
+- `queryRuleErrors( rulebookName, ruleName, limit )` returns the rule's distinct
+  errors, most recently seen first, each with its `count`, `firstAt` and
+  `lastAt`.
 
 ## What it doesn't do
 

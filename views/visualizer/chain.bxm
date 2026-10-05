@@ -50,6 +50,7 @@
 							<i class="ph ph-warning-circle"></i>
 							<span class="fw-medium">#htmlEditFormat( node.metrics.lastError.type )#</span>: #htmlEditFormat( node.metrics.lastError.message )#
 							<span class="text-secondary">(#htmlEditFormat( node.metrics.lastError.at )#)</span>
+							<a class="ms-1" href="#prc.vizLink( 'metrics' )#?name=#urlEncodedFormat( prc.rulebookName )#&rule=#urlEncodedFormat( node.name )#">Show errors and stack traces</a>
 						</div>
 					</bx:if>
 				</div>
