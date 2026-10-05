@@ -321,6 +321,26 @@ never receives a row. 1.18.0 never compresses SSE. On an older runtime, set
 <code>whitespaceCompressionEnabled</code> to <code>false</code> in <code>boxlang.json</code>, keeping in mind
 that it applies to all of your app's output.</p>
 </blockquote>
+<h4 id="limiting-live-connections"><a href="#limiting-live-connections" id="limiting-live-connections" name="limiting-live-connections" class="anchor"></a>Limiting live connections</h4>
+<p>Each open Live Tracker tab holds a stream open, and that pins two server
+threads for as long as it stays connected. RuleBox therefore caps how many
+streams can be open at once with <code>visualizer.maxStreams</code> (default <code>25</code>):</p>
+<pre><code class="language-cfc">moduleSettings = {
+	rulebox = {
+		visualizer = {
+			enabled    = true,
+			maxStreams = 10
+		}
+	}
+}
+</code></pre>
+<p>Once the cap is reached, further requests to <code>stream</code> get an HTTP <code>503</code> with
+<code>{ &quot;error&quot;: &quot;Too many live tracker connections&quot; }</code> instead of a new stream, and
+a slot frees up as soon as a tab closes or its connection drops. Keep the cap
+comfortably below your servlet container's worker thread count so the tracker
+can never starve the rest of your application. Each stream also buffers at
+most 1000 events; if a browser stalls and falls behind, its oldest unsent
+events are dropped rather than letting memory grow.</p>
 <h2 id="metrics-persistence"><a href="#metrics-persistence" id="metrics-persistence" name="metrics-persistence" class="anchor"></a>Metrics persistence</h2>
 <p>Every rule evaluation is recorded through <code>RuleEventBus@rulebox</code>, which fans
 it out to two places: the configured metrics store (for the dashboard/metrics
@@ -381,7 +401,7 @@ condition. Access control is also entirely on you; see above.</p>
 
 	
 	
-		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/visualizer.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/visualizer.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 5, 2026, 4&#x3a;02&#x3a;52 PM</span></div>
+		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/visualizer.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/visualizer.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 5, 2026, 4&#x3a;10&#x3a;34 PM</span></div>
 	
 </article>
 
