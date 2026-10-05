@@ -32,6 +32,26 @@ class{
 	 */
 	property name="lockTimeout" type="numeric";
 
+	/**
+	 * The last subscription token handed out by subscribe()
+	 */
+	property name="nextToken" type="numeric";
+
+	/**
+	 * The configured IMetricsStore, resolved lazily on the first publish(). Null until then.
+	 */
+	property name="metricsStore";
+
+	/**
+	 * True once resolving the configured metrics store has failed, so it is not retried on every event
+	 */
+	property name="metricsStoreFailed" type="boolean";
+
+	/**
+	 * Constructor: no subscribers, and a one second lock timeout for live broadcasts
+	 *
+	 * @return This bus
+	 */
 	function init(){
 		variables.subscribers  = {}
 		variables.nextToken    = 0
@@ -40,6 +60,11 @@ class{
 		return this
 	}
 
+	/**
+	 * Resolve the configured metrics store up front when the visualizer is enabled
+	 *
+	 * @return This bus
+	 */
 	function onDIComplete(){
 		if( variables.settings.visualizer.enabled ){
 			resolveMetricsStore()
@@ -88,16 +113,14 @@ class{
 				return
 			}
 
-			if( !structKeyExists( variables, "metricsStore" ) && !variables.metricsStoreFailed ){
+			if( isNull( variables.metricsStore ) && !variables.metricsStoreFailed ){
 				resolveMetricsStore()
 			}
 
-			if( structKeyExists( variables, "metricsStore" ) ){
-				try{
-					variables.metricsStore.recordEvent( arguments.event )
-				} catch( any e ){
-					logger.error( "RuleBox visualizer's metrics store failed to record an event: #e.message# #e.detail#" )
-				}
+			try{
+				variables.metricsStore?.recordEvent( arguments.event )
+			} catch( any e ){
+				logger.error( "RuleBox visualizer's metrics store failed to record an event: #e.message# #e.detail#" )
 			}
 
 			var listeners      = []

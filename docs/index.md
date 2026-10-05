@@ -9,20 +9,33 @@ layout: home
 
 # RuleBox
 
-**RuleBox** is a modern, intuitive, natural-language rules engine for
-BoxLang and ColdBox applications, based on the great work of
-[RuleBook](https://github.com/rulebook-rules/rulebook) - ported over to
-BoxLang.
+**RuleBox** is a natural-language rules engine for BoxLang and ColdBox:
+write each rule as `given`, `when`, `then` instead of nested `if` statements.
 
-Tired of classes filled with `if`/`then`/`else` statements? Need a nice
-abstraction that decouples rules from each other and from the rest of your
-code? Want to write rules the same way you write the rest of your BoxLang?
-RuleBox is right for you.
+Save this as `models/HelloWorld.bx`:
 
-RuleBox lets you write rules in an expressive, dynamic Domain Specific
-Language (DSL) modeled closely after the
-[Given-When-Then](https://martinfowler.com/bliki/GivenWhenThen.html)
-methodology popularized by Behavior Driven Development.
+```js
+class extends="rulebox.models.RuleBook"{
+	function defineRules(){
+		addRule( newRule( "greet" )
+			.then( ( facts, result ) => result.setValue( "Hello " & facts.name ) ) )
+	}
+}
+```
+
+Then run it:
+
+```js
+getInstance( "HelloWorld" )
+	.run( { name: "World" } )
+	.getResult()
+	.getValue()
+```
+
+That returns `Hello World`. Rules stay small, separate from each other, and
+separate from the rest of your code. The syntax follows the
+[Given-When-Then](https://martinfowler.com/bliki/GivenWhenThen.html) style
+from Behavior Driven Development.
 
 ::: cards
 ::: card title="Natural-language DSL" icon="phosphor-duotone:chat-circle-text"
@@ -34,23 +47,34 @@ conditionals, no scattered business logic.
 are registered automatically - just `getInstance()` them.
 :::
 ::: card title="Fully audited" icon="phosphor-duotone:list-magnifying-glass"
-Every rule's execution is tracked in a `RuleStatusMap`, so you always know
+Every rule's execution is tracked in an audit trail, so you always know
 which rules fired, skipped, stopped, or failed.
 :::
 :::
 
 ## Where to start
 
+- [Getting Started](getting-started.md) - run your first rule
 - [Tutorial Course](course/index.md) - learn RuleBox in ten short lessons by building a loan decision
-- [Getting Started](getting-started.md) - install the module
 - [Defining RuleBooks](guides/defining-rulebooks.md) - your first rules
 - [The RuleBook DSL](guides/the-dsl.md) - `given`/`when`/`except`/`then`/`using`/`stop`
+- [External Rules](guides/external-rules.md) - load rules from JSON, YAML, or a database
 - [A Complex Example](guides/complex-example.md) - a full, real-world walkthrough
 - [Rule Visualizer](guides/visualizer.md) - an admin UI to browse rulebooks, dry-run them, and watch metrics
 
 ## Requirements
 
 - BoxLang 1.14+
+- ColdBox 8+
+- Installs into your app's `modules/` folder
+
+The Visualizer Live Tracker needs BoxLang 1.18.0+. Older runtimes strip the
+blank line that ends each server-sent event. This is fixed in 1.18.0.
+
+## Credits
+
+RuleBox is based on the work of [RuleBook](https://github.com/rulebook-rules/rulebook),
+ported to BoxLang.
 
 ## License
 

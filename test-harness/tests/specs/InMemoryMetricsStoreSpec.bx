@@ -97,6 +97,99 @@ class extends="tests.resources.BaseSpec"{
 				expect( variables.store.queryEvents() ).toBeEmpty();
 			} );
 
+			it( "keeps counting totals past the recent-event cap", function(){
+				variables.store.setMaxEventsPerRulebook( 10 );
+				for( var i = 1; i <= 25; i++ ){
+					variables.store.recordEvent( anEvent( rulebookName="rb", ruleName="r1", durationMs=i ) );
+				}
+
+				var summary = variables.store.queryRuleBookSummary( "rb" );
+				var metrics = variables.store.queryRuleMetrics( "rb", "r1" );
+
+				expect( summary.totalEvaluations ).toBe( 25 );
+				expect( summary.countsByState.EXECUTED ).toBe( 25 );
+				expect( summary.totalDurationMs ).toBe( 325 );
+				expect( summary.avgDurationMs ).toBe( 13 );
+				expect( metrics.totalEvaluations ).toBe( 25 );
+				expect( metrics.minDurationMs ).toBe( 1 );
+				expect( metrics.maxDurationMs ).toBe( 25 );
+				// ...while the feed itself stays bounded
+				expect( variables.store.queryEvents( limit=100 ) ).toHaveLength( 10 );
+			} );
+
+			it( "counts past the default cap of 1000 events per rulebook", function(){
+				for( var i = 1; i <= 1200; i++ ){
+					variables.store.recordEvent( anEvent( rulebookName="rb" ) );
+				}
+
+				expect( variables.store.queryRuleBookSummary( "rb" ).totalEvaluations ).toBe( 1200 );
+				expect( variables.store.queryEvents( limit=5000 ) ).toHaveLength( 1000 );
+			} );
+
+			it( "keeps a quiet rulebook's aggregates and feed entries while another rulebook floods past the cap", function(){
+				variables.store.setMaxEventsPerRulebook( 10 );
+				variables.store.recordEvent( anEvent( rulebookName="quiet", ruleName="q1", state="SKIPPED", durationMs=7, timestamp="quiet-ts" ) );
+				variables.store.recordEvent( anEvent( rulebookName="quiet", ruleName="q1", state="EXECUTED", durationMs=3, timestamp="quiet-ts2" ) );
+				for( var i = 1; i <= 50; i++ ){
+					variables.store.recordEvent( anEvent( rulebookName="busy", ruleName="b1" ) );
+				}
+
+				var summary = variables.store.queryRuleBookSummary( "quiet" );
+				var metrics = variables.store.queryRuleMetrics( "quiet", "q1" );
+
+				expect( summary.totalEvaluations ).toBe( 2 );
+				expect( summary.countsByState.SKIPPED ).toBe( 1 );
+				expect( summary.countsByState.EXECUTED ).toBe( 1 );
+				expect( summary.totalDurationMs ).toBe( 10 );
+				expect( metrics.minDurationMs ).toBe( 3 );
+				expect( metrics.maxDurationMs ).toBe( 7 );
+				expect( metrics.lastRunAt ).toBe( "quiet-ts2" );
+				expect( variables.store.queryEvents( filters={ rulebookName: "quiet" } ) ).toHaveLength( 2 );
+				expect( variables.store.queryRuleBookSummary( "busy" ).totalEvaluations ).toBe( 50 );
+				expect( variables.store.queryEvents( filters={ rulebookName: "busy" }, limit=100 ) ).toHaveLength( 10 );
+				expect( variables.store.queryRuleBookNames().sort( "text" ) ).toBe( [ "busy", "quiet" ] );
+			} );
+
+			it( "returns unfiltered events newest first across rulebooks by recording order, not timestamp", function(){
+				// Timestamps deliberately disagree with recording order
+				variables.store.recordEvent( anEvent( rulebookName="a", ruleName="first", timestamp="9" ) );
+				variables.store.recordEvent( anEvent( rulebookName="b", ruleName="second", timestamp="1" ) );
+				variables.store.recordEvent( anEvent( rulebookName="a", ruleName="third", timestamp="5" ) );
+				variables.store.recordEvent( anEvent( rulebookName="b", ruleName="fourth", timestamp="0" ) );
+
+				var names = variables.store.queryEvents().map( ( evt ) => evt.ruleName );
+
+				expect( names ).toBe( [ "fourth", "third", "second", "first" ] );
+				expect( variables.store.queryEvents( limit=3 ).map( ( evt ) => evt.ruleName ) ).toBe( [ "fourth", "third", "second" ] );
+			} );
+
+			it( "applies the unfiltered limit across rulebooks after the cap", function(){
+				variables.store.setMaxEventsPerRulebook( 3 );
+				for( var i = 1; i <= 6; i++ ){
+					variables.store.recordEvent( anEvent( rulebookName=( i % 2 == 0 ? "even" : "odd" ), ruleName="r#i#" ) );
+				}
+
+				var names = variables.store.queryEvents( limit=4 ).map( ( evt ) => evt.ruleName );
+
+				expect( names ).toBe( [ "r6", "r5", "r4", "r3" ] );
+			} );
+
+			it( "reset() clears the running aggregates and rulebook names", function(){
+				variables.store.recordEvent( anEvent( rulebookName="rb", ruleName="r1", durationMs=5 ) );
+				variables.store.reset();
+
+				var summary = variables.store.queryRuleBookSummary( "rb" );
+				var metrics = variables.store.queryRuleMetrics( "rb", "r1" );
+
+				expect( summary.totalEvaluations ).toBe( 0 );
+				expect( summary.countsByState ).toBeEmpty();
+				expect( summary.totalDurationMs ).toBe( 0 );
+				expect( metrics.totalEvaluations ).toBe( 0 );
+				expect( metrics.minDurationMs ).toBe( 0 );
+				expect( metrics.lastRunAt ).toBe( "" );
+				expect( variables.store.queryRuleBookNames() ).toBeEmpty();
+			} );
+
 		} );
 	}
 

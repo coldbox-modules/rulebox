@@ -122,18 +122,6 @@ class{
 	}
 
 	/**
-	 * Set the result in the rule
-	 *
-	 * @result The result object
-	 *
-	 * @return The rule instance
-	 */
-	Rule function setResult( required result ){
-		variables.result = arguments.result
-		return this
-	}
-
-	/**
 	 * The given() method accepts a key/value pair as a Fact for this Rule.
 	 *
 	 * @name The unique name of the fact
@@ -380,9 +368,7 @@ class{
 	Rule function withPriority( required numeric priority ){
 		variables.priority = arguments.priority
 		// Already attached? Have the owning book re-derive its priority-ordered chain
-		if( !isNull( variables.ruleBook ) ){
-			variables.ruleBook.relinkRules()
-		}
+		variables.ruleBook?.relinkRules()
 		return this
 	}
 
@@ -430,10 +416,14 @@ class{
 	Rule function using( required factNames ){
 		var consumerIndex = variables.consumers.len() + 1
 
-		// Build up to an array if a simple list is used.
+		// Build up to an array if a simple list is used, then trim every name and drop empty ones.
+		// This always produces a new array, so we never alias (or later append to) the caller's array.
 		if( isSimpleValue( arguments.factNames ) ){
-			arguments.factNames = listToArray( arguments.factnames )
+			arguments.factNames = listToArray( arguments.factNames )
 		}
+		arguments.factNames = arguments.factNames
+			.map( ( name ) => trim( name ) )
+			.filter( ( name ) => len( name ) )
 
 		// Do we already have this consumer pegged? In case of multiple: using().using() calls
 		if( variables.factsNameMap.keyExists( consumerIndex ) ){
@@ -444,16 +434,6 @@ class{
 
 		// Store the fact names for this iteration of consumers
 		variables.factsNameMap[ consumerIndex ] = arguments.factNames
-		return this
-	}
-
-	/**
-	 * Set the next rule in the chain of rules
-	 *
-	 * @rule The rule to tie into this rule chain
-	 */
-	Rule function setNextRule( required rule ){
-		variables.nextRule = arguments.rule
 		return this
 	}
 

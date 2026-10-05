@@ -58,6 +58,15 @@ The UI itself is Bootstrap 5, Alpine.js, and Phosphor Icons, loaded from a
 CDN - there's nothing to build or bundle. The screenshots below use the
 rulebooks in this module's own `test-harness/config/rulebox` folder.
 
+Every CDN asset is pinned to an exact version (Bootstrap 5.3.3, Alpine.js
+3.14.3, Phosphor Icons 2.1.1) and loaded with a Subresource Integrity
+(`integrity="sha384-..."`) hash, so the browser refuses a file that has been
+altered. SRI covers the stylesheet and script files themselves, not the icon
+font files that Phosphor's CSS fetches by relative URL. The admin pages also
+need to reach the CDNs, and Alpine.js evaluates expressions with
+`new Function`, so a strict Content-Security-Policy (no `unsafe-eval`) will
+block the UI.
+
 ## Screens
 
 A one-minute tour of every screen:
@@ -136,6 +145,31 @@ Each row shows the time, rulebook, rule, outcome state, and duration. Use
 > `whitespaceCompressionEnabled` to `false` in `boxlang.json`, keeping in mind
 > that it applies to all of your app's output.
 
+#### Limiting live connections
+
+Each open Live Tracker tab holds a stream open, and that pins two server
+threads for as long as it stays connected. RuleBox therefore caps how many
+streams can be open at once with `visualizer.maxStreams` (default `25`):
+
+```cfc
+moduleSettings = {
+	rulebox = {
+		visualizer = {
+			enabled    = true,
+			maxStreams = 10
+		}
+	}
+}
+```
+
+Once the cap is reached, further requests to `stream` get an HTTP `503` with
+`{ "error": "Too many live tracker connections" }` instead of a new stream, and
+a slot frees up as soon as a tab closes or its connection drops. Keep the cap
+comfortably below your servlet container's worker thread count so the tracker
+can never starve the rest of your application. Each stream also buffers at
+most 1000 events; if a browser stalls and falls behind, its oldest unsent
+events are dropped rather than letting memory grow.
+
 ## Metrics persistence
 
 Every rule evaluation is recorded through `RuleEventBus@rulebox`, which fans
@@ -161,7 +195,9 @@ moduleSettings = {
 
 `InMemoryMetricsStore@rulebox` is the default - zero setup, live broadcast
 and the dashboard/metrics screens work immediately after enabling the
-visualizer. The tradeoff: nothing survives a restart.
+visualizer. The tradeoff: nothing survives a restart. Totals and per-rule
+metrics are exact running aggregates, while the recent-activity feed keeps
+only the last 1000 events per rulebook (`maxEventsPerRulebook`).
 
 ### Persisting across restarts: SQLite
 
@@ -188,6 +224,33 @@ Neither the module nor the datasource is installed/registered for you - if
 you opt into this store, you set these up yourself. If `bx-sqlite` or the
 datasource isn't available, RuleBox logs it and keeps going: live broadcast
 still works, nothing gets persisted.
+
+#### Retention, indexing and the circuit breaker
+
+The SQLite store is hardened for long-running apps. All of these settings live
+under `visualizer` and are optional:
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `retentionDays` | `30` | Delete events older than this many days. `0` disables. |
+| `maxStoredEvents` | `100000` | Keep at most this many rows (the newest). `0` disables. |
+| `circuitBreakerThreshold` | `5` | Consecutive failed writes before the store stops trying. |
+| `circuitBreakerCooldownSeconds` | `60` | How long it stays idle before a single trial write. |
+
+- Retention is enforced by a cheap `DELETE` once every 500 inserts, never on
+  every insert, so the table can briefly exceed the limits between prunes.
+- The `rulebox_events` table has an index on `(rulebookName, ruleName, id)` for
+  the per-rule metrics queries (created automatically; existing tables get it
+  on the next startup).
+- If writes keep failing (a missing datasource, a locked or full database), the
+  store logs **one** error when the breaker opens, skips persistence for the
+  cool-down (live broadcast keeps working), then retries once and logs **one**
+  info line when it recovers. A failed schema create is retried on the next
+  event rather than being swallowed for good.
+- Each recorded event is still a synchronous `INSERT` on the thread that
+  evaluated the rule. That is a deliberate trade-off for simplicity; if it is
+  too slow for your traffic, use the in-memory store or implement
+  `IMetricsStore@rulebox` with a queue.
 
 ### Swapping it out
 

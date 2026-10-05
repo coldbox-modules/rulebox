@@ -12,9 +12,9 @@ component {
 		variables.cwd          = getCWD().reReplace( "\.$", "" );
 		variables.artifactsDir = cwd & "/.artifacts";
 		variables.buildDir     = cwd & "/.tmp";
-		variables.apidDocsDir = variables.buildDir & "/apidocs";
+		variables.apiDocsDir   = variables.buildDir & "/apidocs";
 		variables.apiDocsURL   = "http://localhost:60299/apidocs/";
-		variables.testRunner   = "http://localhost:60299/tests/runner.cfm";
+		variables.testRunner   = "http://localhost:60299/tests/runner.bxm";
 
 		// Source Excludes Not Added to final binary
 		variables.excludes = [
@@ -26,6 +26,10 @@ component {
 			"webpack.config.js",
 			"server-.*\.json",
 			"docker-compose.yml",
+			"^docs$",
+			"^bxsites\.yaml$",
+			"^AGENTS\.md$",
+			"^CONTRIBUTING\.md$",
 			"^\..*"
 		];
 
@@ -33,7 +37,7 @@ component {
 		[
 			variables.buildDir,
 			variables.artifactsDir,
-			variables.apidDocsDir
+			variables.apiDocsDir
 		].each( ( item ) => {
 			if ( directoryExists( item ) ) {
 				directoryDelete( item, true );
@@ -267,8 +271,13 @@ component {
 			"path",
 			function( path ){
 				var isExcluded = false;
+				// Path relative to the project root, with no leading slash, so the
+				// anchored excludes (^docs$, ^\..*) work whether or not getCWD() ends in a slash
+				var relativePath = path
+					.replaceNoCase( variables.cwd, "", "all" )
+					.reReplace( "^[\\/]+", "" );
 				variables.excludes.each( function( item ){
-					if ( path.replaceNoCase( variables.cwd, "", "all" ).reFindNoCase( item ) ) {
+					if ( relativePath.reFindNoCase( item ) ) {
 						isExcluded = true;
 					}
 				} );
