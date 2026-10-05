@@ -83,6 +83,24 @@ A missing path resolves to `null` rather than throwing. Nodes nest freely:
 }
 ```
 
+### Validation at load time
+
+`loadRules()` validates every definition as it builds it, so a malformed
+condition tree fails immediately instead of inside `run()` - possibly only
+on the day a short-circuited `and`/`or` branch is finally reached. It
+checks for exactly one operator key per node, a known operator, the operand
+shapes in the table above (a string fact path first, and an array second
+for `in`; a non-empty array for `and`/`or`) and that `activeFrom`/`activeUntil`
+parse as dates. Any problem throws `RuleBox.InvalidRuleDefinitionException`
+whose message names the rule (or its 1-based position in the source if it
+has no `name`), the offending path such as `when.and[2].lt`, and what is
+wrong. Definitions are all built before any is added, so a source that
+fails to load adds no rules to the book.
+
+A `{ "predicate": ... }` reference is only supported at the top level of
+`when`/`except`; nesting one inside `and`/`or`/`not` is rejected with a
+clear message. Wrap the logic in a single registered predicate instead.
+
 ## The predicate and action registries
 
 The condition grammar covers comparisons, but not arbitrary logic, and a
