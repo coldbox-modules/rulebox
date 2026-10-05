@@ -32,6 +32,8 @@ Both loop variables are function-local, with or without `var`. Keep a classic `f
 ## Values
 
 - Use the `null` keyword, never `javaCast( "null", "" )`.
+- Use elvis for defaults: `s.k ?: default`, not `s.keyExists( "k" ) ? s.k : default` or `isNull( x ) ? default : x`. `?:` falls back only on null or a missing key (deep paths included), never on `""`, `false` or `0`, and its right side runs only when needed.
+- Use safe navigation for a single call on something that may be null: `obj?.method()`, not `if( !isNull( obj ) ){ obj.method() }`.
 - BoxLang does truthy comparisons and type coercion behind the scenes. Don't add Java-style conversions or casts it already does.
 
 ## Static
@@ -41,6 +43,7 @@ Both loop variables are function-local, with or without `var`. Keep a classic `f
 
 ## Properties are fields
 
+- Declare every `property` before a `static {}` block. BoxLang does not compile a property that comes after one.
 - Every instance field (anything a class keeps in `variables`) is declared with `property`, including runtime state such as counters, flags and lazily resolved objects. `ModuleConfig.bx` is the exception: `variables.settings` there is the ColdBox module convention.
 - Every non-injected property has a docblock saying what it holds. Injected properties (`@inject( "..." )`) don't need one.
 - Initialise mutable defaults (`{}`, `[]`) in `init()` or `onDIComplete()`.
@@ -89,4 +92,6 @@ class{
 4. `@singleton` with injection or `onDIComplete()` also has `@threadSafe`.
 5. Constants and stateless helpers are `static`.
 6. Loops that need an index, key or value use the two-part `for-in`.
-7. Every method has a docblock.
+7. Defaults use `?:` and single guarded calls use `?.`.
+8. Properties come before any `static {}` block.
+9. Every method has a docblock.

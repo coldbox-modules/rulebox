@@ -45,9 +45,9 @@ class{
 	RuleBookRegistry function reload(){
 		var discovered = discoverConventionRuleBooks()
 
-		var configuredRuleBooks = variables.settings.keyExists( "rulebooks" ) ? variables.settings.rulebooks : {}
+		var configuredRuleBooks = variables.settings.rulebooks ?: {}
 		for( var name, configured in configuredRuleBooks ){
-			discovered[ name ] = normalizeDefinition( configured, discovered.keyExists( name ) ? discovered[ name ] : {} )
+			discovered[ name ] = normalizeDefinition( configured, discovered[ name ] ?: {} )
 		}
 
 		variables.definitions = discovered
@@ -107,7 +107,7 @@ class{
 	private struct function discoverConventionRuleBooks(){
 		var found          = {}
 		var sources        = {}
-		var conventionPath = variables.settings.keyExists( "conventionPath" ) ? variables.settings.conventionPath : "config/rulebox"
+		var conventionPath = variables.settings.conventionPath ?: "config/rulebox"
 		var expandedPath   = toAppPath( conventionPath )
 
 		if( !directoryExists( expandedPath ) ){
@@ -158,9 +158,9 @@ class{
 	 */
 	private struct function normalizeDefinition( required any entry, required struct existing ){
 		var normalized = {
-			source     : existing.keyExists( "source" ) ? existing.source : "",
-			actions    : existing.keyExists( "actions" ) ? existing.actions : {},
-			predicates : existing.keyExists( "predicates" ) ? existing.predicates : {}
+			source     : existing.source ?: "",
+			actions    : existing.actions ?: {},
+			predicates : existing.predicates ?: {}
 		}
 
 		if( isStruct( arguments.entry ) ){

@@ -210,7 +210,7 @@ class implements="IMetricsStore"{
 		}
 		agg.totalEvaluations++
 		agg.totalDurationMs += duration
-		agg.countsByState[ state ] = ( agg.countsByState.keyExists( state ) ? agg.countsByState[ state ] : 0 ) + 1
+		agg.countsByState[ state ] = ( agg.countsByState[ state ] ?: 0 ) + 1
 		agg.lastRunAt = arguments.event.timestamp
 	}
 

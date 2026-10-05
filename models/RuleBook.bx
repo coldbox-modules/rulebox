@@ -407,18 +407,18 @@ class{
 
 			if( def.keyExists( "activeFrom" ) || def.keyExists( "activeUntil" ) ){
 				rule.active(
-					def.keyExists( "activeFrom" ) ? def.activeFrom : null,
-					def.keyExists( "activeUntil" ) ? def.activeUntil : null
+					def.activeFrom ?: null,
+					def.activeUntil ?: null
 				)
 			}
 
-			rule.when( resolveCondition( def.keyExists( "when" ) ? def.when : null ) )
+			rule.when( resolveCondition( def.when ?: null ) )
 
 			if( def.keyExists( "except" ) ){
 				rule.except( resolveCondition( def.except ) )
 			}
 
-			var factNames = def.keyExists( "using" ) ? def.using : []
+			var factNames = def.using ?: []
 			// A comma-delimited string is accepted too: trim each name and drop empty ones
 			if( isSimpleValue( factNames ) ){
 				factNames = listToArray( factNames )
@@ -426,7 +426,7 @@ class{
 					.filter( ( name ) => len( name ) )
 			}
 
-			for( var actionClosure in resolveActions( def.keyExists( "then" ) ? def.then : [] ) ){
+			for( var actionClosure in resolveActions( def.then ?: [] ) ){
 				// using() pegs to the *next* then() call only, so re-apply it before each one
 				if( !factNames.isEmpty() ){
 					rule.using( factNames )
@@ -485,7 +485,7 @@ class{
 
 		if( isStruct( arguments.node ) && arguments.node.keyExists( "predicate" ) ){
 			var name   = arguments.node.predicate
-			var params = arguments.node.keyExists( "params" ) ? arguments.node.params : {}
+			var params = arguments.node.params ?: {}
 
 			if( !variables.predicateRegistry.keyExists( name ) ){
 				throw(
@@ -514,7 +514,7 @@ class{
 	private array function resolveActions( required array actions ){
 		return arguments.actions.map( ( actionDef ) => {
 			var name   = actionDef.action
-			var params = actionDef.keyExists( "params" ) ? actionDef.params : {}
+			var params = actionDef.params ?: {}
 
 			if( !variables.actionRegistry.keyExists( name ) ){
 				throw(
@@ -647,7 +647,7 @@ class{
 	 * @return { name, totalEvaluations, countsByState, totalDurationMs, minDurationMs, maxDurationMs, lastDurationMs, firstRunAt?, lastRunAt? }
 	 */
 	struct function getRuleMetrics( required string name ){
-		return variables.ruleMetricsMap.keyExists( arguments.name ) ? variables.ruleMetricsMap[ arguments.name ] : newMetricsEntry( arguments.name )
+		return variables.ruleMetricsMap[ arguments.name ] ?: newMetricsEntry( arguments.name )
 	}
 
 	/**
@@ -676,7 +676,7 @@ class{
 
 		var metric = variables.ruleMetricsMap[ arguments.name ]
 
-		metric.countsByState[ arguments.state ] = ( metric.countsByState.keyExists( arguments.state ) ? metric.countsByState[ arguments.state ] : 0 ) + 1
+		metric.countsByState[ arguments.state ] = ( metric.countsByState[ arguments.state ] ?: 0 ) + 1
 		metric.minDurationMs  = ( metric.totalEvaluations == 0 ) ? arguments.durationMs : min( metric.minDurationMs, arguments.durationMs )
 		metric.maxDurationMs  = ( metric.totalEvaluations == 0 ) ? arguments.durationMs : max( metric.maxDurationMs, arguments.durationMs )
 		metric.totalDurationMs += arguments.durationMs

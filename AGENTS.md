@@ -113,6 +113,7 @@ This is BoxLang, not Java. Write it the BoxLang way:
   Keep a classic `for( var i = 1; ... )` only for counting loops with no collection, or when the body needs a neighbour (`items[ i + 1 ]`).
 - **Literal `#`:** inside `bx:output`, `.bxm` templates and interpolated strings, `#` starts an expression. Write `##` for a literal `#` (an HTML entity is `&##10084;`), or use the character itself.
 - **`null`:** use the `null` keyword, never `javaCast( "null", "" )`.
+- **Elvis and safe navigation:** use `x ?: default` instead of `s.keyExists( "k" ) ? s.k : default` or `isNull( x ) ? default : x`. Use `obj?.method()` instead of an `if( !isNull( obj ) )` guard around a single call. `?:` falls back only on null or a missing key, never on `""`, `false` or `0`, and its right side runs only when needed.
 - **Truthiness and types:** BoxLang does truthy comparisons and type coercion behind the scenes. Don't add Java-style conversions or casts it already does for you.
 - **`static`:** constants that never change, and the defaults a module loads once, live in a `static {}` block and are read as `static.NAME`. A helper with no state is a class of `static` functions, called as `ClassName::method()`, not an instance.
 
@@ -121,6 +122,7 @@ This is BoxLang, not Java. Write it the BoxLang way:
 - **Fields are properties:** every instance field (anything a class keeps in `variables`) is declared with `property`, including runtime state such as counters and lazily resolved objects. `ModuleConfig.bx` is the exception: `variables.settings` there is the ColdBox module convention.
 - **Docblocks:** every non-injected property has a `/** ... */` docblock saying what it holds. Injected properties (`@inject( "..." )`) don't need one. Every method has a docblock too.
 - **No hand-written accessors:** BoxLang generates `getX()` and `setX()` for every property, and the generated setter returns `this`, so chaining works. Only write a `get`/`set` method when it does more than read or assign the field.
+- **Properties come first:** declare every `property` before a `static {}` block. BoxLang does not compile a property that comes after one.
 - **A declared property always exists:** it sits in `variables` as `null` until it is set. Test it with `isNull( variables.x )`, never `structKeyExists( variables, "x" )`, which is always true.
 - **Singletons and `@threadSafe`:** a `@singleton` class that has property injection or an `onDIComplete()` method also gets `@threadSafe`, so WireBox holds its lock through injection. This does not apply to classes in a circular dependency.
 

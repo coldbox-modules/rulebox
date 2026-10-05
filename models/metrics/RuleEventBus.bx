@@ -117,12 +117,10 @@ class{
 				resolveMetricsStore()
 			}
 
-			if( !isNull( variables.metricsStore ) ){
-				try{
-					variables.metricsStore.recordEvent( arguments.event )
-				} catch( any e ){
-					logger.error( "RuleBox visualizer's metrics store failed to record an event: #e.message# #e.detail#" )
-				}
+			try{
+				variables.metricsStore?.recordEvent( arguments.event )
+			} catch( any e ){
+				logger.error( "RuleBox visualizer's metrics store failed to record an event: #e.message# #e.detail#" )
 			}
 
 			var listeners      = []

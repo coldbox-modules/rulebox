@@ -368,9 +368,7 @@ class{
 	Rule function withPriority( required numeric priority ){
 		variables.priority = arguments.priority
 		// Already attached? Have the owning book re-derive its priority-ordered chain
-		if( !isNull( variables.ruleBook ) ){
-			variables.ruleBook.relinkRules()
-		}
+		variables.ruleBook?.relinkRules()
 		return this
 	}
 
