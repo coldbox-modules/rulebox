@@ -2,8 +2,13 @@
  * Loads rule definitions from a YAML file.
  *
  * Requires the official BoxLang YAML module to be installed in the consuming application:
- * `box install boxlang-yaml`. This is deliberately not a hard dependency of RuleBox itself - only
- * install it if you actually use YAMLRuleSource.
+ * `box install bx-yaml` (or `install-bx-module bx-yaml`). This is deliberately not a hard dependency
+ * of RuleBox itself - only install it if you actually use YAMLRuleSource. When the module is absent,
+ * load() throws a `RuleBox.YamlModuleMissingException` that says so.
+ *
+ * bx-yaml 1.0.0 returns EVERY parsed sequence wrapped in one extra single-element array (at every
+ * nesting level, e.g. `[a,b]` parses to `[["a","b"]]`). load() detects that and unwraps it so callers
+ * always get a flat array of rule-definition structs; a module version that does not wrap is left untouched.
  */
 class{
 
@@ -23,17 +28,27 @@ class{
 	}
 
 	/**
+	 * @throws RuleBox.YamlModuleMissingException If the bx-yaml module is not installed
 	 * @throws RuleBox.RuleSourceParseException If the file is not valid YAML. The message names the file
 	 *         and the parse position only - never the file's content.
 	 *
 	 * @return An array of rule-definition structs
 	 */
 	array function load(){
+		if( !structKeyExists( getFunctionList(), "yamlDeserializeFile" ) ){
+			throw(
+				type    : "RuleBox.YamlModuleMissingException",
+				message : "YAMLRuleSource requires the BoxLang YAML module, which is not installed. Install it with: box install bx-yaml (or install-bx-module bx-yaml)",
+				detail  : "The yamlDeserializeFile() function is not available."
+			)
+		}
+
+		var parsed = null
 		try{
-			return yamlDeserializeFile( variables.filePath )
+			parsed = yamlDeserializeFile( variables.filePath )
 		} catch( any e ){
-			// A missing YAML module / unreadable file is not a parse error: surface it untouched
-			if( e.message.reFindNoCase( "^Function \[.*\] not found" ) || !fileExists( variables.filePath ) ){
+			// An unreadable or missing file is not a parse error: surface it untouched
+			if( !fileExists( variables.filePath ) ){
 				rethrow
 			}
 			// Deliberately NOT including e.message: parsers can echo the file's content
@@ -51,6 +66,40 @@ class{
 				message = "Could not parse the YAML rule file [#variables.filePath#]#position#."
 			)
 		}
+		return moduleWrapsSequences() ? unwrap( parsed ) : parsed
+	}
+
+	/**
+	 * Does the installed YAML module wrap every parsed sequence in an extra single-element array?
+	 * Probed with an empty sequence: a wrapping module returns `[[]]`, a well-behaved one returns `[]`.
+	 */
+	private boolean function moduleWrapsSequences(){
+		var probe = yamlDeserialize( "[]" )
+		return isArray( probe ) && probe.len() == 1 && isArray( probe[ 1 ] )
+	}
+
+	/**
+	 * Undo the module's sequence wrapping, recursively. Every array is exactly one wrapper element
+	 * holding the real array, so the wrapper is removed once per array. The real contents are then
+	 * processed in turn, which keeps legitimately nested arrays (a real `[[a]]`) intact.
+	 */
+	private any function unwrap( required any node ){
+		if( isArray( arguments.node ) ){
+			var real = ( arguments.node.len() == 1 && isArray( arguments.node[ 1 ] ) ) ? arguments.node[ 1 ] : arguments.node
+			var result = []
+			for( var item in real ){
+				result.append( unwrap( item ) )
+			}
+			return result
+		}
+		if( isStruct( arguments.node ) ){
+			var copy = [:]
+			for( var key, child in arguments.node ){
+				copy[ key ] = unwrap( child )
+			}
+			return copy
+		}
+		return arguments.node
 	}
 
 }

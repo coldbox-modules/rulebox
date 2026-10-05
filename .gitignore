@@ -19,8 +19,12 @@ logs/**
 ## and the "Rule Visualizer" guide), the generated db file is not
 .database/*.db
 
-## Built docs site (bxSites)
+## Built docs site (bxSites) and its image cache
 site/**
+.cache/**
+
+## Raw Visualizer video recordings (build/video)
+build/video/out/**
 
 ### ENGINE ###
 .engine/**

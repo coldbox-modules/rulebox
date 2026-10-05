@@ -74,6 +74,36 @@ class extends="tests.resources.BaseSpec"{
 				expect( received ).toHaveLength( 1 );
 			} );
 
+			it( "does not throw from publish() when another thread holds the subscriber lock", function(){
+				var store = getInstance( "InMemoryMetricsStore@rulebox" );
+				store.reset();
+
+				var bus = newBus( { enabled: true, metricsStore: "InMemoryMetricsStore@rulebox", datasourceName: "" } );
+				// Lock timeouts are whole seconds; keep the wait as short as the lock allows
+				bus.setLockTimeout( 1 );
+
+				var holderName = "ruleEventBusLockHolder_#createUUID()#";
+				thread name="#holderName#" {
+					lock name="rulebox_event_bus_subscribers" type="exclusive" timeout="5" {
+						sleep( 2500 );
+					}
+				}
+				// Give the holder thread time to take the lock
+				sleep( 400 );
+
+				var started = getTickCount();
+				// An uncaught lock timeout would fail this test on its own
+				bus.publish( anEvent( rulebookName="lockedBus" ) );
+				var elapsed = getTickCount() - started;
+
+				threadJoin( holderName );
+
+				// Gave up after the short timeout instead of stalling for the old 5 seconds
+				expect( elapsed ).toBeLT( 2400 );
+				// The event was still persisted even though the live broadcast was skipped
+				expect( store.queryEvents( filters={ rulebookName: "lockedBus" } ) ).toHaveLength( 1 );
+			} );
+
 			it( "supports multiple independent subscribers", function(){
 				var firstReceived  = [];
 				var secondReceived = [];

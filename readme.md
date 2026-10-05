@@ -33,6 +33,11 @@ worked example - versioned, so the 1.0.0 docs stay right where they were.
 box install rulebox
 ```
 
+Optional, only if you use them:
+
+- YAML rule files: `box install bx-yaml`
+- Visualizer metrics that survive a restart (`SQLiteMetricsStore`): `box install bx-sqlite`, plus a datasource
+
 ## License
 
 Apache License, Version 2.0.

@@ -83,6 +83,24 @@ A missing path resolves to `null` rather than throwing. Nodes nest freely:
 }
 ```
 
+### Validation at load time
+
+`loadRules()` validates every definition as it builds it, so a malformed
+condition tree fails immediately instead of inside `run()` - possibly only
+on the day a short-circuited `and`/`or` branch is finally reached. It
+checks for exactly one operator key per node, a known operator, the operand
+shapes in the table above (a string fact path first, and an array second
+for `in`; a non-empty array for `and`/`or`) and that `activeFrom`/`activeUntil`
+parse as dates. Any problem throws `RuleBox.InvalidRuleDefinitionException`
+whose message names the rule (or its 1-based position in the source if it
+has no `name`), the offending path such as `when.and[2].lt`, and what is
+wrong. Definitions are all built before any is added, so a source that
+fails to load adds no rules to the book.
+
+A `{ "predicate": ... }` reference is only supported at the top level of
+`when`/`except`; nesting one inside `and`/`or`/`not` is rejected with a
+clear message. Wrap the logic in a single registered predicate instead.
+
 ## The predicate and action registries
 
 The condition grammar covers comparisons, but not arbitrary logic, and a
@@ -158,7 +176,7 @@ does **not** install for you - install it yourself if you use
 `YAMLRuleSource`:
 
 ```bash
-box install boxlang-yaml
+box install bx-yaml
 ```
 
 ## DBRuleSource
@@ -196,6 +214,13 @@ condition-tree/action JSON used by `JSONRuleSource`, stored as text:
 | `then_json` | `then` (deserialized) |
 | `stop` | `stop` |
 | `using_facts` | `using` (comma-delimited list) |
+
+`stop` is parsed leniently: `true`/`false`, `1`/`0`, `yes`/`no`, `y`/`n`
+(case-insensitive); empty or `NULL` means `false`. Any other `stop` value, invalid
+JSON in a JSON column, a non-numeric `priority` or an unparseable date throws a
+`RuleBox.InvalidRuleRowException` whose message names the rule (or its 1-based row
+number when it has no `name`) and the offending column; the original parser error
+is available in the exception `detail`.
 
 ## Writing your own source
 
@@ -262,11 +287,14 @@ moduleSettings = {
 for a config-declared rulebook, grab it via the registry or DSL below and
 register it yourself before use.
 
-Any `*.json`/`*.yaml` file dropped in the convention folder (default
-`config/rulebox`, override via `conventionPath`) is auto-discovered too -
-the declared name is the filename without its extension. An explicit
-config entry of the same name layers its `actions`/`predicates` on top of
-that discovered file.
+Any `*.json`, `*.yaml` or `*.yml` file (extension matched case-insensitively)
+dropped in the convention folder (default `config/rulebox`, override via
+`conventionPath`) is auto-discovered too - the declared name is the filename
+without its extension. Directories and dotfiles are ignored, and if two files
+map to the same name (e.g. `credit.json` and `credit.yaml`) the registry throws
+a `RuleBox.DuplicateRuleBookException` naming both rather than picking one
+silently. An explicit config entry of the same name layers its
+`actions`/`predicates` on top of that discovered file.
 
 ### Retrieving a declared rulebook
 
