@@ -98,8 +98,8 @@ class{
 			if( isNull( operand ) || !isArray( operand ) || operand.isEmpty() ){
 				static.fail( arguments.ruleLabel, operatorPath, "takes a non-empty array of condition nodes (received: #static.describe( operand )#)" )
 			}
-			for( var i = 1; i <= operand.len(); i++ ){
-				static.validateNode( operand[ i ], operatorPath & "[#i#]", arguments.ruleLabel )
+			for( var child, i in operand ){
+				static.validateNode( child, operatorPath & "[#i#]", arguments.ruleLabel )
 			}
 			return
 		}

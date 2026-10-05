@@ -384,12 +384,10 @@ class{
 	 */
 	RuleBook function loadRules( required any source ){
 		var builtRules = []
-		var index      = 0
 
 		// Duplicate names are rejected up front, then every definition is validated and built
 		// before the book is touched
-		for( var def in loadDefinitions( arguments.source ) ){
-			index++
+		for( var def, index in loadDefinitions( arguments.source ) ){
 			ConditionValidator::validate( def, index )
 
 			var rule = def.keyExists( "name" ) ? newRule( def.name ) : newRule()
