@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Rule health in the Rule Visualizer: see which rules fail, how often, and which are slow. The dashboard gains "Problem rules" (by error rate, with the last error) and "Slowest rules" (by average duration) panels; the Metrics screen gains completion and error rates and a sortable per-rule health table; the chain view shows each rule's error rate and last error; the Live Tracker highlights `FAILED` rows with their error
+- `RuleBook.getRuleMetrics()` adds `completed`, `failed`, `completionRate`, `errorRate`, `avgDurationMs` and, once a rule fails, `lastError` (`{ type, message, at }`, the message cut to 500 characters, never the stack trace)
+- `IMetricsStore.queryAllRuleMetrics( rulebookName )`, and the same health fields on every store summary. A `FAILED` event carries `errorType` and `errorMessage`. `SQLiteMetricsStore` adds `errorType`/`errorMessage` columns to an existing `rulebox_events` table on startup. A custom store must implement the new method
+
 - GitHub actions upgrades
 - AI integrations and instructions
 - TestBox UI integration

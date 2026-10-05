@@ -121,12 +121,29 @@ writeDump( metrics )
 	"name"             : "creditScoreAdjustment",
 	"totalEvaluations" : 42,
 	"countsByState"    : { "EXECUTED" : 30, "SKIPPED" : 10, "STOPPED" : 1, "FAILED" : 1 },
-	"totalDurationMs"  : 1234
+	"totalDurationMs"  : 1234,
+	"avgDurationMs"    : 29.38,
+	"completed"        : 41,
+	"failed"           : 1,
+	"completionRate"   : 0.976,
+	"errorRate"        : 0.024,
+	"lastError"        : {
+		"type"    : "CreditService.TimeoutException",
+		"message" : "Credit service did not answer in time",
+		"at"      : "2026-10-05T16:54:53"
+	}
 	// ...plus minDurationMs, maxDurationMs, lastDurationMs, firstRunAt, lastRunAt
 }
 ```
 
 - `countsByState` uses the same `RULE_STATES` values as the audit trail
+- `completed` counts evaluations that finished without throwing (`EXECUTED`,
+  `SKIPPED`, `STOPPED`); `failed` counts the ones that threw (`FAILED`). The
+  rates divide them by `totalEvaluations` and are `0` before the first run
+- `lastError` appears once the rule has failed: the exception's type and
+  message (cut to 500 characters) and when it happened. The stack trace and
+  the exception's detail are never kept, and the exception is still re-thrown
+  to your code
 - Duration covers the whole evaluation, so a rule that is slow to *check*
   shows up even when it never fires
 - A rule that was never evaluated (or doesn't exist) returns the same

@@ -52,13 +52,13 @@ Restart your app, then open:
 </figure>
 
 ::: image-gallery columns="3"
-::: image src="../assets/visualizer/dashboard.png" alt="The Dashboard: totals, a table of every rulebook with its outcomes, and a recent activity feed" caption="Dashboard"
+::: image src="../assets/visualizer/dashboard.png" alt="The Dashboard: totals, Problem rules and Slowest rules panels, a table of every rulebook with its outcomes, and a recent activity feed" caption="Dashboard"
 :::
 ::: image src="../assets/visualizer/chain-loanapproval.png" alt="The chain view for a rulebook, showing priority badges, a stops-chain marker and per-rule outcome counts" caption="Rule Visualizer"
 :::
 ::: image src="../assets/visualizer/dryrun.png" alt="The Dry Run screen: facts as JSON on the left, which rules would execute on the right" caption="Dry Run"
 :::
-::: image src="../assets/visualizer/metrics.png" alt="The Metrics screen: evaluation count, average duration and outcomes by state" caption="Metrics"
+::: image src="../assets/visualizer/metrics.png" alt="The Metrics screen: evaluation count, average duration, completion and error rates, a rule health table and outcomes by state" caption="Metrics"
 :::
 ::: image src="../assets/visualizer/live.png" alt="The Live Tracker: rule evaluations streaming in as they run" caption="Live Tracker"
 :::
@@ -67,7 +67,9 @@ Restart your app, then open:
 The sidebar links the five screens.
 
 **Dashboard.** Every rulebook you declared, with its rule count, results and
-a feed of recent activity. Your `loan` rulebook is here.
+a feed of recent activity. Your `loan` rulebook is here. Above it, **Problem
+rules** lists the rules that fail most and **Slowest rules** the ones that take
+longest, so you know where to look first.
 
 **Rule Visualizer.** Click **View chain** on a rulebook to see its rules in
 the order they really run, with their priorities and which ones stop the
@@ -78,10 +80,14 @@ chain. This is lesson 4 as a picture.
 lesson 5 with a button. Nothing is executed or recorded.
 
 **Metrics.** Totals and averages per rulebook, gathered across every run, not
-just one RuleBook instance.
+just one RuleBook instance. The **Rule health** table shows each rule's
+completion rate, error rate, durations and last error. Remember lesson 8: when
+a rule throws, the error still reaches your code, and the Visualizer also
+records its type and message here.
 
 **Live Tracker.** Every rule evaluation, as it happens. Run your handler
-from lesson 7 in another tab and watch the rows arrive.
+from lesson 7 in another tab and watch the rows arrive. A failed evaluation
+shows up in red with its error.
 
 > The Live Tracker needs BoxLang **1.18.0 or later**. The other four screens
 > work on older versions.
