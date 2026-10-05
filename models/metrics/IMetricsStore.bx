@@ -1,7 +1,7 @@
 /**
  * Contract for a Rule Visualizer metrics persistence store. Implement this and point
  * moduleSettings.rulebox.visualizer.metricsStore at your WireBox mapping to swap out the
- * default SQLiteMetricsStore@rulebox.
+ * default InMemoryMetricsStore@rulebox (or the opt-in SQLiteMetricsStore@rulebox).
  */
 interface {
 

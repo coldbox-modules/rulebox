@@ -8,25 +8,28 @@
 class{
 
 	/**
-	 * The array of rule-definition structs
+	 * A private deep copy of the array of rule-definition structs
 	 */
 	property name="definitions" type="array";
 
 	/**
-	 * Constructor
+	 * Constructor. Takes a deep copy of the definitions, so the caller mutating its own array
+	 * afterwards cannot change what this source loads.
 	 *
 	 * @definitions An array of rule-definition structs
 	 */
 	InlineRuleSource function init( required array definitions ){
-		variables.definitions = arguments.definitions
+		variables.definitions = duplicate( arguments.definitions, true )
 		return this
 	}
 
 	/**
-	 * @return An array of rule-definition structs
+	 * @return A fresh deep copy of the rule-definition structs on every call, so each RuleBook that
+	 *         loads from this source owns its definitions (including any action/predicate `params`
+	 *         structs) and nothing it does to them can leak into another RuleBook.
 	 */
 	array function load(){
-		return variables.definitions
+		return duplicate( variables.definitions, true )
 	}
 
 }
