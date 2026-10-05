@@ -132,7 +132,7 @@ class{
 	RuleBook function withDefaultResult( required result ){
 		variables.defaultResult = arguments.result
 		variables.result.setDefaultValue( arguments.result )
-		variables.result.setValue( arguments.result )
+		variables.result.reset()
 		return this
 	}
 
@@ -243,11 +243,15 @@ class{
 
 	/**
 	 * Remove every rule from this RuleBook, resetting it to a rule-less state - as if freshly
-	 * constructed. Registries (registerAction()/registerPredicate()) and rule metrics are untouched.
+	 * constructed. Each removed rule also has its nextRule link cleared, so a rule that is re-added
+	 * here or to another RuleBook is linked only by its new chain. Registries
+	 * (registerAction()/registerPredicate()) and rule metrics are untouched.
 	 *
 	 * @return This RuleBook instance, to allow for chaining of calls
 	 */
 	RuleBook function clearRules(){
+		// Break the old chain so removed rules can't carry stale links into a new one
+		variables.rules.each( ( rule ) => rule.clearNextRule() )
 		variables.rules 		= []
 		variables.ruleStatusMap = {}
 		structDelete( variables, "headRule" )
