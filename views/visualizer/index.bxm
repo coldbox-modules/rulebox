@@ -27,6 +27,74 @@
 		</div>
 	</div>
 </div>
+
+<div class="row g-3 mb-4">
+	<div class="col-lg-6">
+		<div class="card bg-body-tertiary h-100">
+			<div class="card-header d-flex align-items-center gap-2">
+				<i class="ph ph-warning-octagon text-danger"></i>
+				<span>Problem rules</span>
+				<span class="text-secondary small ms-auto">by error rate</span>
+			</div>
+			<div class="table-responsive">
+				<table class="table table-sm align-middle mb-0" id="rb-problem-rules">
+					<thead><tr class="text-nowrap"><th>Rule and last error</th><th class="text-end">Errors</th><th class="text-end">Error rate</th></tr></thead>
+					<tbody>
+						<bx:loop array="#prc.problemRules#" index="rule">
+							<tr>
+								<td>
+									<a href="#prc.vizLink( 'chain' )#?name=#urlEncodedFormat( rule.rulebookName )#" class="fw-medium">#htmlEditFormat( rule.ruleName )#</a>
+									<span class="text-secondary" style="font-size:.75rem">&middot; #htmlEditFormat( rule.rulebookName )#</span>
+									<bx:if rule.keyExists( "lastError" )>
+										<div class="small text-truncate" style="max-width: 300px" title="#htmlEditFormat( rule.lastError.type & ': ' & rule.lastError.message )#">
+											<span class="fw-medium rb-error-text">#htmlEditFormat( rule.lastError.type )#</span>:
+											<span class="text-secondary">#htmlEditFormat( rule.lastError.message )#</span>
+										</div>
+									</bx:if>
+								</td>
+								<td class="text-end text-nowrap">#numberFormat( rule.failed )# / #numberFormat( rule.totalEvaluations )#</td>
+								<td class="text-end"><span class="badge border rb-badge-FAILED">#numberFormat( rule.errorRate * 100, "0.0" )#%</span></td>
+							</tr>
+						</bx:loop>
+						<bx:if prc.problemRules.isEmpty()>
+							<tr><td colspan="3" class="text-secondary text-center py-4"><i class="ph ph-check-circle text-success"></i> No rule has failed.</td></tr>
+						</bx:if>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+	<div class="col-lg-6">
+		<div class="card bg-body-tertiary h-100">
+			<div class="card-header d-flex align-items-center gap-2">
+				<i class="ph ph-hourglass-medium text-warning"></i>
+				<span>Slowest rules</span>
+				<span class="text-secondary small ms-auto">by average duration</span>
+			</div>
+			<div class="table-responsive">
+				<table class="table table-sm align-middle mb-0" id="rb-slowest-rules">
+					<thead><tr class="text-nowrap"><th>Rule</th><th class="text-end">Evaluations</th><th class="text-end">Avg</th><th class="text-end">Max</th></tr></thead>
+					<tbody>
+						<bx:loop array="#prc.slowestRules#" index="rule">
+							<tr>
+								<td>
+									<a href="#prc.vizLink( 'chain' )#?name=#urlEncodedFormat( rule.rulebookName )#" class="fw-medium">#htmlEditFormat( rule.ruleName )#</a>
+									<div class="text-secondary" style="font-size:.75rem">#htmlEditFormat( rule.rulebookName )#</div>
+								</td>
+								<td class="text-end">#numberFormat( rule.totalEvaluations )#</td>
+								<td class="text-end fw-medium">#numberFormat( rule.avgDurationMs, "0.00" )#ms</td>
+								<td class="text-end text-secondary">#numberFormat( rule.maxDurationMs, "0.00" )#ms</td>
+							</tr>
+						</bx:loop>
+						<bx:if prc.slowestRules.isEmpty()>
+							<tr><td colspan="4" class="text-secondary text-center py-4">No evaluations recorded yet.</td></tr>
+						</bx:if>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+</div>
 </bx:output>
 
 <div class="row g-3">
@@ -58,7 +126,10 @@
 									</bx:if>
 								</td>
 								<td>#rb.ruleCount#</td>
-								<td>#numberFormat( rb.totalEvaluations )#</td>
+								<td>
+									#numberFormat( rb.totalEvaluations )#
+									<div class="#rb.failed ? 'text-danger fw-medium' : 'text-secondary'#" style="font-size:.75rem">#numberFormat( rb.errorRate * 100, "0.0" )#% errors</div>
+								</td>
 								<td>
 									<bx:loop collection="#rb.countsByState#" item="state">
 									<bx:output>
@@ -93,10 +164,13 @@
 				<bx:loop array="#prc.recentEvents#" index="evt">
 				<bx:output>
 					<li class="list-group-item bg-transparent d-flex align-items-center gap-2">
-						<span class="rb-state-dot rb-state-#htmlEditFormat( evt.state )#"></span>
-						<div class="flex-grow-1">
+						<span class="rb-state-dot flex-shrink-0 rb-state-#htmlEditFormat( evt.state )#"></span>
+						<div class="flex-grow-1" style="min-width: 0">
 							<div class="small">#htmlEditFormat( evt.rulebookName )# &middot; #htmlEditFormat( evt.ruleName )#</div>
 							<div class="text-secondary" style="font-size:.75rem">#htmlEditFormat( evt.state )# &middot; #numberFormat( evt.durationMs, "0.00" )#ms</div>
+							<bx:if evt.keyExists( "errorType" )>
+								<div class="rb-error-text text-truncate" style="font-size:.75rem" title="#htmlEditFormat( evt.errorMessage ?: '' )#">#htmlEditFormat( evt.errorType )#: #htmlEditFormat( evt.errorMessage ?: "" )#</div>
+							</bx:if>
 						</div>
 					</li>
 				</bx:output>

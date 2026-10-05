@@ -1,0 +1,71 @@
+/**
+ * Tests for RuleHealth's static ranking helpers, which back the Visualizer dashboard's
+ * "Problem rules" and "Slowest rules" panels.
+ */
+import rulebox.models.metrics.RuleHealth;
+
+class extends="tests.resources.BaseSpec"{
+
+	function run( testResults, testBox ){
+		describe( "RuleHealth rankings", function(){
+
+			// A queryRuleMetrics()-shaped struct with only the fields the rankings read
+			function aRule( name, totalEvaluations=10, failed=0, avgDurationMs=1, maxDurationMs=1, lastErrorAt="" ){
+				var rule = {
+					rulebookName     : "rb",
+					ruleName         : arguments.name,
+					totalEvaluations : arguments.totalEvaluations,
+					failed           : arguments.failed,
+					errorRate        : arguments.totalEvaluations == 0 ? 0 : arguments.failed / arguments.totalEvaluations,
+					avgDurationMs    : arguments.avgDurationMs,
+					maxDurationMs    : arguments.maxDurationMs
+				};
+				if( len( arguments.lastErrorAt ) ){
+					rule.lastError = { type: "TestBoom", message: "boom", at: arguments.lastErrorAt };
+				}
+				return rule;
+			}
+
+			function names( rules ){
+				return rules.map( ( rule ) => rule.ruleName ).toList();
+			}
+
+			it( "ranks failing rules by error rate, then failures, then most recent error, and leaves healthy rules out", function(){
+				var ranked = RuleHealth::problemRules( [
+					aRule( name="healthy" ),
+					aRule( name="half", failed=5, lastErrorAt="t1" ),
+					aRule( name="mostlyBroken", failed=9, lastErrorAt="t1" ),
+					aRule( name="halfOfMore", totalEvaluations=20, failed=10, lastErrorAt="t1" ),
+					aRule( name="halfRecent", failed=5, lastErrorAt="t2" )
+				] );
+
+				expect( names( ranked ) ).toBe( "mostlyBroken,halfOfMore,halfRecent,half" );
+			} );
+
+			it( "ranks rules that ran by average duration, then maximum, and leaves rules with no runs out", function(){
+				var ranked = RuleHealth::slowestRules( [
+					aRule( name="fast", avgDurationMs=1 ),
+					aRule( name="never", totalEvaluations=0, avgDurationMs=0 ),
+					aRule( name="slow", avgDurationMs=50, maxDurationMs=60 ),
+					aRule( name="slowSpiky", avgDurationMs=50, maxDurationMs=400 )
+				] );
+
+				expect( names( ranked ) ).toBe( "slowSpiky,slow,fast" );
+			} );
+
+			it( "returns at most limit rules", function(){
+				var rules = [];
+				for( var i = 1; i <= 8; i++ ){
+					rules.append( aRule( name="r#i#", failed=1, avgDurationMs=i, lastErrorAt="t" ) );
+				}
+
+				expect( RuleHealth::problemRules( rules ) ).toHaveLength( 5 );
+				expect( RuleHealth::slowestRules( rules, 3 ) ).toHaveLength( 3 );
+				expect( names( RuleHealth::slowestRules( rules, 3 ) ) ).toBe( "r8,r7,r6" );
+				expect( RuleHealth::problemRules( [] ) ).toBeEmpty();
+			} );
+
+		} );
+	}
+
+}

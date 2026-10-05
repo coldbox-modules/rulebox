@@ -43,6 +43,60 @@ class{
 	}
 
 	/**
+	 * The rules that failed at least once, worst first: highest error rate, then most failures, then
+	 * most recently failed.
+	 *
+	 * @ruleMetrics IMetricsStore.queryRuleMetrics() structs, from any number of rulebooks
+	 * @limit How many to return
+	 *
+	 * @return At most limit of those structs
+	 */
+	static array function problemRules( required array ruleMetrics, numeric limit=5 ){
+		var ranked = arguments.ruleMetrics.filter( ( metrics ) => metrics.failed > 0 )
+		ranked.sort( ( a, b ) => {
+			if( a.errorRate != b.errorRate ){
+				return a.errorRate > b.errorRate ? -1 : 1
+			}
+			if( a.failed != b.failed ){
+				return a.failed > b.failed ? -1 : 1
+			}
+			return compare( b.lastError.at ?: "", a.lastError.at ?: "" )
+		} )
+		return static.firstOf( ranked, arguments.limit )
+	}
+
+	/**
+	 * The slowest rules that have run, slowest first: highest average duration, then highest maximum.
+	 *
+	 * @ruleMetrics IMetricsStore.queryRuleMetrics() structs, from any number of rulebooks
+	 * @limit How many to return
+	 *
+	 * @return At most limit of those structs
+	 */
+	static array function slowestRules( required array ruleMetrics, numeric limit=5 ){
+		var ranked = arguments.ruleMetrics.filter( ( metrics ) => metrics.totalEvaluations > 0 )
+		ranked.sort( ( a, b ) => {
+			if( a.avgDurationMs != b.avgDurationMs ){
+				return a.avgDurationMs > b.avgDurationMs ? -1 : 1
+			}
+			return a.maxDurationMs == b.maxDurationMs ? 0 : ( a.maxDurationMs > b.maxDurationMs ? -1 : 1 )
+		} )
+		return static.firstOf( ranked, arguments.limit )
+	}
+
+	/**
+	 * The first count items of an array, or all of them when there are fewer
+	 *
+	 * @items The array
+	 * @count How many to keep
+	 *
+	 * @return A new array
+	 */
+	private static array function firstOf( required array items, required numeric count ){
+		return arguments.items.len() > arguments.count ? arguments.items.slice( 1, arguments.count ) : arguments.items
+	}
+
+	/**
 	 * The error details kept for a FAILED evaluation: the exception type and its message, cut to
 	 * MAX_ERROR_MESSAGE_LENGTH characters. Never the stack trace or the exception's detail.
 	 *

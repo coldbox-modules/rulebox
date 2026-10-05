@@ -1,3 +1,5 @@
+import rulebox.models.metrics.RuleHealth;
+
 /**
  * The Rule Visualizer admin UI: a dashboard, per-rulebook chain visualization, a dry-run
  * playground, metrics/stats, and a live SSE tracker.
@@ -68,8 +70,8 @@ class{
 	}
 
 	/**
-	 * Dashboard: every declared rulebook with its rule count and evaluation summary, plus a
-	 * recent-activity feed.
+	 * Dashboard: every declared rulebook with its rule count and evaluation summary, the rules that
+	 * fail most and the slowest rules across all of them, plus a recent-activity feed.
 	 */
 	function index( event, rc, prc ){
 		var store = getMetricsStore()
@@ -87,6 +89,12 @@ class{
 			}
 			return summary
 		} )
+		var ruleMetrics = []
+		for( var name in names ){
+			ruleMetrics.append( store.queryAllRuleMetrics( name ), true )
+		}
+		prc.problemRules = RuleHealth::problemRules( ruleMetrics )
+		prc.slowestRules = RuleHealth::slowestRules( ruleMetrics )
 		prc.recentEvents = store.queryEvents( limit=10 )
 		prc.totalRuleBooks = names.len()
 		prc.totalRules     = prc.rulebooks.reduce( ( sum, rb ) => sum + rb.ruleCount, 0 )
@@ -199,14 +207,17 @@ class{
 	}
 
 	/**
-	 * JSON action backing the metrics dashboard: rc.name -> rulebook summary, else recent events.
+	 * JSON action backing the metrics dashboard: rc.name -> the rulebook summary plus "rules", the
+	 * queryRuleMetrics() struct of every rule that has run; no rc.name -> recent events.
 	 */
 	function apiMetrics( event, rc, prc ){
 		param name="rc.name" default=""
 		var store = getMetricsStore()
 
 		if( rc.name.len() ){
-			event.renderData( data=store.queryRuleBookSummary( rc.name ), type="json" )
+			var summary = store.queryRuleBookSummary( rc.name )
+			summary[ "rules" ] = store.queryAllRuleMetrics( rc.name )
+			event.renderData( data=summary, type="json" )
 			return
 		}
 

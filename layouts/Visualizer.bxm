@@ -40,6 +40,9 @@
 		.rb-badge-SKIPPED, .rb-badge-REGISTERED, .rb-badge-NOT_AVAILABLE{ color: var(--rb-state-skipped); border-color: var(--rb-state-skipped); }
 		.rb-badge-STOPPED{ color: var(--rb-state-stopped); border-color: var(--rb-state-stopped); }
 		.rb-badge-FAILED{ color: var(--rb-state-failed); border-color: var(--rb-state-failed); }
+		.rb-error-text{ color: var(--rb-state-failed); }
+		.rb-row-failed{ --bs-table-bg-state: rgba(220, 38, 38, .12); }
+		.rb-row-failed > td:first-child{ border-left: 3px solid var(--rb-state-failed); }
 	</style>
 </head>
 <body>
@@ -88,7 +91,8 @@
 				</div>
 			</div>
 		</nav>
-		<main class="flex-grow-1 p-4">
+		<!--- min-width: 0 lets a wide table scroll inside its card instead of widening the page --->
+		<main class="flex-grow-1 p-4" style="min-width: 0">
 			#renderView()#
 		</main>
 	</div>

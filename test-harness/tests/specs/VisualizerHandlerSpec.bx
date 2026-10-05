@@ -308,6 +308,62 @@ class extends="tests.resources.BaseSpec"{
 				expect( summary ).toHaveKey( "countsByState" );
 			} );
 
+			/**
+			 * Record evaluations of rules in the declared "testconvention" rulebook straight onto the bus
+			 */
+			function seedHealth(){
+				var bus = getInstance( "RuleEventBus@rulebox" );
+				var base = { rulebookName: "testconvention", durationMs: 1, timestamp: "2026-01-01T00:00:00.000" };
+				bus.publish( base.copy().append( { ruleName: "healthyRule", state: "EXECUTED" } ) );
+				bus.publish( base.copy().append( { ruleName: "slowRule", state: "EXECUTED", durationMs: 900 } ) );
+				bus.publish( base.copy().append( { ruleName: "brokenRule", state: "EXECUTED" } ) );
+				bus.publish( base.copy().append( {
+					ruleName     : "brokenRule",
+					state        : "FAILED",
+					errorType    : "TestBoom",
+					errorMessage : "<script>alert(1)</script> credit service down",
+					timestamp    : "2026-01-01T00:00:05.000"
+				} ) );
+			}
+
+			it( "lists failing rules under Problem rules, with the HTML-encoded last error, and the slowest rules", function(){
+				seedHealth();
+				try{
+					var content = execute( event="rulebox:visualizer.index", renderResults=true ).getRenderedContent();
+
+					var problems = content.mid( content.find( "rb-problem-rules" ), content.find( "rb-slowest-rules" ) - content.find( "rb-problem-rules" ) );
+					expect( problems ).toInclude( "brokenRule" );
+					expect( problems ).notToInclude( "healthyRule" );
+					expect( problems ).toInclude( "TestBoom" );
+					expect( problems ).toInclude( "50.0%" );
+					expect( problems ).toInclude( "&lt;script&gt;alert(1)&lt;/script&gt; credit service down" );
+					expect( content ).notToInclude( "<script>alert(1)" );
+
+					var slowest = content.mid( content.find( "rb-slowest-rules" ), 2000 );
+					expect( slowest.find( "slowRule" ) ).toBeGT( 0 );
+					expect( slowest.find( "slowRule" ) ).toBeLT( slowest.find( "brokenRule" ) );
+				} finally {
+					getInstance( "InMemoryMetricsStore@rulebox" ).reset();
+				}
+			} );
+
+			it( "apiMetrics() adds the health of every rule that has run", function(){
+				seedHealth();
+				try{
+					url.name = "testconvention";
+					var summary = jsonDeserialize( execute( event="rulebox:visualizer.apiMetrics", renderResults=true ).getRenderedContent() );
+
+					expect( summary.errorRate ).toBe( 0.25 );
+					expect( summary.rules ).toHaveLength( 3 );
+					var broken = summary.rules.filter( ( rule ) => rule.ruleName == "brokenRule" )[ 1 ];
+					expect( broken.errorRate ).toBe( 0.5 );
+					expect( broken.lastError.type ).toBe( "TestBoom" );
+				} finally {
+					getInstance( "InMemoryMetricsStore@rulebox" ).reset();
+					structDelete( url, "name" );
+				}
+			} );
+
 			describe( "stream() connection cap", function(){
 
 				// Fresh request context per spec: execute() otherwise reuses the previous spec's
