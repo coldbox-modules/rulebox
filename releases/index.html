@@ -215,7 +215,7 @@
 		
 		
 		
-			<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#200">2.0.0</a></li><li class="toc-level-2"><a href="#100">1.0.0</a></li></ul></details>
+			<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#200">2.0.0</a></li><li class="toc-level-2"><a href="#migrating-from-100">Migrating from 1.0.0</a></li><li class="toc-level-2"><a href="#100">1.0.0</a></li></ul></details>
 		
 
 		
@@ -225,8 +225,26 @@ line-by-line history lives in
 <a href="https://github.com/coldbox-modules/rulebox/blob/development/changelog.md"><code>changelog.md</code></a>
 at the root of the repository. Highlights below.</p>
 <h2 id="200"><a href="#200" id="200" name="200" class="anchor"></a>2.0.0</h2>
-<p>A BoxLang-only rewrite of the module, with a number of correctness fixes
-and additions:</p>
+<p>A BoxLang-only rewrite of the module. The main additions:</p>
+<ul>
+<li><strong>External rule sources</strong> - load rules from JSON, YAML or a database
+with <code>loadRules()</code>. See
+<a href="/guides/external-rules/index.html">Externalized Rule Definitions</a>.</li>
+<li><strong>Declared rulebooks</strong> - name your rulebooks in config or a folder of
+files, then get them from <code>RuleBookRegistry</code> or the <code>ruleBook()</code> helper.
+See <a href="/guides/external-rules/index.html">Externalized Rule Definitions</a>.</li>
+<li><strong><code>dryRun()</code></strong> - preview which rules would fire, without running any
+<code>then()</code> consumers. See <a href="/guides/auditing/index.html">Auditing Rules</a>.</li>
+<li><strong>Rule metrics</strong> - per-rule counts and timings across runs. See
+<a href="/guides/auditing/index.html">Auditing Rules</a>.</li>
+<li><strong><code>active()</code> time windows</strong> - limit a rule to a date range. See
+<a href="/guides/the-dsl/index.html">The RuleBook DSL</a>.</li>
+<li><strong>Rule Visualizer</strong> - an admin UI, off by default. See
+<a href="/guides/visualizer/index.html">Rule Visualizer</a>.</li>
+<li><strong>Breaking:</strong> <code>RULE_STATES.REGISTERED</code> replaces <code>NONE</code>. See
+<a href="#migrating-from-100">Migrating from 1.0.0</a>.</li>
+</ul>
+<p>Also in 2.0.0, with fixes and smaller changes:</p>
 <ul>
 <li><strong>BoxLang only</strong> - the module now targets BoxLang exclusively.</li>
 <li><strong>ColdBox 8+ integrations</strong>.</li>
@@ -251,8 +269,21 @@ it's now respected on both <code>Rule</code> and <code>RuleBook</code>.</li>
 <li>Safe-navigation (<code>?.</code>) used for <code>Rule</code> chain traversal instead of manual
 <code>isNull()</code> guards.</li>
 </ul>
-<p>See <a href="/versions/1.0.0/index.html">Migrating from 1.0.0</a> if you're upgrading
-from the CFML/RuleBook-era version of this module.</p>
+<h2 id="migrating-from-100"><a href="#migrating-from-100" id="migrating-from-100" name="migrating-from-100" class="anchor"></a>Migrating from 1.0.0</h2>
+<p>What to change when you upgrade from 1.0.0:</p>
+<ul>
+<li><strong>Run on BoxLang.</strong> 2.0.0 no longer supports other engines.</li>
+<li><strong>Replace <code>NONE</code> with <code>REGISTERED</code>.</strong> The state of a rule that was added
+but not reached is now <code>REGISTERED</code>. Update any code that compares a rule
+status to <code>&quot;NONE&quot;</code>. See <a href="/guides/auditing/index.html">Auditing Rules</a>.</li>
+<li><strong>Do not rely on stale statuses.</strong> <code>getRuleStatusMap()</code> is now reset at
+the start of every <code>run()</code>.</li>
+<li><strong>Check <code>overwrite</code> on <code>given()</code>/<code>givenAll()</code>.</strong> It used to be ignored.
+Now <code>overwrite = false</code> keeps existing facts.</li>
+<li><strong>Attach rules before calling <code>run()</code>.</strong> Running a <code>Rule</code> that was never
+added to a <code>RuleBook</code> now throws <code>RuleBox.RuleNotAttachedException</code>.</li>
+</ul>
+<p>The old docs are kept in the <a href="/versions/1.0.0/index.html">1.0.0 archive</a>.</p>
 <h2 id="100"><a href="#100" id="100" name="100" class="anchor"></a>1.0.0</h2>
 <p>The first iteration of this module, released 2018-OCT-29. Its docs are
 preserved under the <a href="/versions/1.0.0/index.html">1.0.0 version</a> of this
@@ -262,7 +293,7 @@ site.</p>
 
 	
 	
-		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/releases.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/releases.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 5, 2026, 4&#x3a;20&#x3a;29 PM</span></div>
+		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/releases.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/releases.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 5, 2026, 4&#x3a;22&#x3a;47 PM</span></div>
 	
 </article>
 
@@ -294,7 +325,7 @@ site.</p>
 			
 			
 				<aside class="col-xl-2 toc-sidebar d-none d-xl-block">
-					<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#200">2.0.0</a></li><li class="toc-level-2"><a href="#100">1.0.0</a></li></ul></nav>
+					<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#200">2.0.0</a></li><li class="toc-level-2"><a href="#migrating-from-100">Migrating from 1.0.0</a></li><li class="toc-level-2"><a href="#100">1.0.0</a></li></ul></nav>
 				</aside>
 			
 		</div>
