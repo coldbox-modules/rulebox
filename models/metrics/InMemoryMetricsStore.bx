@@ -80,8 +80,8 @@ class implements="IMetricsStore"{
 				}
 			} else {
 				// Only the newest maxRows of each rulebook can make the overall newest maxRows
-				for( var name in variables.eventsByRulebook ){
-					candidates.append( lastEntries( variables.eventsByRulebook[ name ], maxRows ), true )
+				for( var name, events in variables.eventsByRulebook ){
+					candidates.append( lastEntries( events, maxRows ), true )
 				}
 			}
 			// Newest first, by sequence number rather than by timestamp string
