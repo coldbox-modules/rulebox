@@ -30,6 +30,13 @@ class extends="tests.resources.BaseSpec"{
 				return arguments
 			}
 
+			function aFailure( ruleName="r1", durationMs=10, timestamp="2026-01-01T00:00:00.000", errorType="TestBoom", errorMessage="Kaboom" ){
+				var event = anEvent( ruleName=arguments.ruleName, state="FAILED", durationMs=arguments.durationMs, timestamp=arguments.timestamp );
+				event.errorType    = arguments.errorType;
+				event.errorMessage = arguments.errorMessage;
+				return event;
+			}
+
 			beforeEach( function(){
 				variables.storeUnavailable = "";
 				try{
@@ -84,6 +91,102 @@ class extends="tests.resources.BaseSpec"{
 				expect( metrics.minDurationMs ).toBe( 5 );
 				expect( metrics.maxDurationMs ).toBe( 15 );
 				expect( metrics.lastRunAt ).toBe( "2026-01-01T00:00:02.000" );
+			} );
+
+			it( "reports completed and failed counts and rates for a rule and its rulebook", function(){
+				if( len( variables.storeUnavailable ) ){
+					skip( variables.storeUnavailable );
+					return;
+				}
+				variables.store.recordEvent( anEvent( state="EXECUTED", durationMs=10 ) );
+				variables.store.recordEvent( anEvent( state="SKIPPED", durationMs=20 ) );
+				variables.store.recordEvent( anEvent( state="STOPPED", durationMs=30 ) );
+				variables.store.recordEvent( aFailure( durationMs=40 ) );
+
+				var metrics = variables.store.queryRuleMetrics( "sqliteTest", "r1" );
+				expect( metrics.completed ).toBe( 3 );
+				expect( metrics.failed ).toBe( 1 );
+				expect( metrics.completionRate ).toBe( 0.75 );
+				expect( metrics.errorRate ).toBe( 0.25 );
+				expect( metrics.avgDurationMs ).toBe( 25 );
+
+				var summary = variables.store.queryRuleBookSummary( "sqliteTest" );
+				expect( summary.completed ).toBe( 3 );
+				expect( summary.errorRate ).toBe( 0.25 );
+			} );
+
+			it( "keeps the most recent error of a rule as lastError, and none for a healthy rule", function(){
+				if( len( variables.storeUnavailable ) ){
+					skip( variables.storeUnavailable );
+					return;
+				}
+				variables.store.recordEvent( aFailure( errorType="TestBoom", errorMessage="first", timestamp="2026-01-01T00:00:01.000" ) );
+				variables.store.recordEvent( aFailure( errorType="OtherBoom", errorMessage="second", timestamp="2026-01-01T00:00:02.000" ) );
+				variables.store.recordEvent( anEvent( timestamp="2026-01-01T00:00:03.000" ) );
+				variables.store.recordEvent( anEvent( ruleName="healthy" ) );
+
+				var metrics = variables.store.queryRuleMetrics( "sqliteTest", "r1" );
+				expect( metrics.lastError.type ).toBe( "OtherBoom" );
+				expect( metrics.lastError.message ).toBe( "second" );
+				expect( metrics.lastError.at ).toBe( "2026-01-01T00:00:02.000" );
+				expect( metrics.lastRunAt ).toBe( "2026-01-01T00:00:03.000" );
+				expect( variables.store.queryRuleMetrics( "sqliteTest", "healthy" ) ).notToHaveKey( "lastError" );
+			} );
+
+			it( "returns the error fields on FAILED events only", function(){
+				if( len( variables.storeUnavailable ) ){
+					skip( variables.storeUnavailable );
+					return;
+				}
+				variables.store.recordEvent( anEvent() );
+				variables.store.recordEvent( aFailure() );
+
+				var events = variables.store.queryEvents( filters={ rulebookName: "sqliteTest" } );
+				expect( events[ 1 ].errorType ).toBe( "TestBoom" );
+				expect( events[ 1 ].errorMessage ).toBe( "Kaboom" );
+				expect( events[ 2 ] ).notToHaveKey( "errorType" );
+				expect( events[ 2 ] ).notToHaveKey( "errorMessage" );
+			} );
+
+			it( "lists the metrics of every rule in a rulebook, and nothing for an unknown rulebook", function(){
+				if( len( variables.storeUnavailable ) ){
+					skip( variables.storeUnavailable );
+					return;
+				}
+				variables.store.recordEvent( anEvent( ruleName="a", durationMs=5, timestamp="2026-01-01T00:00:01.000" ) );
+				variables.store.recordEvent( anEvent( ruleName="b", durationMs=50, timestamp="2026-01-01T00:00:02.000" ) );
+				variables.store.recordEvent( aFailure( ruleName="b", durationMs=10, timestamp="2026-01-01T00:00:03.000" ) );
+				variables.store.recordEvent( anEvent( rulebookName="sqliteOther", ruleName="c" ) );
+
+				var list = variables.store.queryAllRuleMetrics( "sqliteTest" );
+				expect( list ).toHaveLength( 2 );
+				var byName = {};
+				for( var metrics in list ){
+					byName[ metrics.ruleName ] = metrics;
+				}
+				expect( byName.a.avgDurationMs ).toBe( 5 );
+				expect( byName.a.lastRunAt ).toBe( "2026-01-01T00:00:01.000" );
+				expect( byName.a ).notToHaveKey( "lastError" );
+				expect( byName.b.rulebookName ).toBe( "sqliteTest" );
+				expect( byName.b.maxDurationMs ).toBe( 50 );
+				expect( byName.b.minDurationMs ).toBe( 10 );
+				expect( byName.b.errorRate ).toBe( 0.5 );
+				expect( byName.b.lastRunAt ).toBe( "2026-01-01T00:00:03.000" );
+				expect( byName.b.lastError.type ).toBe( "TestBoom" );
+				expect( variables.store.queryAllRuleMetrics( "sqliteNope" ) ).toBeEmpty();
+			} );
+
+			it( "returns empty metrics for a rule with no events", function(){
+				if( len( variables.storeUnavailable ) ){
+					skip( variables.storeUnavailable );
+					return;
+				}
+				var metrics = variables.store.queryRuleMetrics( "sqliteTest", "never" );
+
+				expect( metrics.totalEvaluations ).toBe( 0 );
+				expect( metrics.errorRate ).toBe( 0 );
+				expect( metrics.lastRunAt ).toBe( "" );
+				expect( metrics ).notToHaveKey( "lastError" );
 			} );
 
 			it( "lists distinct rulebook names", function(){
@@ -154,10 +257,40 @@ class extends="tests.resources.BaseSpec"{
 				var u = newUnit();
 
 				expect( u.store.getSchemaReady() ).toBeTrue();
-				expect( u.ctx.sql ).toHaveLength( 2 );
 				expect( u.ctx.sql[ 1 ].sql ).toInclude( "CREATE TABLE IF NOT EXISTS rulebox_events" );
+				expect( u.ctx.sql[ 1 ].sql ).toInclude( "errorType TEXT" );
+				expect( u.ctx.sql[ 1 ].sql ).toInclude( "errorMessage TEXT" );
 				expect( u.ctx.sql[ 2 ].sql ).toInclude( "CREATE INDEX IF NOT EXISTS" );
 				expect( u.ctx.sql[ 2 ].sql ).toInclude( "rulebox_events ( rulebookName, ruleName, id )" );
+				expect( u.ctx.sql[ 3 ].sql ).toInclude( "pragma_table_info( 'rulebox_events' )" );
+			} );
+
+			it( "adds only the error columns an older table lacks", function(){
+				var u = newUnit();
+
+				expect( u.store.buildUpgradeStatements( [ "id", "rulebookName", "ruleName", "state", "durationMs", "timestamp" ] ) ).toBe( [
+					"ALTER TABLE rulebox_events ADD COLUMN errorType TEXT",
+					"ALTER TABLE rulebox_events ADD COLUMN errorMessage TEXT"
+				] );
+				expect( u.store.buildUpgradeStatements( [ "id", "ERRORTYPE", "errormessage" ] ) ).toBeEmpty();
+			} );
+
+			it( "stores the error type and message of a FAILED event, and SQL nulls otherwise", function(){
+				var u = newUnit();
+				var failed = anUnitEvent();
+				failed.state        = "FAILED";
+				failed.errorType    = "TestBoom";
+				failed.errorMessage = "Kaboom";
+
+				u.store.recordEvent( anUnitEvent() );
+				u.store.recordEvent( failed );
+
+				var inserts = u.ctx.sql.filter( ( c ) => left( trim( c.sql ), 6 ) == "INSERT" );
+				expect( inserts[ 1 ].params.errorType.null ).toBeTrue();
+				expect( inserts[ 1 ].params.errorMessage.null ).toBeTrue();
+				expect( inserts[ 2 ].params.errorType.null ).toBeFalse();
+				expect( inserts[ 2 ].params.errorType.value ).toBe( "TestBoom" );
+				expect( inserts[ 2 ].params.errorMessage.value ).toBe( "Kaboom" );
 			} );
 
 			it( "remembers a failed schema create and re-attempts it before the first insert", function(){
@@ -415,6 +548,44 @@ class extends="tests.resources.BaseSpec"{
 				).map( ( row ) => row.name );
 
 				expect( indexes ).toInclude( "idx_rulebox_events_rule" );
+			} );
+
+			it( "adds the error columns to a table created by an older RuleBox", function(){
+				if( len( variables.storeUnavailable ) ){
+					skip( variables.storeUnavailable );
+					return;
+				}
+				queryExecute( "DROP TABLE IF EXISTS rulebox_events", {}, { datasource: "rulebox_visualizer" } );
+				queryExecute(
+					"CREATE TABLE rulebox_events ( id INTEGER PRIMARY KEY AUTOINCREMENT, rulebookName TEXT NOT NULL, ruleName TEXT NOT NULL, state TEXT NOT NULL, durationMs REAL NOT NULL, timestamp TEXT NOT NULL )",
+					{},
+					{ datasource: "rulebox_visualizer" }
+				);
+				queryExecute(
+					"INSERT INTO rulebox_events ( rulebookName, ruleName, state, durationMs, timestamp ) VALUES ( 'sqliteTest', 'old', 'EXECUTED', 1, '2026-01-01T00:00:00' )",
+					{},
+					{ datasource: "rulebox_visualizer" }
+				);
+
+				var store = new rulebox.models.metrics.SQLiteMetricsStore();
+				store.setLogger( getController().getLogBox().getRootLogger() );
+				store.setSettings( storeSettings( { datasourceName: "rulebox_visualizer" } ) );
+				store.onDIComplete();
+				store.recordEvent( { rulebookName: "sqliteTest", ruleName: "new", state: "FAILED", durationMs: 1, timestamp: "2026-01-01T00:00:01", errorType: "TestBoom", errorMessage: "Kaboom" } );
+
+				var columns = queryExecute(
+					"SELECT name FROM pragma_table_info( 'rulebox_events' )",
+					{},
+					{ datasource: "rulebox_visualizer", returnType: "array" }
+				).map( ( row ) => row.name );
+				expect( columns ).toInclude( "errorType" );
+				expect( columns ).toInclude( "errorMessage" );
+
+				var events = store.queryEvents( filters={ rulebookName: "sqliteTest" } );
+				expect( events ).toHaveLength( 2 );
+				expect( events[ 1 ].errorType ).toBe( "TestBoom" );
+				expect( events[ 2 ] ).notToHaveKey( "errorType" );
+				store.reset();
 			} );
 
 			it( "keeps only the newest maxStoredEvents rows once the prune cadence is reached", function(){

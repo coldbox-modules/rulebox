@@ -12,7 +12,8 @@
  *   stops touching the database for visualizer.circuitBreakerCooldownSeconds (60), logging ONE error
  *   when it opens and one info line when it recovers. While open, recordEvent() is a cheap no-op.
  * - Schema: a failed schema create is remembered and re-attempted by the next recordEvent().
- *   An index on (rulebookName, ruleName, id) backs the per-rule metrics queries.
+ *   An index on (rulebookName, ruleName, id) backs the per-rule metrics queries. A table created by
+ *   an older RuleBox gets the errorType/errorMessage columns added in place on startup.
  * - Retention: visualizer.retentionDays (30) and visualizer.maxStoredEvents (100000) are enforced
  *   by a cheap DELETE every pruneEvery (500) inserts - never on every insert. 0 disables either.
  * - recordEvent() still performs a synchronous INSERT on the calling thread (a documented trade-off).
@@ -200,7 +201,9 @@ class implements="IMetricsStore"{
 	}
 
 	/**
-	 * The DDL ensureSchema() runs: the table, then the index backing queryRuleMetrics().
+	 * The DDL ensureSchema() runs: the table, then the index backing the per-rule metrics queries.
+	 *
+	 * @return An array of SQL statements
 	 */
 	array function getSchemaStatements(){
 		return [
@@ -211,11 +214,27 @@ class implements="IMetricsStore"{
 				ruleName TEXT NOT NULL,
 				state TEXT NOT NULL,
 				durationMs REAL NOT NULL,
-				timestamp TEXT NOT NULL
+				timestamp TEXT NOT NULL,
+				errorType TEXT,
+				errorMessage TEXT
 			)
 			",
 			"CREATE INDEX IF NOT EXISTS idx_rulebox_events_rule ON rulebox_events ( rulebookName, ruleName, id )"
 		]
+	}
+
+	/**
+	 * The ALTERs that bring a table created by an older RuleBox up to date: one per error column it lacks.
+	 *
+	 * @existingColumns The column names the table has now
+	 *
+	 * @return An array of SQL statements, empty when nothing is missing
+	 */
+	array function buildUpgradeStatements( required array existingColumns ){
+		var have = arguments.existingColumns.map( ( name ) => lCase( name ) )
+		return [ "errorType", "errorMessage" ]
+			.filter( ( column ) => !have.contains( lCase( column ) ) )
+			.map( ( column ) => "ALTER TABLE rulebox_events ADD COLUMN #column# TEXT" )
 	}
 
 	/**
@@ -268,6 +287,10 @@ class implements="IMetricsStore"{
 			for( var sql in statements ){
 				runSql( sql )
 			}
+			var columns = runSql( "SELECT name FROM pragma_table_info( 'rulebox_events' )", {}, { returnType: "array" } ) ?: []
+			for( var sql in buildUpgradeStatements( columns.map( ( row ) => row.name ) ) ){
+				runSql( sql )
+			}
 			variables.schemaReady = true
 			return true
 		} catch( any e ){
@@ -286,7 +309,7 @@ class implements="IMetricsStore"{
 	/**
 	 * Persist one rule-evaluation event. A no-op while the circuit is open.
 	 *
-	 * @event { rulebookName, ruleName, state, durationMs, timestamp }
+	 * @event { rulebookName, ruleName, state, durationMs, timestamp }, plus { errorType, errorMessage } on FAILED
 	 */
 	void function recordEvent( required struct event ){
 		if( !canAttempt() ){
@@ -299,13 +322,15 @@ class implements="IMetricsStore"{
 
 		try{
 			runSql(
-				"INSERT INTO rulebox_events ( rulebookName, ruleName, state, durationMs, timestamp ) VALUES ( :rulebookName, :ruleName, :state, :durationMs, :timestamp )",
+				"INSERT INTO rulebox_events ( rulebookName, ruleName, state, durationMs, timestamp, errorType, errorMessage ) VALUES ( :rulebookName, :ruleName, :state, :durationMs, :timestamp, :errorType, :errorMessage )",
 				{
 					rulebookName : { value: arguments.event.rulebookName, cfsqltype: "varchar" },
 					ruleName     : { value: arguments.event.ruleName, cfsqltype: "varchar" },
 					state        : { value: arguments.event.state, cfsqltype: "varchar" },
 					durationMs   : { value: arguments.event.durationMs, cfsqltype: "double" },
-					timestamp    : { value: arguments.event.timestamp, cfsqltype: "varchar" }
+					timestamp    : { value: arguments.event.timestamp, cfsqltype: "varchar" },
+					errorType    : { value: arguments.event.errorType ?: "", cfsqltype: "varchar", null: isNull( arguments.event.errorType ) },
+					errorMessage : { value: arguments.event.errorMessage ?: "", cfsqltype: "varchar", null: isNull( arguments.event.errorMessage ) }
 				}
 			)
 		} catch( any e ){
@@ -331,7 +356,7 @@ class implements="IMetricsStore"{
 	 *
 	 * @sql The SQL statement
 	 * @params Query parameters
-	 * @options Extra options for the injected runner (queryExecute always uses the configured datasource)
+	 * @options Extra queryExecute options, such as returnType (the datasource is always the configured one)
 	 *
 	 * @return The query result, or whatever the injected runner returns
 	 */
@@ -339,7 +364,9 @@ class implements="IMetricsStore"{
 		if( !isNull( variables.sqlRunner ) ){
 			return variables.sqlRunner( arguments.sql, arguments.params, arguments.options )
 		}
-		return queryExecute( arguments.sql, arguments.params, { datasource: variables.datasourceName } )
+		var queryOptions = arguments.options.copy()
+		queryOptions[ "datasource" ] = variables.datasourceName
+		return queryExecute( arguments.sql, arguments.params, queryOptions )
 	}
 
 	/**
@@ -348,7 +375,8 @@ class implements="IMetricsStore"{
 	 * @filters Optional filters: { rulebookName }
 	 * @limit Max rows to return
 	 *
-	 * @return An array of { rulebookName, ruleName, state, durationMs, timestamp } structs
+	 * @return An array of { rulebookName, ruleName, state, durationMs, timestamp } structs, plus
+	 *         { errorType, errorMessage } on FAILED events
 	 */
 	array function queryEvents( struct filters={}, numeric limit=50 ){
 		var whereClause = arguments.filters.keyExists( "rulebookName" ) ? "WHERE rulebookName = :rulebookName" : ""
@@ -357,13 +385,20 @@ class implements="IMetricsStore"{
 			params[ "rulebookName" ] = { value: arguments.filters.rulebookName, cfsqltype: "varchar" }
 		}
 
-		var q = queryExecute(
-			"SELECT rulebookName, ruleName, state, durationMs, timestamp FROM rulebox_events #whereClause# ORDER BY id DESC LIMIT :limit",
+		var events = queryExecute(
+			"SELECT rulebookName, ruleName, state, durationMs, timestamp, errorType, errorMessage FROM rulebox_events #whereClause# ORDER BY id DESC LIMIT :limit",
 			params,
 			{ datasource: variables.datasourceName, returnType: "array" }
 		)
 
-		return q
+		// Only FAILED events carry the error fields, as in every other store
+		for( var event in events ){
+			if( !len( event.errorType ?: "" ) ){
+				event.delete( "errorType" )
+				event.delete( "errorMessage" )
+			}
+		}
+		return events
 	}
 
 	/**
@@ -371,7 +406,8 @@ class implements="IMetricsStore"{
 	 *
 	 * @rulebookName The rulebook to summarize
 	 *
-	 * @return { rulebookName, totalEvaluations, countsByState, avgDurationMs, totalDurationMs }
+	 * @return { rulebookName, totalEvaluations, countsByState, avgDurationMs, totalDurationMs,
+	 *         completed, failed, completionRate, errorRate }
 	 */
 	struct function queryRuleBookSummary( required string rulebookName ){
 		var q = queryExecute(
@@ -394,38 +430,23 @@ class implements="IMetricsStore"{
 	 * @rulebookName The rule's owning rulebook
 	 * @ruleName The rule to summarize
 	 *
-	 * @return { rulebookName, ruleName, totalEvaluations, countsByState, avgDurationMs, minDurationMs, maxDurationMs, lastRunAt }
+	 * @return { rulebookName, ruleName, totalEvaluations, countsByState, avgDurationMs, minDurationMs, maxDurationMs,
+	 *         lastRunAt, completed, failed, completionRate, errorRate, lastError? }
 	 */
 	struct function queryRuleMetrics( required string rulebookName, required string ruleName ){
-		var q = queryExecute(
-			"
-			SELECT state, COUNT(*) AS eventCount, SUM(durationMs) AS totalDurationMs, MIN(durationMs) AS minDurationMs, MAX(durationMs) AS maxDurationMs
-			FROM rulebox_events
-			WHERE rulebookName = :rulebookName AND ruleName = :ruleName
-			GROUP BY state
-			",
-			{
-				rulebookName: { value: arguments.rulebookName, cfsqltype: "varchar" },
-				ruleName: { value: arguments.ruleName, cfsqltype: "varchar" }
-			},
-			{ datasource: variables.datasourceName, returnType: "array" }
-		)
+		var summaries = ruleSummaries( arguments.rulebookName, arguments.ruleName )
+		return summaries[ arguments.ruleName ] ?: ruleSummary( arguments.rulebookName, arguments.ruleName, [] )
+	}
 
-		var summary = aggregate( q, { rulebookName: arguments.rulebookName, ruleName: arguments.ruleName } )
-		summary[ "minDurationMs" ] = q.isEmpty() ? 0 : q.reduce( ( min, row ) => row.minDurationMs < min ? row.minDurationMs : min, q[ 1 ].minDurationMs )
-		summary[ "maxDurationMs" ] = q.isEmpty() ? 0 : q.reduce( ( max, row ) => row.maxDurationMs > max ? row.maxDurationMs : max, q[ 1 ].maxDurationMs )
-
-		var lastRun = queryExecute(
-			"SELECT timestamp FROM rulebox_events WHERE rulebookName = :rulebookName AND ruleName = :ruleName ORDER BY id DESC LIMIT 1",
-			{
-				rulebookName: { value: arguments.rulebookName, cfsqltype: "varchar" },
-				ruleName: { value: arguments.ruleName, cfsqltype: "varchar" }
-			},
-			{ datasource: variables.datasourceName, returnType: "array" }
-		)
-		summary[ "lastRunAt" ] = lastRun.isEmpty() ? "" : lastRun[ 1 ].timestamp
-
-		return summary
+	/**
+	 * Aggregated stats for every rule of a rulebook that has at least one recorded event.
+	 *
+	 * @rulebookName The rulebook whose rules to summarize
+	 *
+	 * @return An array of queryRuleMetrics() structs, one per rule
+	 */
+	array function queryAllRuleMetrics( required string rulebookName ){
+		return ruleSummaries( arguments.rulebookName ).valueArray()
 	}
 
 	/**
@@ -450,7 +471,104 @@ class implements="IMetricsStore"{
 	}
 
 	/**
-	 * Turn a { state, eventCount, totalDurationMs } grouped result set into the shared summary shape.
+	 * Per-rule summaries for a rulebook in three grouped queries (counts and durations by state, the last
+	 * run, the last FAILED evaluation with an error), all served by the (rulebookName, ruleName, id) index.
+	 *
+	 * @rulebookName The rulebook whose rules to summarize
+	 * @ruleName Only this rule, or every rule when empty
+	 *
+	 * @return queryRuleMetrics() structs keyed by rule name
+	 */
+	private struct function ruleSummaries( required string rulebookName, string ruleName="" ){
+		var ruleFilter = len( arguments.ruleName ) ? "AND ruleName = :ruleName" : ""
+		var params = { rulebookName: { value: arguments.rulebookName, cfsqltype: "varchar" } }
+		if( len( arguments.ruleName ) ){
+			params[ "ruleName" ] = { value: arguments.ruleName, cfsqltype: "varchar" }
+		}
+		var options = { datasource: variables.datasourceName, returnType: "array" }
+
+		var stateRows = queryExecute(
+			"
+			SELECT ruleName, state, COUNT(*) AS eventCount, SUM(durationMs) AS totalDurationMs, MIN(durationMs) AS minDurationMs, MAX(durationMs) AS maxDurationMs
+			FROM rulebox_events
+			WHERE rulebookName = :rulebookName #ruleFilter#
+			GROUP BY ruleName, state
+			",
+			params,
+			options
+		)
+		var lastRuns = queryExecute(
+			"
+			SELECT e.ruleName, e.timestamp
+			FROM rulebox_events e
+			JOIN ( SELECT MAX(id) AS lastId FROM rulebox_events WHERE rulebookName = :rulebookName #ruleFilter# GROUP BY ruleName ) newest ON e.id = newest.lastId
+			",
+			params,
+			options
+		)
+		var lastErrors = queryExecute(
+			"
+			SELECT e.ruleName, e.errorType, e.errorMessage, e.timestamp
+			FROM rulebox_events e
+			JOIN (
+				SELECT MAX(id) AS lastId FROM rulebox_events
+				WHERE rulebookName = :rulebookName #ruleFilter# AND state = 'FAILED' AND errorType IS NOT NULL
+				GROUP BY ruleName
+			) newest ON e.id = newest.lastId
+			",
+			params,
+			options
+		)
+
+		var rowsByRule = {}
+		for( var row in stateRows ){
+			rowsByRule[ row.ruleName ] = rowsByRule[ row.ruleName ] ?: []
+			rowsByRule[ row.ruleName ].append( row )
+		}
+		var summaries = {}
+		for( var name, rows in rowsByRule ){
+			summaries[ name ] = ruleSummary( arguments.rulebookName, name, rows )
+		}
+		// An event recorded between these queries can name a rule the first query didn't see; skip it
+		for( var row in lastRuns ){
+			if( summaries.keyExists( row.ruleName ) ){
+				summaries[ row.ruleName ].lastRunAt = row.timestamp
+			}
+		}
+		for( var row in lastErrors ){
+			if( summaries.keyExists( row.ruleName ) ){
+				summaries[ row.ruleName ].lastError = { "type": row.errorType, "message": row.errorMessage ?: "", "at": row.timestamp }
+			}
+		}
+		return summaries
+	}
+
+	/**
+	 * One rule's summary from its { state, eventCount, totalDurationMs, minDurationMs, maxDurationMs } rows.
+	 * lastRunAt starts empty and lastError absent; ruleSummaries() fills them in.
+	 *
+	 * @rulebookName The rule's owning rulebook
+	 * @ruleName The rule
+	 * @rows The rule's grouped rows, one per state (empty for a rule with no events)
+	 *
+	 * @return A queryRuleMetrics() struct
+	 */
+	private struct function ruleSummary( required string rulebookName, required string ruleName, required array rows ){
+		var summary = aggregate( arguments.rows, { rulebookName: arguments.rulebookName, ruleName: arguments.ruleName } )
+		summary[ "minDurationMs" ] = arguments.rows.isEmpty() ? 0 : arguments.rows.map( ( row ) => row.minDurationMs ).min()
+		summary[ "maxDurationMs" ] = arguments.rows.isEmpty() ? 0 : arguments.rows.map( ( row ) => row.maxDurationMs ).max()
+		summary[ "lastRunAt" ]     = ""
+		return summary
+	}
+
+	/**
+	 * Turn a { state, eventCount, totalDurationMs } grouped result set into the shared summary shape:
+	 * the counts, the total duration and the RuleHealth figures.
+	 *
+	 * @rows The grouped rows, one per state
+	 * @identity The keys that name what is summarized ({ rulebookName } or { rulebookName, ruleName })
+	 *
+	 * @return The summary struct
 	 */
 	private struct function aggregate( required array rows, required struct identity ){
 		var countsByState   = {}
@@ -467,7 +585,7 @@ class implements="IMetricsStore"{
 		summary[ "totalEvaluations" ] = totalEvaluations
 		summary[ "countsByState" ]    = countsByState
 		summary[ "totalDurationMs" ]  = totalDurationMs
-		summary[ "avgDurationMs" ]    = totalEvaluations == 0 ? 0 : totalDurationMs / totalEvaluations
+		summary.append( RuleHealth::of( countsByState, totalEvaluations, totalDurationMs ) )
 		return summary
 	}
 
