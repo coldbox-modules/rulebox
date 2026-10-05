@@ -23,9 +23,15 @@ The site covers everything: getting started, defining RuleBooks, the
 `Builder`, rule auditing, thread safety, error handling, and a full
 worked example - versioned, so the 1.0.0 docs stay right where they were.
 
+- [Tutorial Course](docs/course/index.md): a step-by-step course from your first rule to the Visualizer.
+- [External Rules](docs/guides/external-rules.md): load rules from JSON, YAML, or a database.
+- [Visualizer](docs/guides/visualizer.md): a dashboard, dry-run playground, metrics, and a live tracker.
+
 ## Requirements
 
 - BoxLang 1.14+
+
+The Visualizer Live Tracker needs BoxLang 1.18.0+. Older runtimes whitespace-compress server-sent events and drop the blank line that ends each event. This was fixed in boxlang-web-support for 1.18.0.
 
 ## Installation
 
