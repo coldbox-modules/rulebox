@@ -386,6 +386,36 @@ engine/environment, so verify it independently of RuleBox</li>
 you opt into this store, you set these up yourself. If <code>bx-sqlite</code> or the
 datasource isn't available, RuleBox logs it and keeps going: live broadcast
 still works, nothing gets persisted.</p>
+<h4 id="retention-indexing-and-the-circuit-breaker"><a href="#retention-indexing-and-the-circuit-breaker" id="retention-indexing-and-the-circuit-breaker" name="retention-indexing-and-the-circuit-breaker" class="anchor"></a>Retention, indexing and the circuit breaker</h4>
+<p>The SQLite store is hardened for long-running apps. All of these settings live
+under <code>visualizer</code> and are optional:</p>
+<div class="bxsites-table-wrap"><table class="table">
+<thead>
+<tr><th>Setting</th><th>Default</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>retentionDays</code></td><td><code>30</code></td><td>Delete events older than this many days. <code>0</code> disables.</td></tr>
+<tr><td><code>maxStoredEvents</code></td><td><code>100000</code></td><td>Keep at most this many rows (the newest). <code>0</code> disables.</td></tr>
+<tr><td><code>circuitBreakerThreshold</code></td><td><code>5</code></td><td>Consecutive failed writes before the store stops trying.</td></tr>
+<tr><td><code>circuitBreakerCooldownSeconds</code></td><td><code>60</code></td><td>How long it stays idle before a single trial write.</td></tr>
+</tbody>
+</table></div>
+<ul>
+<li>Retention is enforced by a cheap <code>DELETE</code> once every 500 inserts, never on
+every insert, so the table can briefly exceed the limits between prunes.</li>
+<li>The <code>rulebox_events</code> table has an index on <code>(rulebookName, ruleName, id)</code> for
+the per-rule metrics queries (created automatically; existing tables get it
+on the next startup).</li>
+<li>If writes keep failing (a missing datasource, a locked or full database), the
+store logs <strong>one</strong> error when the breaker opens, skips persistence for the
+cool-down (live broadcast keeps working), then retries once and logs <strong>one</strong>
+info line when it recovers. A failed schema create is retried on the next
+event rather than being swallowed for good.</li>
+<li>Each recorded event is still a synchronous <code>INSERT</code> on the thread that
+evaluated the rule. That is a deliberate trade-off for simplicity; if it is
+too slow for your traffic, use the in-memory store or implement
+<code>IMetricsStore@rulebox</code> with a queue.</li>
+</ul>
 <h3 id="swapping-it-out"><a href="#swapping-it-out" id="swapping-it-out" name="swapping-it-out" class="anchor"></a>Swapping it out</h3>
 <p>Implement <code>IMetricsStore@rulebox</code> (<code>recordEvent</code>, <code>queryEvents</code>,
 <code>queryRuleBookSummary</code>, <code>queryRuleMetrics</code>, <code>queryRuleBookNames</code>, <code>reset</code>)
@@ -401,7 +431,7 @@ condition. Access control is also entirely on you; see above.</p>
 
 	
 	
-		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/visualizer.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/visualizer.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 5, 2026, 4&#x3a;10&#x3a;34 PM</span></div>
+		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/visualizer.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/visualizer.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 5, 2026, 4&#x3a;16&#x3a;12 PM</span></div>
 	
 </article>
 
