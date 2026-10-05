@@ -94,7 +94,10 @@ class extends="tests.resources.BaseSpec"{
 				var badShapes = [
 					{ setting: { enabled: "maybe" }, key: "visualizer.enabled" },
 					{ setting: { enabled: true, metricsStore: "  " }, key: "visualizer.metricsStore" },
-					{ setting: { enabled: true, datasourceName: {} }, key: "visualizer.datasourceName" }
+					{ setting: { enabled: true, datasourceName: {} }, key: "visualizer.datasourceName" },
+					{ setting: { enabled: true, maxStreams: "lots" }, key: "visualizer.maxStreams" },
+					{ setting: { enabled: true, maxStreams: 0 }, key: "visualizer.maxStreams" },
+					{ setting: { enabled: true, maxStreams: 2.5 }, key: "visualizer.maxStreams" }
 				];
 				try{
 					for( var bad in badShapes ){
