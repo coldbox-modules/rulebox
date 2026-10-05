@@ -39,10 +39,7 @@ class{
 
 		var definitions = []
 
-		var rowNumber = 0
-
-		for( row in rows ){
-			rowNumber++
+		for( var row, rowNumber in rows ){
 			var def = {
 				"name"     : row.name,
 				"priority" : ( row.keyExists( "priority" ) && len( row.priority ) ) ? parsePriority( row, rowNumber ) : 0,
