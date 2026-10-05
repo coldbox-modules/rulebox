@@ -12,18 +12,18 @@
 class{
 
 	/**
+	 * How many live streams hold a slot right now. An AtomicInteger, so tryAcquire() and release()
+	 * stay correct across threads.
+	 */
+	property name="active";
+
+	/**
 	 * Fixed limits, the same for every instance. Static so they are not copied per instance.
 	 */
 	static {
 		// Events held per stream before the oldest start being dropped
 		QUEUE_CAPACITY = 1000
 	}
-
-	/**
-	 * How many live streams hold a slot right now. An AtomicInteger, so tryAcquire() and release()
-	 * stay correct across threads.
-	 */
-	property name="active";
 
 	/**
 	 * Constructor: no streams open.
