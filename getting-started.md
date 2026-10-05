@@ -11,11 +11,16 @@ tags: [guides, setup]
 ## Requirements
 
 - BoxLang 1.14+
+- ColdBox 8+
+
+The Visualizer Live Tracker needs BoxLang 1.18.0+. Older runtimes strip the
+blank line that ends each server-sent event. This is fixed in 1.18.0.
 
 ## Installation
 
 Leverage [CommandBox](https://commandbox.ortusbooks.com/) to install
-RuleBox as a module in your ColdBox application:
+RuleBox as a module in your ColdBox application. It installs into your
+app's `modules/` folder:
 
 ```bash frame="terminal" title="Terminal"
 box install rulebox
@@ -32,6 +37,32 @@ them only if you use them:
 | YAML rule files (`YAMLRuleSource`, or `.yaml`/`.yml` files in the convention folder) | `box install bx-yaml` |
 | Visualizer metrics that survive a restart (`SQLiteMetricsStore`) | `box install bx-sqlite`, plus a datasource. See [Rule Visualizer](guides/visualizer.md). |
 
+## Your first rule
+
+Save this as `models/HelloWorld.bx`:
+
+```js
+class extends="rulebox.models.RuleBook"{
+	function defineRules(){
+		addRule( newRule( "greet" )
+			.then( ( facts, result ) => result.setValue( "Hello " & facts.name ) ) )
+	}
+}
+```
+
+Then run it from a handler or anywhere you can call `getInstance()`:
+
+```js
+getInstance( "HelloWorld" )
+	.run( { name: "World" } )
+	.getResult()
+	.getValue()
+```
+
+That returns `Hello World`. `run()` takes your facts, `getResult()` gets the
+result, and `getValue()` reads what the rule put in it. To go deeper, see
+[Defining RuleBooks](guides/defining-rulebooks.md).
+
 ## What gets registered
 
 Once installed, the module registers the following objects in WireBox:
@@ -42,6 +73,7 @@ Once installed, the module registers the following objects in WireBox:
 | `RuleBook@rulebox` | Transient | A rule book that groups and chains rules |
 | `Builder@rulebox` | Singleton | Builds à la carte rules and rule books |
 | `Result@rulebox` | Transient | Models the result produced by a rule chain |
+| `RuleBookRegistry@rulebox` | Singleton | Hands out named rulebooks declared in settings or config files |
 
 > `RuleBook` and `Rule` are **transient** objects - they carry state
 > (facts, results, audit trail) across a `run()`, so a fresh instance is

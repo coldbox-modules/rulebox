@@ -215,7 +215,7 @@
 		
 		
 		
-			<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#requirements">Requirements</a></li><li class="toc-level-2"><a href="#installation">Installation</a></li><li class="toc-level-3"><a href="#optional-modules">Optional modules</a></li><li class="toc-level-2"><a href="#what-gets-registered">What gets registered</a></li><li class="toc-level-2"><a href="#next-steps">Next steps</a></li></ul></details>
+			<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#requirements">Requirements</a></li><li class="toc-level-2"><a href="#installation">Installation</a></li><li class="toc-level-3"><a href="#optional-modules">Optional modules</a></li><li class="toc-level-2"><a href="#your-first-rule">Your first rule</a></li><li class="toc-level-2"><a href="#what-gets-registered">What gets registered</a></li><li class="toc-level-2"><a href="#next-steps">Next steps</a></li></ul></details>
 		
 
 		
@@ -223,10 +223,14 @@
 <h2 id="requirements"><a href="#requirements" id="requirements" name="requirements" class="anchor"></a>Requirements</h2>
 <ul>
 <li>BoxLang 1.14+</li>
+<li>ColdBox 8+</li>
 </ul>
+<p>The Visualizer Live Tracker needs BoxLang 1.18.0+. Older runtimes strip the
+blank line that ends each server-sent event. This is fixed in 1.18.0.</p>
 <h2 id="installation"><a href="#installation" id="installation" name="installation" class="anchor"></a>Installation</h2>
 <p>Leverage <a href="https://commandbox.ortusbooks.com/">CommandBox</a> to install
-RuleBox as a module in your ColdBox application:</p>
+RuleBox as a module in your ColdBox application. It installs into your
+app's <code>modules/</code> folder:</p>
 <pre data-bxsites-title="Terminal" data-bxsites-frame="terminal"><code class="language-bash">box install rulebox
 </code></pre>
 <h3 id="optional-modules"><a href="#optional-modules" id="optional-modules" name="optional-modules" class="anchor"></a>Optional modules</h3>
@@ -242,6 +246,24 @@ them only if you use them:</p>
 <tr><td>Visualizer metrics that survive a restart (<code>SQLiteMetricsStore</code>)</td><td><code>box install bx-sqlite</code>, plus a datasource. See <a href="/guides/visualizer/index.html">Rule Visualizer</a>.</td></tr>
 </tbody>
 </table></div>
+<h2 id="your-first-rule"><a href="#your-first-rule" id="your-first-rule" name="your-first-rule" class="anchor"></a>Your first rule</h2>
+<p>Save this as <code>models/HelloWorld.bx</code>:</p>
+<pre><code class="language-js">class extends=&quot;rulebox.models.RuleBook&quot;{
+	function defineRules(){
+		addRule( newRule( &quot;greet&quot; )
+			.then( ( facts, result ) =&gt; result.setValue( &quot;Hello &quot; &amp; facts.name ) ) )
+	}
+}
+</code></pre>
+<p>Then run it from a handler or anywhere you can call <code>getInstance()</code>:</p>
+<pre><code class="language-js">getInstance( &quot;HelloWorld&quot; )
+	.run( { name: &quot;World&quot; } )
+	.getResult()
+	.getValue()
+</code></pre>
+<p>That returns <code>Hello World</code>. <code>run()</code> takes your facts, <code>getResult()</code> gets the
+result, and <code>getValue()</code> reads what the rule put in it. To go deeper, see
+<a href="/guides/defining-rulebooks/index.html">Defining RuleBooks</a>.</p>
 <h2 id="what-gets-registered"><a href="#what-gets-registered" id="what-gets-registered" name="what-gets-registered" class="anchor"></a>What gets registered</h2>
 <p>Once installed, the module registers the following objects in WireBox:</p>
 <div class="bxsites-table-wrap"><table class="table">
@@ -253,6 +275,7 @@ them only if you use them:</p>
 <tr><td><code>RuleBook@rulebox</code></td><td>Transient</td><td>A rule book that groups and chains rules</td></tr>
 <tr><td><code>Builder@rulebox</code></td><td>Singleton</td><td>Builds à la carte rules and rule books</td></tr>
 <tr><td><code>Result@rulebox</code></td><td>Transient</td><td>Models the result produced by a rule chain</td></tr>
+<tr><td><code>RuleBookRegistry@rulebox</code></td><td>Singleton</td><td>Hands out named rulebooks declared in settings or config files</td></tr>
 </tbody>
 </table></div>
 <blockquote>
@@ -271,7 +294,7 @@ requested every time via <code>getInstance()</code>. See
 
 	
 	
-		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/getting-started.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/getting-started.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 5, 2026, 4&#x3a;22&#x3a;47 PM</span></div>
+		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/getting-started.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/getting-started.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 5, 2026, 4&#x3a;23&#x3a;10 PM</span></div>
 	
 </article>
 
@@ -303,7 +326,7 @@ requested every time via <code>getInstance()</code>. See
 			
 			
 				<aside class="col-xl-2 toc-sidebar d-none d-xl-block">
-					<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#requirements">Requirements</a></li><li class="toc-level-2"><a href="#installation">Installation</a></li><li class="toc-level-3"><a href="#optional-modules">Optional modules</a></li><li class="toc-level-2"><a href="#what-gets-registered">What gets registered</a></li><li class="toc-level-2"><a href="#next-steps">Next steps</a></li></ul></nav>
+					<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#requirements">Requirements</a></li><li class="toc-level-2"><a href="#installation">Installation</a></li><li class="toc-level-3"><a href="#optional-modules">Optional modules</a></li><li class="toc-level-2"><a href="#your-first-rule">Your first rule</a></li><li class="toc-level-2"><a href="#what-gets-registered">What gets registered</a></li><li class="toc-level-2"><a href="#next-steps">Next steps</a></li></ul></nav>
 				</aside>
 			
 		</div>
