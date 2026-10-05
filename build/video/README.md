@@ -1,12 +1,13 @@
 # Visualizer intro video
 
-Tooling for `docs/assets/video/rulebox-visualizer-intro.mp4`, the one-minute tour on the docs home page, the Visualizer guide and lesson 9 of the course.
+Tooling for `docs/assets/video/rulebox-visualizer-intro.mp4`, the one-minute tour (with music) on the docs home page, the Visualizer guide and lesson 9 of the course.
 
 | File | Purpose |
 | --- | --- |
 | `record.js` | Playwright script. Title card, Dashboard, Chain, Dry Run, Metrics, Live Tracker with traffic, outro and end screen. Saves the raw `.webm` and `poster.png` into `out/`. |
 | `Demo.bx` | Temporary handler that runs the harness JSON rulebooks with random facts, so the screens have data and the Live Tracker has traffic. |
-| `edit.sh` | ffmpeg cut: trims, speeds the tour up 1.15x, crossfades, fades in and out, encodes H.264. |
+| `edit.sh` | ffmpeg cut: trims, speeds the tour up 1.4x, crossfades, fades in and out, adds the music, encodes H.264 + AAC. |
+| `music.py` | Original background track, synthesized with numpy (no samples, no third-party audio), timed to the cut. |
 | `*-icon-full.svg` | ColdBox and BoxLang marks for the end screen. |
 
 ## Steps
@@ -27,7 +28,7 @@ Tooling for `docs/assets/video/rulebox-visualizer-intro.mp4`, the one-minute tou
    BASE_URL=http://localhost:60299 node record.js
    ```
 
-3. Cut and encode (needs ffmpeg with libx264 and `bc`):
+3. Cut, score and encode (needs ffmpeg with libx264 and aac, `bc`, and Python 3 with numpy):
 
    ```bash
    build/video/edit.sh build/video/out/<recording>.webm

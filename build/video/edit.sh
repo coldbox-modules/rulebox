@@ -1,43 +1,59 @@
 #!/bin/bash
-# Cuts the raw Playwright recording into the published intro video:
-# title card, the tour sped up 1.15x, outro and end screen, joined with
-# crossfades, plus a fade in and a fade out.
+# Cuts the raw Playwright recording into the published intro video (~61s):
+# title card, the tour sped up 1.4x, outro and end screen, joined with
+# crossfades, a fade in and out, and the original music from music.py.
 #
 # Usage: build/video/edit.sh <raw.webm> [outDir]
-# The trim points below match one recording. Check yours (for example with a
-# contact sheet) and adjust A_END, B_START, B_END and C_END before encoding.
+# The segment times below match one recording. Find yours with
+#   ffmpeg -i raw.webm -vf "select='gt(scene,0.01)',showinfo" -f null - 2>&1 | grep pts_time
+# and adjust SEGMENTS before encoding. Needs ffmpeg (libx264, aac), bc, python3 + numpy.
 set -euo pipefail
 
 RAW="$1"
 OUT="${2:-docs/assets/video}"
 FF="${FFMPEG:-ffmpeg}"
+HERE="$( cd "$( dirname "$0" )" && pwd )"
 
-A_END=5.0      # end of the title card
-B_START=13.6   # dashboard is loaded
-B_END=80.5     # live tracker done
-C_END=96.3     # end screen done
-SPEED=1.15
-XF=0.8         # crossfade length
-FADE_OUT=1.5
+# start:end:speed, in raw recording seconds
+SEGMENTS=(
+	"0:3.8:1"         # title card
+	"13.6:80.6:1.4"   # Dashboard, Chain, Dry Run, Metrics, Live Tracker
+	"80.72:84.62:1"   # outro: turn it on in one setting
+	"85.64:92.64:1"   # end screen: rulebox.coldbox.org
+)
+XF=0.6         # crossfade length
+FADE_IN=0.8
+FADE_OUT=1.8
 
-A_LEN=$A_END
-B_LEN=$( echo "( $B_END - $B_START ) / $SPEED" | bc -l )
-C_LEN=$( echo "$C_END - $B_END - 0.1" | bc -l )
-O1=$( echo "$A_LEN - $XF" | bc -l )
-O2=$( echo "$O1 + $B_LEN - $XF" | bc -l )
-TOTAL=$( echo "$O2 + $C_LEN" | bc -l )
-FO=$( echo "$TOTAL - $FADE_OUT" | bc -l )
-
-F="[0:v]fps=25,format=yuv420p,split=3[s1][s2][s3];\
-[s1]trim=0:$A_END,setpts=PTS-STARTPTS,fps=25,settb=AVTB[a];\
-[s2]trim=$B_START:$B_END,setpts=(PTS-STARTPTS)/$SPEED,fps=25,settb=AVTB[b];\
-[s3]trim=$( echo "$B_END + 0.1" | bc -l ):$C_END,setpts=PTS-STARTPTS,fps=25,settb=AVTB[c];\
-[a][b]xfade=transition=fade:duration=$XF:offset=$O1[ab];\
-[ab][c]xfade=transition=fade:duration=$XF:offset=$O2[abc];\
-[abc]fade=t=in:st=0:d=1.0,fade=t=out:st=$FO:d=$FADE_OUT[v]"
+filter="[0:v]fps=25,format=yuv420p,split=${#SEGMENTS[@]}"
+for i in "${!SEGMENTS[@]}"; do filter+="[s$i]"; done
+filter+=";"
+offset=0
+total=0
+for i in "${!SEGMENTS[@]}"; do
+	IFS=: read -r start end speed <<< "${SEGMENTS[$i]}"
+	filter+="[s$i]trim=$start:$end,setpts=(PTS-STARTPTS)/$speed,fps=25,settb=AVTB[v$i];"
+	len=$( echo "( $end - $start ) / $speed" | bc -l )
+	if [ "$i" = 0 ]; then
+		prev="v0"
+		total=$len
+	else
+		offset=$( echo "$total - $XF" | bc -l )
+		filter+="[$prev][v$i]xfade=transition=fade:duration=$XF:offset=$offset[x$i];"
+		prev="x$i"
+		total=$( echo "$offset + $len" | bc -l )
+	fi
+done
+fo=$( echo "$total - $FADE_OUT" | bc -l )
+filter+="[$prev]fade=t=in:st=0:d=$FADE_IN,fade=t=out:st=$fo:d=$FADE_OUT[v]"
 
 mkdir -p "$OUT"
-"$FF" -hide_banner -loglevel error -y -i "$RAW" -filter_complex "$F" -map "[v]" \
-	-c:v libx264 -preset slow -crf 23 -pix_fmt yuv420p -movflags +faststart \
+MUSIC="$( mktemp --suffix=.wav )"
+trap 'rm -f "$MUSIC"' EXIT
+python3 "$HERE/music.py" "$MUSIC" "$( printf '%.2f' "$total" )"
+
+"$FF" -hide_banner -loglevel error -y -i "$RAW" -i "$MUSIC" -filter_complex "$filter" \
+	-map "[v]" -map 1:a -c:v libx264 -preset slow -crf 23 -pix_fmt yuv420p \
+	-c:a aac -b:a 160k -af "volume=-5dB" -shortest -movflags +faststart \
 	"$OUT/rulebox-visualizer-intro.mp4"
-echo "Wrote $OUT/rulebox-visualizer-intro.mp4"
+echo "Wrote $OUT/rulebox-visualizer-intro.mp4 ($( printf '%.1f' "$total" )s)"
