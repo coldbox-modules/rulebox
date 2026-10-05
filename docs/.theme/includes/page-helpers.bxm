@@ -10,8 +10,7 @@
 			return ""
 		}
 		var html = sb{ '<nav class="breadcrumb-nav mb-3" aria-label="breadcrumb"><ol class="breadcrumb">' }
-		for ( var i = 1; i <= arguments.crumbs.len(); i++ ) {
-			var crumb = arguments.crumbs[ i ]
+		for ( var crumb, i in arguments.crumbs ) {
 			if ( i == arguments.crumbs.len() ) {
 				html &= '<li class="breadcrumb-item active" aria-current="page">' & encodeForHTML( crumb.title ) & '</li>'
 			} else {

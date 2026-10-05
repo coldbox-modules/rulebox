@@ -5,7 +5,9 @@
         "pi"
     ],
     "coldboxCliVersion":"8.15.0",
-    "customSkills":[],
+    "customSkills":[
+        "rulebox-boxlang-conventions"
+    ],
     "excludes":[],
     "guidelines":[
         {

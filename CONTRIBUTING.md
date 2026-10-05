@@ -1,6 +1,6 @@
 # Contributing Guide
 
-Hola amigo! I'm really excited that you are interested in contributing to @MODULE_NAME@. Before submitting your contribution, please make sure to take a moment and read through the following guidelines:
+Hola amigo! I'm really excited that you are interested in contributing to RuleBox. Before submitting your contribution, please make sure to take a moment and read through the following guidelines:
 
 - [Code Of Conduct](#code-of-conduct)
 - [Bug Reporting](#bug-reporting)
@@ -59,13 +59,15 @@ If you discover a security vulnerability, please send an email to the Ortus secu
 2. Make sure you have CommandBox installed: https://www.ortussolutions.com/products/commandbox#download
 3. Start a CommandBox shell in the root of the project: `box`
 4. Install the development dependencies: `run-script install:dependencies`
-5. Hack away! Create tests under `/test-harness/specs` or wherever they are set in the project and run the tests!
+5. Hack away! Create tests under `test-harness/tests/specs` or wherever they are set in the project and run the tests!
 
 ## Language Compatibility
 
 This is a BoxLang-only project. Please make sure your code runs on:
 
 - BoxLang 1.14+
+
+The Visualizer Live Tracker needs BoxLang 1.18.0+. Older runtimes whitespace-compress server-sent events and drop the blank line that ends each event. This was fixed in boxlang-web-support for 1.18.0.
 
 ## Coding Styles & Formatting
 
@@ -75,11 +77,11 @@ We are big on coding styles and have included a `.bxformat.json` in the root of 
 # Format everything
 box run-script format
 
-# Start a watcher, type away, save and auto-format for you
-box run-script format:watch
+# Check formatting only, without changing files
+box run-script format:check
 ```
 
-We recommend that anytime you hack on the core you start the formatter watcher (`box run-script format:watch`). This will monitor your changes and auto-format your code for you.
+We recommend that you run `box run-script format` before you commit, and `box run-script format:check` to verify.
 
 You can also see the Ortus Coding Standards you must follow here: https://github.com/Ortus-Solutions/coding-standards.
 
@@ -97,11 +99,11 @@ You can support ColdBox and all of our Open Source initiatives at Ortus Solution
 
 ## Contributors
 
-Thank you to all the people who have already contributed to @MODULE_NAME@! We :heart: :heart: :heart: love you!
+Thank you to all the people who have already contributed to RuleBox! We :heart: :heart: :heart: love you!
 
 
-<a href = "https://github.com/coldbox-modules/@module_name@/graphs/contributors">
-  <img src = "https://contrib.rocks/image?repo=coldbox-modules/@module_name@"/>
+<a href = "https://github.com/coldbox-modules/rulebox/graphs/contributors">
+  <img src = "https://contrib.rocks/image?repo=coldbox-modules/rulebox"/>
 </a>
 
 Made with [contributors-img](https://contrib.rocks)
