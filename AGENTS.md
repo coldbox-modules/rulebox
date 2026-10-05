@@ -87,6 +87,30 @@ This project includes AI-powered development assistance with on-demand guideline
 - **Service naming:** Descriptive with "Service" suffix (UserService.cfc)
 - **Dependency injection:** Use `property name="service" inject` over manual getInstance()
 
+### BoxLang Idioms
+
+This is BoxLang, not Java. Write it the BoxLang way:
+
+- **Looping with an index or key:** use the two-part (destructuring) `for-in` instead of a manual counter or a `struct[ key ]` lookup. Both variables are local to the function.
+
+  ```js
+  // Arrays: element, then its 1-based index
+  for( var item, index in meals ){
+      systemOutput( "Meal #index#: #item#" )
+  }
+
+  // Structs: key, then its value
+  for( var key, value in produce ){
+      systemOutput( "I just had #value# #key#" )
+  }
+  ```
+
+  Keep a classic `for( var i = 1; ... )` only for counting loops with no collection, or when the body needs a neighbour (`items[ i + 1 ]`).
+- **Literal `#`:** inside `bx:output`, `.bxm` templates and interpolated strings, `#` starts an expression. Write `##` for a literal `#` (an HTML entity is `&##10084;`), or use the character itself.
+- **`null`:** use the `null` keyword, never `javaCast( "null", "" )`.
+- **Truthiness and types:** BoxLang does truthy comparisons and type coercion behind the scenes. Don't add Java-style conversions or casts it already does for you.
+- **`static`:** constants that never change, and the defaults a module loads once, live in a `static {}` block and are read as `static.NAME`. A helper with no state is a class of `static` functions, called as `ClassName::method()`, not an instance.
+
 ### Testing
 
 - Tests located in `/tests/specs/`
