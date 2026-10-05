@@ -91,7 +91,7 @@ This project includes AI-powered development assistance with on-demand guideline
 
 This is BoxLang, not Java. Write it the BoxLang way:
 
-- **Looping with an index or key:** use the two-part (destructuring) `for-in` instead of a manual counter or a `struct[ key ]` lookup. Both variables are local to the function.
+- **Looping with an index or key:** use the two-part (destructuring) `for-in` instead of a manual counter or a `struct[ key ]` lookup. It works on arrays, structs and queries. Both variables are local to the function.
 
   ```js
   // Arrays: element, then its 1-based index
@@ -102,6 +102,11 @@ This is BoxLang, not Java. Write it the BoxLang way:
   // Structs: key, then its value
   for( var key, value in produce ){
       systemOutput( "I just had #value# #key#" )
+  }
+
+  // Queries: the row as a struct, then its 1-based row number
+  for( var row, rowNumber in qRules ){
+      systemOutput( "Row #rowNumber#: #row.name#" )
   }
   ```
 
