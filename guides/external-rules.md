@@ -215,6 +215,13 @@ condition-tree/action JSON used by `JSONRuleSource`, stored as text:
 | `stop` | `stop` |
 | `using_facts` | `using` (comma-delimited list) |
 
+`stop` is parsed leniently: `true`/`false`, `1`/`0`, `yes`/`no`, `y`/`n`
+(case-insensitive); empty or `NULL` means `false`. Any other `stop` value, invalid
+JSON in a JSON column, a non-numeric `priority` or an unparseable date throws a
+`RuleBox.InvalidRuleRowException` whose message names the rule (or its 1-based row
+number when it has no `name`) and the offending column; the original parser error
+is available in the exception `detail`.
+
 ## Writing your own source
 
 Any object with a `load()` method returning an array of rule-definition

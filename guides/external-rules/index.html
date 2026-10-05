@@ -394,6 +394,12 @@ condition-tree/action JSON used by <code>JSONRuleSource</code>, stored as text:<
 <tr><td><code>using_facts</code></td><td><code>using</code> (comma-delimited list)</td></tr>
 </tbody>
 </table></div>
+<p><code>stop</code> is parsed leniently: <code>true</code>/<code>false</code>, <code>1</code>/<code>0</code>, <code>yes</code>/<code>no</code>, <code>y</code>/<code>n</code>
+(case-insensitive); empty or <code>NULL</code> means <code>false</code>. Any other <code>stop</code> value, invalid
+JSON in a JSON column, a non-numeric <code>priority</code> or an unparseable date throws a
+<code>RuleBox.InvalidRuleRowException</code> whose message names the rule (or its 1-based row
+number when it has no <code>name</code>) and the offending column; the original parser error
+is available in the exception <code>detail</code>.</p>
 <h2 id="writing-your-own-source"><a href="#writing-your-own-source" id="writing-your-own-source" name="writing-your-own-source" class="anchor"></a>Writing your own source</h2>
 <p>Any object with a <code>load()</code> method returning an array of rule-definition
 structs works with <code>loadRules()</code> - a REST call, a config service, a cache,
@@ -480,7 +486,7 @@ config and convention folder without restarting.</p>
 
 	
 	
-		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/external-rules.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/external-rules.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 5, 2026, 3&#x3a;48&#x3a;45 PM</span></div>
+		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/external-rules.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/external-rules.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 5, 2026, 3&#x3a;53&#x3a;38 PM</span></div>
 	
 </article>
 
