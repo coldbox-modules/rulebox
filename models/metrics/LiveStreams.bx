@@ -1,0 +1,137 @@
+/**
+ * Bookkeeping for the Rule Visualizer's live SSE streams (handlers/Visualizer.bx stream()):
+ *
+ * - caps how many streams may be open at once (each open stream pins two server threads),
+ * - hands out a bounded per-stream event queue that never blocks the event bus and never grows,
+ * - guarantees a stream's slot is released and its bus subscription removed however it ends.
+ *
+ * Kept out of the handler so the limit logic is unit-testable without opening a real stream.
+ */
+@singleton
+@threadsafe
+class{
+
+	/**
+	 * Fixed limits, the same for every instance. Static so they are not copied per instance.
+	 */
+	static {
+		// Events held per stream before the oldest start being dropped
+		QUEUE_CAPACITY = 1000
+	}
+
+	/**
+	 * Constructor: no streams open.
+	 *
+	 * @return This LiveStreams instance
+	 */
+	function init(){
+		variables.active = createObject( "java", "java.util.concurrent.atomic.AtomicInteger" ).init( 0 )
+		return this
+	}
+
+	/**
+	 * How many streams currently hold a slot.
+	 */
+	numeric function activeCount(){
+		return variables.active.get()
+	}
+
+	/**
+	 * Atomically take a stream slot unless maxStreams are already in use.
+	 *
+	 * @maxStreams The cap on concurrent streams
+	 *
+	 * @return true if a slot was taken (the caller must release() it), false if at the cap
+	 */
+	boolean function tryAcquire( required numeric maxStreams ){
+		while( true ){
+			var current = variables.active.get()
+			if( current >= arguments.maxStreams ){
+				return false
+			}
+			if( variables.active.compareAndSet( current, current + 1 ) ){
+				return true
+			}
+		}
+	}
+
+	/**
+	 * Give back a slot taken by tryAcquire(). Never drops the count below zero.
+	 */
+	void function release(){
+		while( true ){
+			var current = variables.active.get()
+			if( current <= 0 || variables.active.compareAndSet( current, current - 1 ) ){
+				return
+			}
+		}
+	}
+
+	/**
+	 * A fresh bounded queue for one stream's events.
+	 *
+	 * @capacity Max events held; defaults to QUEUE_CAPACITY
+	 */
+	any function newQueue( numeric capacity=static.QUEUE_CAPACITY ){
+		return createObject( "java", "java.util.concurrent.LinkedBlockingQueue" ).init( javaCast( "int", arguments.capacity ) )
+	}
+
+	/**
+	 * Add an event to a bounded queue without ever blocking the publisher. When the queue is full
+	 * (a slow or stalled client) the OLDEST queued event is dropped to make room: a live tracker
+	 * is most useful showing what just happened.
+	 *
+	 * @queue A queue from newQueue()
+	 * @evt   The event to add
+	 *
+	 * @return true if nothing had to be dropped
+	 */
+	boolean function offer( required queue, required evt ){
+		if( arguments.queue.offer( arguments.evt ) ){
+			return true
+		}
+		// Full: evict the head and retry. Another producer can win the freed slot, so retry a few
+		// times; if we still lose, dropping this (newest) event is the same bounded behavior.
+		for( var attempt = 1; attempt <= 3; attempt++ ){
+			arguments.queue.poll()
+			if( arguments.queue.offer( arguments.evt ) ){
+				return false
+			}
+		}
+		return false
+	}
+
+	/**
+	 * Open one live stream under the cap. Takes a slot, subscribes a bounded queue to the bus, runs
+	 * the opener, and in every outcome (normal end, client gone, opener throws) unsubscribes and
+	 * releases the slot. The opener normally blocks until the stream closes.
+	 *
+	 * @bus          The RuleEventBus to subscribe to
+	 * @maxStreams   The cap on concurrent streams
+	 * @opener       A ( queue ) => void closure that opens the stream and drains the queue
+	 *
+	 * @return false (and runs nothing) if the cap is reached, true once a stream ran
+	 */
+	boolean function serve( required bus, required numeric maxStreams, required opener ){
+		if( !tryAcquire( arguments.maxStreams ) ){
+			return false
+		}
+
+		var token      = 0
+		var subscribed = false
+		try{
+			var queue = newQueue()
+			var self  = this
+			token      = arguments.bus.subscribe( ( evt ) => self.offer( queue, evt ) )
+			subscribed = true
+			arguments.opener( queue )
+		} finally {
+			if( subscribed ){
+				arguments.bus.unsubscribe( token )
+			}
+			release()
+		}
+		return true
+	}
+
+}

@@ -20,6 +20,9 @@ class{
 	@inject( "RuleEventBus@rulebox" )
 	property name="eventBus";
 
+	@inject( "LiveStreams@rulebox" )
+	property name="liveStreams";
+
 	this.layout = "Visualizer"
 
 	/**
@@ -159,27 +162,35 @@ class{
 	 * SSE stream of every rule-evaluation event, as it happens, across all rulebooks.
 	 */
 	function stream( event, rc, prc ){
-		var queue = createObject( "java", "java.util.concurrent.LinkedBlockingQueue" ).init()
-		var bus   = variables.eventBus
-		var token = bus.subscribe( ( evt ) => queue.offer( evt ) )
-
-		SSE(
-			callback: ( emitter ) => {
-				try{
-					while( !emitter.isClosed() ){
-						var evt = queue.poll( 1000, createObject( "java", "java.util.concurrent.TimeUnit" ).MILLISECONDS )
-						if( !isNull( evt ) ){
-							emitter.send( evt, "rule" )
+		// Slot accounting, the bounded per-stream queue and the subscribe/unsubscribe pairing live
+		// in LiveStreams; serve() releases the slot and unsubscribes even if SSE() itself throws.
+		var served = variables.liveStreams.serve(
+			bus        : variables.eventBus,
+			maxStreams : variables.settings.visualizer.maxStreams,
+			opener     : ( queue ) => {
+				SSE(
+					callback: ( emitter ) => {
+						while( !emitter.isClosed() ){
+							var evt = queue.poll( 1000, createObject( "java", "java.util.concurrent.TimeUnit" ).MILLISECONDS )
+							if( !isNull( evt ) ){
+								emitter.send( evt, "rule" )
+							}
 						}
-					}
-				} finally {
-					bus.unsubscribe( token )
-				}
-			},
-			async: true,
-			keepAliveInterval: 15000,
-			timeout: 0
+					},
+					async: true,
+					keepAliveInterval: 15000,
+					timeout: 0
+				)
+			}
 		)
+
+		if( !served ){
+			event.renderData(
+				type       = "json",
+				data       = { "error": "Too many live tracker connections" },
+				statusCode = 503
+			)
+		}
 	}
 
 	/**

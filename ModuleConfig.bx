@@ -40,7 +40,9 @@ class {
 			// IMetricsStore@rulebox yourself and point this at its mapping.
 			metricsStore   = "InMemoryMetricsStore@rulebox",
 			// Datasource name SQLiteMetricsStore reads/writes, if you opt into it above.
-			datasourceName = "rulebox_visualizer"
+			datasourceName = "rulebox_visualizer",
+			// Max live-tracker (SSE) connections open at once; each pins two server threads. Over the cap, stream() answers 503.
+			maxStreams     = 25
 		}
 	}
 
@@ -95,6 +97,16 @@ class {
 			var value = arguments.visualizer[ key ] ?: ""
 			if( !isSimpleValue( value ) || !len( trim( value ) ) ){
 				invalidSetting( "visualizer.#key#", value, "a non-blank WireBox mapping or name" )
+			}
+		}
+		// Whole-number settings and the smallest value each accepts
+		var minimums = {
+			maxStreams : 1
+		}
+		for( var key, minimum in minimums ){
+			var value = arguments.visualizer[ key ] ?: ""
+			if( !isNumeric( value ) || value < minimum || value != int( value ) ){
+				invalidSetting( "visualizer.#key#", value, "a whole number of #minimum# or more" )
 			}
 		}
 	}
