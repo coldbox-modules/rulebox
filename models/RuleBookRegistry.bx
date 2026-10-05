@@ -45,7 +45,7 @@ class singleton{
 			if( isNull( configured ) ){
 				throwInvalidDeclaration( name, "the declaration is null" )
 			}
-			discovered[ name ] = normalizeDefinition( name, configured, discovered.keyExists( name ) ? discovered[ name ] : {} )
+			discovered[ name ] = normalizeDefinition( name, configured, discovered[ name ] ?: {} )
 		}
 
 		variables.definitions = discovered
