@@ -8,13 +8,11 @@
         "coldbox":"^8.0.0"
     },
     "devDependencies":{
-        "testbox":"be",
-        "bx-sqlite":"*"
+        "testbox":"be"
     },
     "installPaths":{
         "coldbox":"coldbox/",
-        "testbox":"testbox/",
-        "bx-sqlite":"modules/bx-sqlite/"
+        "testbox":"testbox/"
     },
     "testbox":{
         "runner":"http://localhost:60299/tests/runner.bxm"
