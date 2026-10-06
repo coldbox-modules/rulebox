@@ -72,11 +72,13 @@
 						<i class="ph ph-squares-four"></i> Dashboard
 					</a>
 				</li>
-				<li class="nav-item">
-					<a class="nav-link d-flex align-items-center gap-2 #( event.getCurrentAction() == 'chain' ? 'active' : '' )#" href="#prc.vizLink( 'chain' )#">
-						<i class="ph ph-tree-structure"></i> Rule Visualizer
-					</a>
-				</li>
+				<bx:if prc.rulebookNames.len()>
+					<li class="nav-item">
+						<a class="nav-link d-flex align-items-center gap-2 #( event.getCurrentAction() == 'chain' ? 'active' : '' )#" href="#prc.vizLink( 'chain' )#">
+							<i class="ph ph-tree-structure"></i> Rule Visualizer
+						</a>
+					</li>
+				</bx:if>
 				<li class="nav-item">
 					<a class="nav-link d-flex align-items-center gap-2 #( event.getCurrentAction() == 'dryrun' ? 'active' : '' )#" href="#prc.vizLink( 'dryrun' )#">
 						<i class="ph ph-flask"></i> Dry Run

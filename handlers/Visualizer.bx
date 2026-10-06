@@ -52,6 +52,7 @@ class{
 			return
 		}
 		prc.visualizerSettings = variables.settings.visualizer
+		prc.rulebookNames      = registry.getRuleBookNames()
 
 		// Every layout/view link goes through this one helper so the module routes stay the single
 		// source of truth. The dashboard is the entry point itself (/rulebox-visualizer); the rest

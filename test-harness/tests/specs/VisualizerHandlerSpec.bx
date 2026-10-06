@@ -55,6 +55,28 @@ class extends="tests.resources.BaseSpec"{
 				expect( content ).toInclude( "conventionRule" );
 			} );
 
+			it( "hides the Rule Visualizer sidebar link when no rulebooks are registered", function(){
+				var settings                 = getWireBox().getInstance( dsl="coldbox:moduleSettings:rulebox" )
+				var registry                 = getInstance( "RuleBookRegistry@rulebox" )
+				var originalConventionPath   = settings.conventionPath
+				var originalRuleBooks        = duplicate( settings.rulebooks )
+
+				try{
+					settings.conventionPath = "config/no-rulebooks"
+					settings.rulebooks      = {}
+					registry.reload()
+
+					var content = execute( event="rulebox:visualizer.dryrun", renderResults=true ).getRenderedContent()
+
+					expect( content ).notToInclude( "> Rule Visualizer" )
+					expect( content ).toInclude( "> Dashboard" )
+				} finally {
+					settings.conventionPath = originalConventionPath
+					settings.rulebooks      = originalRuleBooks
+					registry.reload()
+				}
+			} )
+
 			it( "builds every link under the module's entry point, not the app root", function(){
 				var content = execute( event="rulebox:visualizer.index", renderResults=true ).getRenderedContent();
 
