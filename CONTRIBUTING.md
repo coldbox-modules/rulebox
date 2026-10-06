@@ -11,6 +11,7 @@ Hola amigo! I'm really excited that you are interested in contributing to RuleBo
 - [Language Compatibility](#language-compatibility)
 - [Coding Styles \& Formatting](#coding-styles--formatting)
 - [CFC Docs With DocBox](#cfc-docs-with-docbox)
+- [Versioned Docs](#versioned-docs)
 - [Financial Contributions](#financial-contributions)
 - [Contributors](#contributors)
 
@@ -89,6 +90,24 @@ You can also see the Ortus Coding Standards you must follow here: https://github
 
 All CFCs are self-documenting and we leverage [DocBox](https://docbox.ortusbooks.com/) to document the entire software.  All functions must be properly documented using the DocBox syntax: https://docbox.ortusbooks.com/getting-started/annotating-your-code
 
+
+## Versioned Docs
+
+The docs site (https://rulebox.coldbox.org, built with bx-sites from `docs/` and `bxsites.yaml`) keeps one copy of the docs per release:
+
+- `docs/versions/<version>/` holds the docs of each release. The one named in `versions.default` in `bxsites.yaml` is served at the site root; the others at `/versions/<version>/`.
+- `docs/` itself is the docs for the next, unreleased version, served at `/next/` with a notice that links back to the current release. Document new work here.
+- `docs/assets`, `docs/data` and the theme in `docs/.theme` are shared by every version.
+
+When you release a new version, snapshot the docs before merging to `master`:
+
+```bash
+boxlang bxSites version:new --name=2.1.0
+# The theme and data are shared, so drop the copies the scaffolder made
+rm -r docs/versions/2.1.0/.theme docs/versions/2.1.0/data
+```
+
+Then set `versions.default` in `bxsites.yaml` to the new version. Link to another version with an absolute URL such as `/versions/1.0.0/`, since a relative link resolves inside the version it is written in.
 
 ## Financial Contributions
 

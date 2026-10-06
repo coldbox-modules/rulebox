@@ -10,7 +10,7 @@ toc: true
 
 > **Archived version.** This page preserves the RuleBox 1.0.0 docs as
 > originally written. For the current release, see the
-> [Latest docs](../../index.md).
+> [current docs](/).
 
 **RuleBox** is a modern intuitive and natural language rule engine based
 upon the great work of **RuleBook**: https://github.com/rulebook-rules/rulebook
