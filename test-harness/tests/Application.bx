@@ -31,6 +31,19 @@ class{
 	this.mappings[ "/moduleroot" ] 				= moduleRootPath
 	this.mappings[ "/#request.MODULE_NAME#" ] 	= moduleRootPath & "#request.MODULE_PATH#"
 
+	// The SQLite datasource SQLiteMetricsStoreSpec exercises. Needs the bx-sqlite module in the BoxLang
+	// runtime (server-*.json installs it); without it those specs skip
+	databaseDir = rootPath & ".database/"
+	if( !directoryExists( databaseDir ) ){
+		directoryCreate( databaseDir )
+	}
+	this.datasources = {
+		rulebox_visualizer : {
+			driver   : "sqlite",
+			database : databaseDir & "rulebox_visualizer.db"
+		}
+	}
+
 	// ORM Definitions
 	/**
 	this.datasource = "coolblog";
