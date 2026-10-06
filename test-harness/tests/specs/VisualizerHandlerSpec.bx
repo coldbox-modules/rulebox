@@ -47,6 +47,38 @@ class extends="tests.resources.BaseSpec"{
 				expect( content ).toInclude( "Dashboard" );
 			} );
 
+			it( "shows demo runner controls on the test harness home, not the visualizer", function(){
+				var harnessContent   = execute( event="main.index", renderResults=true ).getRenderedContent();
+				var visualizerContent = execute( event="rulebox:visualizer.index", renderResults=true ).getRenderedContent();
+
+				expect( harnessContent ).toInclude( "Demo Rule Runner" );
+				expect( harnessContent ).toInclude( "Start runner" );
+				expect( harnessContent ).toInclude( "main.startVisualizerRunner" );
+				expect( visualizerContent ).notToInclude( "Demo runner:" );
+			} );
+
+			it( "registers the harness demo runner on a five-second schedule", function(){
+				var scheduler = getInstance( "appScheduler@coldbox" )
+				expect( scheduler.hasTask( "rulebox-visualizer-demo" ) ).toBeTrue();
+				expect( scheduler.getTaskRecord( "rulebox-visualizer-demo" ).task.isEnabled() ).toBeTrue();
+				expect( application.ruleboxDemoRunner.active ).toBeFalse();
+			} );
+
+			it( "loads demo evaluations into the harness visualizer store", function(){
+				var store = getInstance( "InMemoryMetricsStore@rulebox" );
+				try{
+					var event   = execute( event="main.loadVisualizerData", renderResults=true );
+					var content = event.getRenderedContent();
+
+					expect( content ).toInclude( "Reset and loaded demo evaluations" );
+					expect( store.queryRuleBookSummary( "shippingrates" ).totalEvaluations > 0 ).toBeTrue();
+					expect( store.queryRuleBookSummary( "loanapproval" ).totalEvaluations > 0 ).toBeTrue();
+					expect( store.queryEvents( limit=20 ).len() > 0 ).toBeTrue();
+				} finally{
+					store.reset();
+				}
+			} );
+
 			it( "renders the chain visualizer for a declared rulebook in execution order", function(){
 				url.name = "testconvention";
 				var event   = execute( event="rulebox:visualizer.chain", renderResults=true );
