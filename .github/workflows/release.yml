@@ -136,11 +136,21 @@ jobs:
           SOURCE_DIR: ".tmp/apidocs"
           DEST_DIR: "coldbox-modules/${{ env.MODULE_ID }}/${{ env.VERSION }}"
 
+      # ForgeBox can answer a publish with a 502/504 while it is under load. Publishing with --force is
+      # safe to repeat, so retry a few times before failing the release.
       - name: Publish To ForgeBox
         run: |
           cd .tmp/${{ env.MODULE_ID }}
           cat box.json
-          box forgebox publish --force
+          for attempt in 1 2 3; do
+            if box forgebox publish --force; then
+              exit 0
+            fi
+            echo "::warning::Publishing to ForgeBox failed (attempt $attempt), retrying"
+            sleep $(( attempt * 30 ))
+          done
+          echo "::error::Publishing to ForgeBox failed after 3 attempts"
+          exit 1
 
       - name: Create Github Release
         uses: taiki-e/create-gh-release-action@v1.11.0
