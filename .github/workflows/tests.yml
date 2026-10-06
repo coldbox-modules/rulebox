@@ -79,6 +79,15 @@ jobs:
           mkdir -p test-harness/tests/results
           box testbox run --verbose outputFile=test-harness/tests/results/test-results outputFormats=json,antjunit
 
+      - name: Report Skipped Specs
+        if: always()
+        run: |
+          # A skipped spec says why (a missing driver or module, say); surface each reason as a warning annotation
+          for f in test-harness/tests/results/*.json; do
+            [ -f "$f" ] || continue
+            jq -r '.. | objects | select( .status? == "Skipped" ) | "::warning title=Skipped spec::\(.name): \(.failMessage // "no reason given")"' "$f"
+          done
+
       - name: Publish Test Reports
         uses: mikepenz/action-junit-report@v6.5.0
         if: always()
