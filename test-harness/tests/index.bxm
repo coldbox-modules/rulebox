@@ -10,7 +10,7 @@
 	targetPath 	= rootPath;
 
 	// Incoming Navigation
-	param name="url.path" default="";
+	param url.path = "";
 	if( len( url.path ) ){
 		targetPath = getCanonicalPath( rootpath & "/" & url.path );
 		// Avoid traversals, reset to root
