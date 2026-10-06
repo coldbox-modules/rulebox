@@ -32,12 +32,27 @@ social:
     - url: "https://github.com/coldbox-modules/rulebox"
       icon: github
       label: "RuleBox on GitHub"
-    - url: "https://www.ortussolutions.com/community/slack"
+    - url: "https://boxteam.ortussolutions.com"
       icon: slack
       label: "Slack Community"
     - url: "https://community.ortussolutions.com/"
       icon: discourse
       label: "Community Forum"
+    - url: "https://x.com/TryBoxLang"
+      icon: twitter
+      label: "X (Twitter)"
+    - url: "https://www.youtube.com/@OrtusSolutions"
+      icon: youtube
+      label: "YouTube"
+    - url: "https://www.linkedin.com/company/tryboxlang"
+      icon: linkedin
+      label: "LinkedIn"
+    - url: "https://www.facebook.com/tryboxlang/"
+      icon: facebook
+      label: "Facebook"
+    - url: "https://www.patreon.com/ortussolutions"
+      icon: patreon
+      label: "Patreon"
 footer: true
 lastUpdated: true
 mermaid: true

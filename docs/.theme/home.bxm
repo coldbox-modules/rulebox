@@ -568,7 +568,7 @@
 					<img class="rb-logo-light" src="#variables.assetUrl#brand/rulebox-logo-full-light.svg" alt="#encodeForHTML( variables.siteConfig.name )#">
 					<img class="rb-logo-dark" src="#variables.assetUrl#brand/rulebox-logo-full-dark.svg" alt="#encodeForHTML( variables.siteConfig.name )#">
 				</a>
-				<p>A natural-language rules engine for BoxLang and ColdBox, based on RuleBook.</p>
+				<p>A natural-language rules engine for BoxLang and ColdBox.</p>
 				<bx:if variables.socialLinks.len() gt 0>
 					<div class="rb-social">#renderSocialLinks( variables.socialLinks )#</div>
 				</bx:if>
