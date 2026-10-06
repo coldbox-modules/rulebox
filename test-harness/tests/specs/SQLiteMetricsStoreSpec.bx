@@ -1,6 +1,6 @@
 /**
  * Tests for SQLiteMetricsStore, the Rule Visualizer's default IMetricsStore. Exercises the real
- * bx-sqlite datasource ("rulebox_visualizer", see test-harness/Application.bx) end to end -
+ * bx-sqlite datasource ("rulebox_visualizer", see test-harness/tests/Application.bx) end to end -
  * kept in its own spec so a bx-sqlite/JDBC problem in CI is easy to isolate from the rest of the
  * suite, which otherwise only depends on InMemoryMetricsStore.
  */
