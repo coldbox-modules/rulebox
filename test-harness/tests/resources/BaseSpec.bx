@@ -38,13 +38,13 @@ class extends="coldbox.system.testing.BaseTestCase"{
      * @aroundEach
      */
     function aroundTransaction( spec ) {
-        bx:transaction action="begin" {
+        transaction action="begin" {
             try {
                 arguments.spec.body();
             } catch ( any e ){
                 rethrow;
             } finally {
-                bx:transaction action="rollback";
+                transaction action="rollback";
             }
         }
     }

@@ -68,7 +68,7 @@ class implements="IMetricsStore"{
 	 * @event { rulebookName, ruleName, state, durationMs, timestamp }, plus the error fields on FAILED
 	 */
 	void function recordEvent( required struct event ){
-		bx:lock name="rulebox_inmemory_metrics" type="exclusive" timeout="5"{
+		lock name="rulebox_inmemory_metrics" type="exclusive" timeout="5"{
 			var rulebookName = arguments.event.rulebookName
 			var stored = arguments.event.copy()
 			for( var heavy in static.ERROR_DETAIL_FIELDS ){
@@ -113,7 +113,7 @@ class implements="IMetricsStore"{
 	array function queryEvents( struct filters={}, numeric limit=50 ){
 		var requestedFilters = arguments.filters
 		var maxRows = arguments.limit
-		bx:lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
+		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
 			var candidates = []
 			if( requestedFilters.keyExists( "rulebookName" ) ){
 				if( variables.eventsByRulebook.keyExists( requestedFilters.rulebookName ) ){
@@ -143,7 +143,7 @@ class implements="IMetricsStore"{
 	 *         completed, failed, completionRate, errorRate }
 	 */
 	struct function queryRuleBookSummary( required string rulebookName ){
-		bx:lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
+		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
 			var aggregate = variables.aggregatesByRulebook.keyExists( arguments.rulebookName )
 				? variables.aggregatesByRulebook[ arguments.rulebookName ].totals
 				: newAggregate()
@@ -161,7 +161,7 @@ class implements="IMetricsStore"{
 	 *         lastRunAt, completed, failed, completionRate, errorRate, lastError? }
 	 */
 	struct function queryRuleMetrics( required string rulebookName, required string ruleName ){
-		bx:lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
+		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
 			var aggregate = variables.aggregatesByRulebook[ arguments.rulebookName ].rules[ arguments.ruleName ] ?: newAggregate()
 			return ruleSummary( arguments.rulebookName, arguments.ruleName, aggregate )
 		}
@@ -175,7 +175,7 @@ class implements="IMetricsStore"{
 	 * @return An array of queryRuleMetrics() structs, one per rule
 	 */
 	array function queryAllRuleMetrics( required string rulebookName ){
-		bx:lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
+		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
 			var rules = variables.aggregatesByRulebook[ arguments.rulebookName ].rules ?: {}
 			var list  = []
 			for( var ruleName, aggregate in rules ){
@@ -195,7 +195,7 @@ class implements="IMetricsStore"{
 	 * @return An array of { fingerprint, type, message, causedBy, stackTrace, rawStackTrace, count, firstAt, lastAt }
 	 */
 	array function queryRuleErrors( required string rulebookName, required string ruleName, numeric limit=10 ){
-		bx:lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
+		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
 			var errors = variables.aggregatesByRulebook[ arguments.rulebookName ].rules[ arguments.ruleName ].errors ?: []
 			return duplicate( errors.len() > arguments.limit ? errors.slice( 1, arguments.limit ) : errors )
 		}
@@ -207,7 +207,7 @@ class implements="IMetricsStore"{
 	 * @return An array of rulebook names
 	 */
 	array function queryRuleBookNames(){
-		bx:lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
+		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
 			return variables.aggregatesByRulebook.keyArray()
 		}
 	}
@@ -216,7 +216,7 @@ class implements="IMetricsStore"{
 	 * Clear every recorded event and aggregate.
 	 */
 	void function reset(){
-		bx:lock name="rulebox_inmemory_metrics" type="exclusive" timeout="5"{
+		lock name="rulebox_inmemory_metrics" type="exclusive" timeout="5"{
 			variables.eventsByRulebook = {}
 			variables.aggregatesByRulebook = {}
 		}

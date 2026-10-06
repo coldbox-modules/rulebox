@@ -81,7 +81,7 @@ class{
 	 * @return An opaque subscription token
 	 */
 	numeric function subscribe( required listener ){
-		bx:lock name="rulebox_event_bus_subscribers" type="exclusive" timeout="5"{
+		lock name="rulebox_event_bus_subscribers" type="exclusive" timeout="5"{
 			variables.nextToken++
 			variables.subscribers[ variables.nextToken ] = arguments.listener
 			return variables.nextToken
@@ -94,7 +94,7 @@ class{
 	 * @token The token returned by subscribe()
 	 */
 	void function unsubscribe( required numeric token ){
-		bx:lock name="rulebox_event_bus_subscribers" type="exclusive" timeout="5"{
+		lock name="rulebox_event_bus_subscribers" type="exclusive" timeout="5"{
 			variables.subscribers.delete( arguments.token )
 		}
 	}
@@ -125,7 +125,7 @@ class{
 
 			var listeners      = []
 			var publishedEvent = arguments.event
-			bx:lock name="rulebox_event_bus_subscribers" type="readOnly" timeout="#variables.lockTimeout#"{
+			lock name="rulebox_event_bus_subscribers" type="readOnly" timeout="#variables.lockTimeout#"{
 				listeners = variables.subscribers.valueArray()
 			}
 			listeners.each( ( listener ) => {
