@@ -104,8 +104,8 @@ Click any screenshot to enlarge it:
 
 Every declared rulebook (from `moduleSettings.rulebox.rulebooks` and/or your
 convention folder - see the "Externalized Rule Definitions" guide), with its
-rule count, evaluation counts by state, error rate, average duration, and a
-recent-activity feed on the right. A rulebook that fails to load (a bad file
+description, rule count, evaluation counts by state, error rate, average
+duration, and a recent-activity feed on the right. A rulebook that fails to load (a bad file
 path, an unregistered action) is flagged with a red marker, like
 `needsaction` above, instead of taking the whole page down.
 
@@ -125,9 +125,10 @@ how the numbers are counted.
 ### Rule Visualizer
 
 A chosen rulebook's real execution chain, in the order the rules actually
-run. Each row shows:
+run, under the rulebook's [description](defining-rulebooks.md#describing-a-rulebook).
+Each row shows:
 
-- the rule's **priority** (`P20`, `P10`, `P0`)
+- the rule's **priority** (`P20`, `P10`, `P0`) and its [description](the-dsl.md#withdescription), when it has one
 - a **stops chain** marker for rules that call `stop()`
 - the rule's **evaluation count, average and maximum duration, error rate, and outcomes by state** (`EXECUTED`, `SKIPPED`, `STOPPED`, `FAILED`)
 - the rule's **last error** (type, message and time), when it has failed
@@ -146,7 +147,7 @@ Rules with an active window (`activeFrom` / `activeUntil`) show it inline.
 ### Dry Run
 
 Pick a rulebook, enter facts, and press **Run dry run**. The result lists
-every rule in order and whether it **would execute** for those facts,
+every rule in order, with its description, and whether it **would execute** for those facts,
 without running any action. It is backed by `RuleBook.dryRun()`, so nothing
 is recorded in your metrics.
 

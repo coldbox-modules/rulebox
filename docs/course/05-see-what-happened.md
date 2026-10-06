@@ -57,8 +57,8 @@ You get one entry for each rule it reaches, in order:
 
 ```js
 [
-	{ name: "declineLowScores", wouldExecute: false, wouldStop: false },
-	{ name: "autoApprove",      wouldExecute: true,  wouldStop: false }
+	{ name: "declineLowScores", description: "", wouldExecute: false, wouldStop: false },
+	{ name: "autoApprove",      description: "", wouldExecute: true,  wouldStop: false }
 ]
 ```
 
@@ -67,7 +67,7 @@ For a score of `540` the list has only one entry, because
 
 ```js
 [
-	{ name: "declineLowScores", wouldExecute: true, wouldStop: true }
+	{ name: "declineLowScores", description: "", wouldExecute: true, wouldStop: true }
 ]
 ```
 

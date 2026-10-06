@@ -25,6 +25,7 @@ holding that array). Each struct can contain:
 | Key | Required | Meaning |
 |---|---|---|
 | `name` | No | The rule's name, used for [auditing](auditing.md). Defaults like any other rule if omitted |
+| `description` | No | What the rule does, for the [Rule Visualizer](visualizer.md). See [withDescription()](the-dsl.md#withdescription) |
 | `priority` | No | See [Rule Priority](the-dsl.md). Defaults to `0` |
 | `activeFrom` | No | See [active()](the-dsl.md#active). Left open-ended if omitted |
 | `activeUntil` | No | See [active()](the-dsl.md#active). Left open-ended if omitted |
@@ -61,6 +62,7 @@ so a rule file can [declare the facts](declaring-facts.md) its rules take:
 
 ```json
 {
+	"description": "Approves applicants with a credit score of 600 or more",
 	"facts": {
 		"creditScore": { "type": "numeric", "required": true, "description": "FICO score", "example": 680 },
 		"loanType": { "type": "string", "values": [ "fixed", "variable" ], "default": "fixed" }
@@ -75,6 +77,7 @@ so a rule file can [declare the facts](declaring-facts.md) its rules take:
 | Key | Meaning |
 |---|---|
 | `rules` | The array of rule definitions. Required |
+| `description` | What the rulebook decides. See [Describing a RuleBook](defining-rulebooks.md#describing-a-rulebook) |
 | `facts` | The facts, keyed by name, each with `type`, `required`, `default`, `description`, `example` and `values`: the same struct [`withFacts()`](declaring-facts.md#declaring-facts-from-data-withfacts) takes |
 | `enforceFacts` | `true` to check the facts on every run. See [Enforcing facts](declaring-facts.md#enforcing-facts) |
 | `strictFacts` | `true` to also reject undeclared facts |
@@ -93,8 +96,9 @@ rules:
       gte: [ creditScore, 600 ]
 ```
 
-Any other key, a `facts` that isn't a struct, or a flag that isn't a
-boolean throws `RuleBox.InvalidRuleDefinitionException`. The facts are
+Any other key, a `description` that isn't a string, a `facts` that isn't a
+struct, or a flag that isn't a boolean throws
+`RuleBox.InvalidRuleDefinitionException`. The facts are
 declared only after every rule builds, so a file that fails to load adds
 neither rules nor facts.
 
@@ -322,9 +326,10 @@ moduleSettings = {
 				"source" : { "type" : "db", "datasource" : "myApp", "sql" : "SELECT * FROM rules WHERE ruleset = 'fraud'" }
 			},
 
-			// The struct form can also declare the facts the rulebook takes, and enforce them
+			// The struct form can also describe the rulebook, declare the facts it takes, and enforce them
 			"loans" : {
 				"source"       : "config/rules/loans.json",
+				"description"  : "Decides home loan applications",
 				"facts"        : { "creditScore" : { "type" : "numeric", "required" : true } },
 				"enforceFacts" : true
 			}
@@ -333,8 +338,9 @@ moduleSettings = {
 }
 ```
 
-`facts`, `enforceFacts` and `strictFacts` work as in a
-[rule-file envelope](#declaring-facts-in-a-rule-file). Config `facts` are
+`description`, `facts`, `enforceFacts` and `strictFacts` work as in a
+[rule-file envelope](#declaring-facts-in-a-rule-file). A config
+`description` wins over the rule file's. Config `facts` are
 applied after the source's, key by key, so config can add a fact or change
 one part of a declaration (say, its `description`) and keep the rest. The
 flags only turn checking on: a rule file that enforces its facts keeps
