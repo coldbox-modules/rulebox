@@ -307,12 +307,48 @@ writeDump( metrics )
 	&quot;name&quot;             : &quot;creditScoreAdjustment&quot;,
 	&quot;totalEvaluations&quot; : 42,
 	&quot;countsByState&quot;    : { &quot;EXECUTED&quot; : 30, &quot;SKIPPED&quot; : 10, &quot;STOPPED&quot; : 1, &quot;FAILED&quot; : 1 },
-	&quot;totalDurationMs&quot;  : 1234
+	&quot;totalDurationMs&quot;  : 1234,
+	&quot;avgDurationMs&quot;    : 29.38,
+	&quot;completed&quot;        : 41,
+	&quot;failed&quot;           : 1,
+	&quot;completionRate&quot;   : 0.976,
+	&quot;errorRate&quot;        : 0.024,
+	&quot;lastError&quot;        : {
+		&quot;type&quot;        : &quot;CreditService.TimeoutException&quot;,
+		&quot;message&quot;     : &quot;Credit service did not answer in time&quot;,
+		&quot;at&quot;          : &quot;2026-10-05T16:54:53&quot;,
+		&quot;fingerprint&quot; : &quot;9F2C...&quot;
+	},
+	&quot;errors&quot;           : [
+		{
+			&quot;fingerprint&quot;   : &quot;9F2C...&quot;,
+			&quot;type&quot;          : &quot;CreditService.TimeoutException&quot;,
+			&quot;message&quot;       : &quot;Credit service did not answer in time&quot;,
+			&quot;causedBy&quot;      : [ { &quot;type&quot; : &quot;java.net.SocketTimeoutException&quot;, &quot;message&quot; : &quot;Read timed out&quot; } ],
+			&quot;stackTrace&quot;    : [ &quot;scoreApplicant() /app/models/CreditService.bx:42&quot;, &quot;...&quot; ],
+			&quot;rawStackTrace&quot; : &quot;ortus.boxlang.runtime.types.exceptions.CustomException: ...&quot;,
+			&quot;count&quot;         : 1,
+			&quot;firstAt&quot;       : &quot;2026-10-05T16:54:53&quot;,
+			&quot;lastAt&quot;        : &quot;2026-10-05T16:54:53&quot;
+		}
+	]
 	// ...plus minDurationMs, maxDurationMs, lastDurationMs, firstRunAt, lastRunAt
 }
 </code></pre>
 <ul>
 <li><code>countsByState</code> uses the same <code>RULE_STATES</code> values as the audit trail</li>
+<li><code>completed</code> counts evaluations that finished without throwing (<code>EXECUTED</code>,
+<code>SKIPPED</code>, <code>STOPPED</code>); <code>failed</code> counts the ones that threw (<code>FAILED</code>). The
+rates divide them by <code>totalEvaluations</code> and are <code>0</code> before the first run</li>
+<li><code>lastError</code> appears once the rule has failed: the exception's type and
+message (cut to 500 characters), when it happened, and its fingerprint. The
+exception is still re-thrown to your code</li>
+<li><code>errors</code> lists the rule's distinct errors, most recently seen first. The same
+error (same type, message, cause chain and frames in the rule's own code) is
+one entry whose <code>count</code> goes up; it is never added twice. Each keeps the
+cause chain (up to 5 deep), up to 10 BoxLang stack frames and the raw Java
+trace cut to 4000 characters, never the exception's <code>detail</code>. A rule keeps its
+10 most recently seen errors</li>
 <li>Duration covers the whole evaluation, so a rule that is slow to <em>check</em>
 shows up even when it never fires</li>
 <li>A rule that was never evaluated (or doesn't exist) returns the same
@@ -330,7 +366,7 @@ zero. For metrics across runs and instances, use the
 
 	
 	
-		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/auditing.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/auditing.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 5, 2026, 7&#x3a;48&#x3a;15 PM</span></div>
+		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/guides/auditing.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/guides/auditing.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 6, 2026, 7&#x3a;54&#x3a;34 AM</span></div>
 	
 </article>
 
