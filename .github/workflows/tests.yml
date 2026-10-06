@@ -54,6 +54,28 @@ jobs:
         with:
           modules: bx-cli
 
+      # On its first run CommandBox installs its own modules (commandbox-cfconfig, commandbox-dotenv, the
+      # testbox commands and the packages they need) from ForgeBox. A failed download there (a timeout, a
+      # 502, a connection reset) does not fail the run, but it leaves modules missing or half-installed, and
+      # a later box command then fails with 'Command "testbox run ..." cannot be resolved'. So do that first
+      # run here, and accept it only when nothing failed: no failed install, no module that failed to load,
+      # and the testbox command resolves. Otherwise start over from a clean CommandBox home, with a backoff.
+      - name: Warm Up CommandBox
+        run: |
+          for attempt in 1 2 3 4 5; do
+            out=$( { box version; box testbox run help; } 2>&1 || true )
+            if ! grep -qE "× \||ERROR \(|cannot be resolved|failed to load" <<< "$out"; then
+              echo "CommandBox is ready (attempt $attempt)"
+              exit 0
+            fi
+            echo "$out" | grep -E "× \||ERROR \(|cannot be resolved|failed to load|ForgeBox returned|Request Timeout|Bad Gateway|Connection" || true
+            echo "::warning::CommandBox did not finish installing its modules (attempt $attempt), retrying from a clean CommandBox home"
+            rm -rf "$HOME/.CommandBox"
+            sleep $(( attempt * 15 ))
+          done
+          echo "::error::CommandBox could not install its modules after 5 attempts"
+          exit 1
+
       - name: Install Dependencies
         run: |
           box install
