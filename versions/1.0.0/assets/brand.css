@@ -62,9 +62,16 @@ code, pre, kbd, samp {
     font-family: var(--rb-mono);
 }
 
+/* The RuleBox icon in the docs navbar: the white (mono dark) version, which reads on the navbar's gradient */
 .brand-logo {
-    width: 28px;
-    height: 28px;
+    width: auto;
+    height: 34px;
+    /* The icon's square box has room above and below the art; don't let it grow the navbar */
+    margin: -3px 0;
+    padding: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
 }
 
 /* A self-hosted video (the Visualizer tour) in a docs page */
