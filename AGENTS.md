@@ -115,7 +115,7 @@ This is BoxLang, not Java. Write it the BoxLang way:
 - **`null`:** use the `null` keyword, never `javaCast( "null", "" )`.
 - **Elvis and safe navigation:** use `x ?: default` instead of `s.keyExists( "k" ) ? s.k : default` or `isNull( x ) ? default : x`. Use `obj?.method()` instead of an `if( !isNull( obj ) )` guard around a single call. `?:` falls back only on null or a missing key, never on `""`, `false` or `0`, and its right side runs only when needed.
 - **Truthiness and types:** BoxLang does truthy comparisons and type coercion behind the scenes. Don't add Java-style conversions or casts it already does for you.
-- **Back-to-back `param` statements:** end each with `;` (`param name="rc.name" default="";`). Without it, BoxLang 1.18 parses two `param` lines in a row as one statement and silently sets neither. A single `param` followed by other code is fine.
+- **`param`:** use the shorthand `param rc.name = ""`. The attribute form `param name="rc.name" default="";` is component syntax, and like every component in script it needs its trailing `;`. Without the `;` the line reads as the shorthand: it declares a local variable called `name` (default `"rc.name"`) and assigns a local `default`, and `rc.name` is never set.
 - **No backslash escapes:** BoxLang strings are literal, so `"\\"` is two backslashes. Write `"\"` for one.
 - **`static`:** constants that never change, and the defaults a module loads once, live in a `static {}` block and are read as `static.NAME`. A helper with no state is a class of `static` functions, called as `ClassName::method()`, not an instance.
 

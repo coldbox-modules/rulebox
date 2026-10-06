@@ -24,15 +24,18 @@ class extends="tests.resources.BaseSpec"{
 				prepareMock( getRequestContext() ).$( "getOriginalHTTPMethod", arguments.method );
 			}
 
-			// url.* leaks between specs, so clear what sendAs() set; and a rejected method flags the
+			// url.* leaks between specs, so clear what sendAs() and the specs set; and a rejected method flags the
 			// request context as an invalid HTTP method, which would 405 every later spec that reuses it,
 			// so each spec starts from a fresh context.
 			beforeEach( function(){
 				setup();
 			} );
 
+			// Specs set url.name/rule/facts to drive the actions; clear them so the next spec starts without them
 			afterEach( function(){
-				structDelete( url, "_method" );
+				for( var key in [ "_method", "name", "rule", "facts" ] ){
+					structDelete( url, key );
+				}
 			} );
 
 			it( "renders the dashboard with every declared rulebook, even one that fails to load", function(){
@@ -202,6 +205,44 @@ class extends="tests.resources.BaseSpec"{
 
 				var body = jsonDeserialize( event.getRenderedContent() );
 				expect( body ).toHaveKey( "error" );
+			} );
+
+			it( "runDryRun() 404s when no rulebook name is given", function(){
+				sendAs( "POST" );
+				var event = execute( event="rulebox:visualizer.runDryRun", renderResults=true );
+
+				expect( event.getRenderData().statusCode ).toBe( 404 );
+				expect( jsonDeserialize( event.getRenderedContent() ) ).toHaveKey( "error" );
+			} );
+
+			it( "chain() 404s when no rulebook name is given", function(){
+				var event = execute( event="rulebox:visualizer.chain", renderResults=true );
+
+				expect( event.getRenderData().statusCode ).toBe( 404 );
+			} );
+
+			it( "apiMetrics() returns recent events when no rulebook name is given", function(){
+				getInstance( "RuleEventBus@rulebox" ).publish( {
+					rulebookName : "testconvention",
+					ruleName     : "recentRule",
+					state        : "EXECUTED",
+					durationMs   : 1,
+					timestamp    : "2026-01-01T00:00:00.000"
+				} );
+				try{
+					var events = jsonDeserialize( execute( event="rulebox:visualizer.apiMetrics", renderResults=true ).getRenderedContent() );
+
+					expect( isArray( events ) ).toBeTrue();
+					expect( events.map( ( event ) => event.ruleName ) ).toInclude( "recentRule" );
+				} finally {
+					getInstance( "InMemoryMetricsStore@rulebox" ).reset();
+				}
+			} );
+
+			it( "apiRuleErrors() 404s when no rulebook name is given", function(){
+				var event = execute( event="rulebox:visualizer.apiRuleErrors", renderResults=true );
+
+				expect( event.getRenderData().statusCode ).toBe( 404 );
 			} );
 
 			it( "runDryRun() treats missing facts as an empty fact set", function(){

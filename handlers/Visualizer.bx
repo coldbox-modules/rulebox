@@ -105,7 +105,7 @@ class{
 	 * Rule chain visualizer for one rulebook (rc.name), in real execution order.
 	 */
 	function chain( event, rc, prc ){
-		param name="rc.name" default=""
+		param rc.name = ""
 
 		if( !rc.name.len() || !registry.getRuleBookNames().contains( rc.name ) ){
 			event.renderData( data={ error: "Unknown rulebook '#rc.name#'." }, statusCode=404, type="json" )
@@ -138,7 +138,7 @@ class{
 	 * always with a generic message; the details are logged server-side, never returned.
 	 */
 	function runDryRun( event, rc, prc ){
-		param name="rc.name" default=""
+		param rc.name = ""
 
 		if( !rc.name.len() || !registry.getRuleBookNames().contains( rc.name ) ){
 			event.renderData( data={ error: "Unknown rulebook '#rc.name#'." }, statusCode=404, type="json" )
@@ -203,8 +203,8 @@ class{
 	 * Metrics/stats dashboard shell. rc.name preselects a rulebook and rc.rule opens that rule's errors.
 	 */
 	function metrics( event, rc, prc ){
-		param name="rc.name" default="";
-		param name="rc.rule" default="";
+		param rc.name = ""
+		param rc.rule = ""
 		prc.rulebookNames = registry.getRuleBookNames()
 		prc.selectedName  = prc.rulebookNames.contains( rc.name ) ? rc.name : ""
 		prc.selectedRule  = prc.selectedName.len() ? rc.rule : ""
@@ -215,7 +215,7 @@ class{
 	 * queryRuleMetrics() struct of every rule that has run; no rc.name -> recent events.
 	 */
 	function apiMetrics( event, rc, prc ){
-		param name="rc.name" default=""
+		param rc.name = ""
 		var store = getMetricsStore()
 
 		if( rc.name.len() ){
@@ -234,8 +234,8 @@ class{
 	 * Answers 404 for an unknown rulebook.
 	 */
 	function apiRuleErrors( event, rc, prc ){
-		param name="rc.name" default="";
-		param name="rc.rule" default="";
+		param rc.name = ""
+		param rc.rule = ""
 
 		if( !rc.name.len() || !registry.getRuleBookNames().contains( rc.name ) ){
 			event.renderData( data={ error: "Unknown rulebook '#rc.name#'." }, statusCode=404, type="json" )
