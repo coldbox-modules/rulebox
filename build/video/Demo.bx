@@ -1,11 +1,21 @@
 /**
- * Demo traffic for recording the Visualizer walkthrough.
+ * Demo traffic for recording the Visualizer walkthrough and taking the docs screenshots.
  * Copy into test-harness/handlers/ while recording, then delete it. Not shipped.
+ *
+ * Besides the harness JSON rulebooks it declares a "fraudcheck" rulebook on the first run, so the
+ * screens have rule health to show: a slow rule (velocityCheck) and one that sometimes fails
+ * (callFraudService), either with a timeout caused by a socket error or with a bad response.
  */
 class {
 
+	@inject( "coldbox:moduleSettings:rulebox" )
+	property name="settings";
+
+	@inject( "RuleBookRegistry@rulebox" )
+	property name="registry";
+
 	/**
-	 * Runs the harness JSON rulebooks once with random facts.
+	 * Runs the harness JSON rulebooks and the fraudcheck rulebook once with random facts.
 	 *
 	 * @event The request context
 	 * @rc    The request collection
@@ -14,12 +24,64 @@ class {
 	 * @return A short summary of the facts used
 	 */
 	any function run( event, rc, prc ){
+		declareFraudCheck()
+
 		var score  = randRange( 520, 790 )
 		var total  = randRange( 20, 180 )
 		var region = [ "US", "CA", "MX", "DE" ][ randRange( 1, 4 ) ]
 		ruleBook( "loanapproval" ).run( { creditScore : score } )
 		ruleBook( "shippingrates" ).run( { orderTotal : total, region : region } )
-		return "ok #score# #total# #region#"
+
+		// A failing rule re-throws to its caller, like it would in an app; the Visualizer has recorded it by then
+		var outcome = "ok"
+		try{
+			ruleBook( "fraudcheck" ).run( { orderCount : randRange( 1, 8 ), billingCountry : [ "US", "CA" ][ randRange( 1, 2 ) ] } )
+		} catch( any e ){
+			outcome = e.type
+		}
+		return "#outcome# #score# #total# #region#"
+	}
+
+	/**
+	 * Declare the fraudcheck rulebook (inline rules with closure actions and predicates) once
+	 */
+	private void function declareFraudCheck(){
+		if( variables.settings.rulebooks.keyExists( "fraudcheck" ) ){
+			return
+		}
+		variables.settings.rulebooks[ "fraudcheck" ] = {
+			source : [
+				{ "name" : "velocityCheck", "priority" : 30, "when" : { "predicate" : "tooManyOrders" }, "then" : [ { "action" : "flag" } ] },
+				{ "name" : "callFraudService", "priority" : 20, "then" : [ { "action" : "scoreWithFraudService" } ] },
+				{ "name" : "addressMismatch", "priority" : 10, "when" : { "neq" : [ "billingCountry", "US" ] }, "then" : [ { "action" : "flag" } ] },
+				{ "name" : "approveOrder", "priority" : 0, "then" : [ { "action" : "flag" } ] }
+			],
+			predicates : {
+				// Slow on purpose, so it tops the Slowest rules panel
+				tooManyOrders : ( facts, params ) => {
+					sleep( randRange( 25, 60 ) )
+					return facts.orderCount > 5
+				}
+			},
+			actions : {
+				flag                  : ( facts, result, params ) => {},
+				scoreWithFraudService : ( facts, result, params ) => {
+					sleep( randRange( 5, 15 ) )
+					var roll = randRange( 1, 10 )
+					if( roll <= 2 ){
+						try{
+							throw( type = "java.net.SocketTimeoutException", message = "Read timed out after 2000ms" )
+						} catch( any cause ){
+							throw( type = "FraudService.TimeoutException", message = "Fraud service did not answer within 2000ms (POST /v2/score)", object = cause )
+						}
+					}
+					if( roll == 3 ){
+						throw( type = "FraudService.InvalidResponseException", message = "Fraud score missing from response (HTTP 502)" )
+					}
+				}
+			}
+		}
+		variables.registry.reload()
 	}
 
 }

@@ -60,7 +60,9 @@ Restart your app, then open:
 :::
 ::: image src="../assets/visualizer/metrics.png" alt="The Metrics screen: evaluation count, average duration, completion and error rates, a rule health table and outcomes by state" caption="Metrics"
 :::
-::: image src="../assets/visualizer/live.png" alt="The Live Tracker: rule evaluations streaming in as they run" caption="Live Tracker"
+::: image src="../assets/visualizer/metrics-errors.png" alt="A failing rule's errors: each distinct error once, with how many times it happened, what caused it and where it was thrown" caption="Errors and stack traces"
+:::
+::: image src="../assets/visualizer/live.png" alt="The Live Tracker: rule evaluations streaming in as they run, with a failed one opened to show why it failed" caption="Live Tracker"
 :::
 :::
 
