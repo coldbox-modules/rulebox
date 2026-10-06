@@ -89,7 +89,7 @@
 		{ icon: "flask", title: "Dry runs", text: "Ask what would happen for a set of facts, without running a single action.", code: "dryRun( facts )", href: "guides/auditing/" },
 		{ icon: "ranking", title: "Priorities and stops", text: "Order rules explicitly and let one rule end the chain.", code: "withPriority( 20 ).stop()", href: "guides/the-dsl/" },
 		{ icon: "clock-countdown", title: "Time windows", text: "Turn a rule on for a season or a campaign, then let it expire.", code: "active( from, until )", href: "guides/the-dsl/" },
-		{ icon: "presentation-chart", title: "Rule Visualizer", text: "Dashboard, chain view, dry run, metrics and a live tracker.", code: "visualizer.enabled = true", href: "guides/visualizer/" },
+		{ icon: "presentation-chart", title: "Rule Visualizer", text: "Dashboard, chain view, dry run, rule health, errors with stack traces and a live tracker.", code: "visualizer.enabled = true", href: "guides/visualizer/" },
 		{ icon: "plugs-connected", title: "WireBox native", text: "Inject rulebooks and the Builder. A fresh RuleBook per decision keeps it thread safe.", code: 'inject="rulebook:loan"', href: "guides/thread-safety/" }
 	]
 
@@ -118,12 +118,12 @@
 
 	// Visualizer screenshots, shown with bx-sites' own image-gallery markup and lightbox
 	variables.shots = [
-		{ src: "visualizer/dashboard.png", title: "Dashboard", text: "Every declared rulebook, its outcomes and recent activity." },
-		{ src: "visualizer/chain-loanapproval.png", title: "Chain view", text: "Rules in run order, with priorities and stops." },
+		{ src: "visualizer/dashboard.png", title: "Dashboard", text: "Every rulebook, plus the rules that fail most and the slowest ones." },
+		{ src: "visualizer/chain-fraudcheck.png", title: "Chain view", text: "Rules in run order, with durations, error rates and the last error." },
 		{ src: "visualizer/dryrun.png", title: "Dry run", text: "Type facts and see which rules would fire." },
-		{ src: "visualizer/metrics.png", title: "Metrics", text: "Evaluations, durations and outcomes by state." },
-		{ src: "visualizer/live.png", title: "Live tracker", text: "Every evaluation, streamed as it happens." },
-		{ src: "visualizer/chain-seasonalpromo.png", title: "Time windows", text: "A seasonal rulebook with active() date ranges." }
+		{ src: "visualizer/metrics.png", title: "Metrics", text: "Completion and error rates and every rule's health." },
+		{ src: "visualizer/metrics-errors.png", title: "Errors and stack traces", text: "Each distinct error once, with a count, its cause and where it was thrown." },
+		{ src: "visualizer/live.png", title: "Live tracker", text: "Every evaluation as it happens. Open a failure to see why." }
 	]
 </bx:script>
 <bx:output>
@@ -376,7 +376,7 @@
 						<source src="#variables.assetUrl#video/rulebox-visualizer-intro.mp4" type="video/mp4">
 					</video>
 				</div>
-				<p class="rb-video-note">Dashboard, chain view, dry runs, metrics and the live tracker, recorded against the RuleBox test app.</p>
+				<p class="rb-video-note">Dashboard, chain view, dry runs, rule health, errors with stack traces and the live tracker, recorded against the RuleBox test app.</p>
 			</div>
 		</section>
 
@@ -485,7 +485,7 @@
 					<div class="rb-section-head">
 						<span class="rb-eyebrow"><span class="rb-eyebrow-ico" aria-hidden="true">#phIcon( "monitor" )#</span>Rule Visualizer</span>
 						<h2>See your rules. <span class="rb-grad">Watch them fire.</span></h2>
-						<p>A built-in admin UI: browse every rulebook, view its chain in run order, dry-run any facts, read metrics, and stream evaluations live.</p>
+						<p>A built-in admin UI: browse every rulebook, view its chain in run order, dry-run any facts, find the rules that fail or run slow, read each error with its stack trace, and stream evaluations live.</p>
 					</div>
 					<a href="#variables.basePath#guides/visualizer/">Turn it on in one setting</a>
 				</div>

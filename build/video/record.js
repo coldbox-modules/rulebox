@@ -2,6 +2,7 @@
 // See build/video/README.md for the full steps.
 const { chromium } = require( "playwright" );
 const path = require( "path" );
+const { execSync } = require( "child_process" );
 
 const BASE = process.env.BASE_URL || "http://localhost:8190";
 const VIZ = BASE + "/rulebox-visualizer/visualizer";
@@ -106,42 +107,63 @@ async function traffic( n ){
 		recordVideo: { dir: OUT, size: { width: W, height: H } }
 	} );
 	await context.addInitScript( OVERLAY );
-	// Warm the context's HTTP cache (CDN CSS/JS) in a throwaway tab so the recorded page loads fast
+	// Serve CDN and web-font files from memory: each is fetched once with curl, so no recorded page waits on
+	// the network or shows up unstyled while its stylesheet is still loading
+	const cdnCache = {};
+	await context.route( /^https:\/\/(cdn\.jsdelivr\.net|unpkg\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)\//, async ( route ) => {
+		const url = route.request().url();
+		try{
+			cdnCache[ url ] = cdnCache[ url ] || execSync( `curl -sSfL "${ url }"`, { maxBuffer: 1 << 26 } );
+		} catch( e ){
+			return route.continue();
+		}
+		const type = /\.css(\?|$)|fonts\.googleapis/.test( url ) ? "text/css" : /\.js(\?|$)/.test( url ) ? "application/javascript" : /\.woff2/.test( url ) ? "font/woff2" : /\.woff/.test( url ) ? "font/woff" : /\.ttf/.test( url ) ? "font/ttf" : "application/octet-stream";
+		await route.fulfill( { status: 200, body: cdnCache[ url ], contentType: type, headers: { "access-control-allow-origin": "*" } } );
+	} );
+	// Load every screen once in a throwaway tab, so the cache above is full before recording starts
 	const warm = await context.newPage();
-	for( const a of [ "index", "chain?name=loanapproval", "dryrun", "metrics" ] ){
+	for( const a of [ "index", "chain?name=fraudcheck", "dryrun", "metrics", "live" ] ){
 		await warm.goto( VIZ + "/" + a, { waitUntil: "networkidle", timeout: 90000 } ).catch( () => {} );
 	}
 	await warm.setContent( card( "warm", "warm" ), { waitUntil: "networkidle", timeout: 90000 } ).catch( () => {} );
 	await warm.close();
 	const page = await context.newPage();
+	// Scene start times (seconds into the raw recording), saved to out/marks.json for edit.sh
+	const t0 = Date.now();
+	const marks = {};
+	const mark = ( name ) => { marks[ name ] = +( ( Date.now() - t0 ) / 1000 ).toFixed( 2 ); };
 
 	// 1. Title
-	await page.setContent( card( 'RuleBox <span class="grad">Visualizer</span>', "See your rules. Watch them fire." ), { waitUntil: "load", timeout: 20000 } );
+	await page.setContent( card( 'RuleBox <span class="grad">Visualizer</span>', "See your rules. Watch them fire. Find the ones that fail." ), { waitUntil: "load", timeout: 20000 } );
 	await page.screenshot( { path: path.join( OUT, "poster.png" ) } );
+	mark( "title" );
 	await sleep( 3500 );
+	mark( "titleEnd" );
 
-	// 2. Dashboard
+	// 2. Dashboard: totals, problem rules, slowest rules, every rulebook
 	await page.goto( VIZ + "/index", { waitUntil: "load", timeout: 20000 } );
 	await page.mouse.move( 640, 400 );
-	await caption( page, "Dashboard", "Every declared rulebook, its outcomes and recent activity" );
+	mark( "tour" );
+	await caption( page, "Dashboard", "Every rulebook, plus the rules that fail most and the slowest ones" );
 	await sleep( 1200 );
-	const rows = page.locator( "table tbody tr" );
-	const rowCount = Math.min( await rows.count(), 4 );
-	for( let i = 0; i < rowCount; i++ ){
-		await glide( page, rows.nth( i ) );
-		await sleep( 500 );
+	await glide( page, page.locator( "#rb-problem-rules tbody tr" ).first() );
+	await sleep( 1600 );
+	const slow = page.locator( "#rb-slowest-rules tbody tr" );
+	for( let i = 0; i < Math.min( await slow.count(), 3 ); i++ ){
+		await glide( page, slow.nth( i ) );
+		await sleep( 400 );
 	}
-	await sleep( 1200 );
+	await sleep( 800 );
 
-	// 3. Chain view
-	const chainLink = page.locator( 'a[href*="chain?name=loanapproval"]' ).first();
+	// 3. Chain view of the failing rulebook
+	const chainLink = page.locator( '#rb-problem-rules a[href*="chain?name=fraudcheck"]' ).first();
 	await glide( page, chainLink );
 	await chainLink.click();
 	await page.waitForLoadState( "load" );
-	await caption( page, "Chain view", "Rules in the order they really run, with priorities and stops" );
-	await sleep( 1500 );
-	await page.mouse.wheel( 0, 260 );
-	await sleep( 2500 );
+	await caption( page, "Chain view", "Rules in run order, with durations, error rates and the last error" );
+	await sleep( 1200 );
+	await glide( page, page.locator( ".card", { hasText: "callFraudService" } ).first() );
+	await sleep( 2600 );
 
 	// 4. Dry run
 	const dryLink = page.getByRole( "link", { name: /dry run/i } ).first();
@@ -162,51 +184,76 @@ async function traffic( n ){
 	const runBtn = page.locator( "button", { hasText: /run/i } ).first();
 	await glide( page, runBtn );
 	await runBtn.click();
-	await sleep( 3200 );
-	await caption( page, "Dry Run", "A low score stops the chain at the first rule" );
-	await glide( page, facts );
-	await facts.click();
-	await facts.fill( "" );
-	await facts.pressSequentially( '{ "creditScore": 540 }', { delay: 70 } );
-	await glide( page, runBtn );
-	await runBtn.click();
-	await sleep( 3200 );
+	await sleep( 3000 );
 
-	// 5. Metrics
+	// 5. Metrics: rule health, sorting, then one rule's errors and stack traces
 	const metricsLink = page.getByRole( "link", { name: /metrics/i } ).first();
 	await glide( page, metricsLink );
 	await metricsLink.click();
 	await page.waitForLoadState( "load" );
-	await caption( page, "Metrics", "Evaluations, average duration and outcomes, across every run" );
-	await sleep( 1000 );
 	const mSelect = page.locator( 'select[x-model="rulebookName"]' ).first();
-	if( await mSelect.count() ){
-		await glide( page, mSelect );
-		await mSelect.selectOption( "loanapproval" ).catch( () => {} );
-	}
-	await sleep( 3500 );
+	await glide( page, mSelect );
+	await mSelect.selectOption( "fraudcheck" ).catch( () => {} );
+	await caption( page, "Metrics", "Completion and error rates, durations, and every rule's health" );
+	await sleep( 2200 );
+	const avgHeader = page.locator( "#rb-rule-health th", { hasText: "Avg" } ).first();
+	await glide( page, avgHeader );
+	await avgHeader.click();
+	await caption( page, "Rule health", "Sort by any column: here, the slowest rules first" );
+	await sleep( 1800 );
+	const errHeader = page.locator( "#rb-rule-health th", { hasText: "Error rate" } ).first();
+	await glide( page, errHeader );
+	await errHeader.click();
+	await sleep( 900 );
+	const toggle = page.locator( ".rb-errors-toggle" ).first();
+	await glide( page, toggle );
+	await toggle.click();
+	await sleep( 700 );
+	await caption( page, "Errors and stack traces", "Each distinct error once, with a count, its cause and where it was thrown" );
+	await page.mouse.wheel( 0, 330 );
+	await sleep( 3200 );
+	const raw = page.locator( ".rb-error-card summary" ).first();
+	await glide( page, raw );
+	await raw.click();
+	await sleep( 2200 );
 
-	// 6. Live tracker, with traffic flowing
+	// 6. Live tracker, with traffic flowing; open a failed evaluation
 	const liveLink = page.getByRole( "link", { name: /live/i } ).first();
 	await glide( page, liveLink );
 	await liveLink.click();
 	await page.waitForLoadState( "domcontentloaded" );
 	await caption( page, "Live Tracker", "Every rule evaluation, streamed as it happens" );
-	await sleep( 1200 );
-	const stopAt = Date.now() + 8000;
+	await sleep( 1000 );
+	const stopAt = Date.now() + 6000;
 	while( Date.now() < stopAt ){
 		await traffic( 1 );
-		await sleep( 350 );
+		await sleep( 300 );
 	}
-	await sleep( 1200 );
+	// Keep the traffic going until a failure is near the top, then open it
+	for( let i = 0; i < 30; i++ ){
+		const failedRow = page.locator( "tbody > tr.rb-row-failed" ).first();
+		if( await failedRow.count() && ( await failedRow.boundingBox() )?.y < 420 ) break;
+		await traffic( 1 );
+		await sleep( 300 );
+	}
+	const failed = page.locator( "tbody > tr.rb-row-failed" ).first();
+	await glide( page, failed );
+	await failed.click();
+	await caption( page, "Live Tracker", "Click a failed evaluation to see why it failed" );
+	await sleep( 3200 );
+	mark( "tourEnd" );
 
-	// 7. Outro
+	// 7. Outro (marks go after setContent: a card is only on screen once it has loaded)
 	await page.setContent( card( 'Turn it on in <span class="grad">one setting</span>', "visualizer = { enabled = true }", '<div class="chip"><span style="color:#2bf59a">$</span> box install rulebox</div>' ), { waitUntil: "load", timeout: 20000 } );
+	mark( "outro" );
 	await sleep( 3500 );
 
 	// 8. End screen
 	await page.setContent( endScreen(), { waitUntil: "load", timeout: 20000 } );
+	mark( "end" );
 	await sleep( 6000 );
+	mark( "endEnd" );
+	fs.writeFileSync( path.join( OUT, "marks.json" ), JSON.stringify( marks, null, 2 ) );
 
 	await context.close();
 	await browser.close();

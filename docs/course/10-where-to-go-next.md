@@ -1,7 +1,7 @@
 ---
 title: Where to Go Next
 summary: A recap of what you built, a few habits worth keeping, and where to read more.
-icon: phosphor-duotone:number-circle-ten
+icon: phosphor-duotone:flag-checkered
 tags: [course]
 ---
 

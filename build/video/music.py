@@ -3,11 +3,12 @@
 Original background music for the Visualizer intro video, synthesized from scratch
 (no samples, no third-party audio), so the docs carry no music licensing questions.
 
-123 BPM in C major over Am F C G. The sections line up with the video cut in edit.sh:
+123 BPM in C major over Am F C G. The sections line up with the video cut in edit.sh, which
+passes the length and the outro's start time:
 a filtered intro under the title card, the groove dropping in as the tour starts, a lead
 motif from bar 11, then a breakdown and an F G C cadence under the outro and end screen.
 
-Usage: python3 build/video/music.py <out.wav> [durationSeconds]   (needs numpy)
+Usage: python3 build/video/music.py <out.wav> [durationSeconds] [outroStartSeconds]   (needs numpy)
 """
 import sys
 import wave
@@ -19,7 +20,7 @@ BPM = 123
 BEAT = 60 / BPM
 BAR = 4 * BEAT
 DROP = 2 * BAR          # 4s: the tour starts
-BREAK = 26 * BAR        # 52s: outro card, drums stop
+BREAK = 26 * BAR        # outro card, drums stop: moved to the outro's bar by the third argument
 CADENCE = [ "F", "G", "C" ]
 
 CHORDS = {
@@ -89,7 +90,7 @@ def chord_at( t ):
 	"""Chord name sounding at time t."""
 	bar = int( t // BAR )
 	if t >= BREAK:
-		return CADENCE[ min( bar - 26, len( CADENCE ) - 1 ) ]
+		return CADENCE[ min( bar - int( round( BREAK / BAR ) ), len( CADENCE ) - 1 ) ]
 	return LOOP[ bar % 4 ]
 
 
@@ -241,5 +242,8 @@ def write_wav( path, stereo ):
 if __name__ == "__main__":
 	out = sys.argv[ 1 ] if len( sys.argv ) > 1 else "music.wav"
 	seconds = float( sys.argv[ 2 ] ) if len( sys.argv ) > 2 else 60.8
+	# Optional: when the outro card starts, so the breakdown and cadence land on it (nearest bar)
+	if len( sys.argv ) > 3 and float( sys.argv[ 3 ] ) > 0:
+		BREAK = round( float( sys.argv[ 3 ] ) / BAR ) * BAR
 	write_wav( out, build( seconds ) )
 	print( "Wrote", out, seconds, "s" )
