@@ -76,12 +76,18 @@ jobs:
           echo "::error::CommandBox could not install its modules after 5 attempts"
           exit 1
 
+      # ForgeBox can time out (408) or fail (502) on any one download, so retry the installs a few times
       - name: Install Dependencies
         run: |
-          box install
-          cd test-harness
-          box package set dependencies.coldbox=${{ matrix.coldboxVersion }}
-          box install
+          for attempt in 1 2 3; do
+            if box install && ( cd test-harness && box package set dependencies.coldbox=${{ matrix.coldboxVersion }} && box install ); then
+              exit 0
+            fi
+            echo "::warning::Installing dependencies failed (attempt $attempt), retrying"
+            sleep $(( attempt * 20 ))
+          done
+          echo "::error::Installing dependencies failed after 3 attempts"
+          exit 1
 
       - name: Start ${{ matrix.cfengine }} Server
         run: |
