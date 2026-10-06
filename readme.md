@@ -28,6 +28,7 @@ methodology.
 - Expressive, dynamic Domain Specific Language (DSL) modeled after Given-When-Then.
 - Visualizer dashboard for dry-run, metrics, and live tracking.
 - Supports external rules from JSON, YAML, or a database.
+- Declared facts: a RuleBook can list the facts it takes, with types, defaults and descriptions, and optionally enforce them.
 - Thread-safe and robust error handling.
 
 ## 📖 Documentation
@@ -41,6 +42,7 @@ The site covers everything: getting started, defining RuleBooks, the
 worked example - versioned, so the 1.0.0 docs stay right where they were.
 
 - [Tutorial Course](docs/course/index.md): a step-by-step course from your first rule to the Visualizer.
+- [Declaring Facts](docs/guides/declaring-facts.md): document the facts a RuleBook takes, and enforce them if you want.
 - [External Rules](docs/guides/external-rules.md): load rules from JSON, YAML, or a database.
 - [Visualizer](docs/guides/visualizer.md): a dashboard, dry-run playground, metrics, and a live tracker.
 

@@ -13,14 +13,14 @@
 class{
 
 	/**
-	 * Path to the YAML file containing an array of rule definitions
+	 * Path to the YAML file containing an array of rule definitions, or an envelope { rules, facts, enforceFacts, strictFacts }
 	 */
 	property name="filePath" type="string";
 
 	/**
 	 * Constructor
 	 *
-	 * @filePath Absolute or resolvable path to a YAML file containing an array of rule definitions
+	 * @filePath Absolute or resolvable path to a YAML file containing an array of rule definitions, or an envelope { rules, facts, enforceFacts, strictFacts }
 	 */
 	YAMLRuleSource function init( required string filePath ){
 		variables.filePath = arguments.filePath
@@ -32,9 +32,9 @@ class{
 	 * @throws RuleBox.RuleSourceParseException If the file is not valid YAML. The message names the file
 	 *         and the parse position only - never the file's content.
 	 *
-	 * @return An array of rule-definition structs
+	 * @return An array of rule-definition structs, or the envelope struct as written in the file
 	 */
-	array function load(){
+	any function load(){
 		if( !structKeyExists( getFunctionList(), "yamlDeserializeFile" ) ){
 			throw(
 				type    : "RuleBox.YamlModuleMissingException",

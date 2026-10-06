@@ -1,0 +1,264 @@
+/**
+ * One fact a RuleBook takes: its name, type, whether it is required, its default, a description and
+ * an example, and optionally the values it may hold. A RuleBook builds these with fact( name ) in
+ * defineFacts(), or from data with withFacts( struct ), and they describe the rulebook for
+ * documentation and the Rule Visualizer. They are only checked against the facts of a run when the
+ * RuleBook enforces its facts (enforceFacts() or strictFacts()).
+ *
+ * The builder methods chain: fact( "creditScore" ).type( "numeric" ).required().example( 680 )
+ */
+class{
+
+	/**
+	 * The definition, as a plain struct: { name, type, required, description, and default, example and
+	 * values when they are set }. getDefinition() returns it as is, for a dashboard or JSON.
+	 */
+	property name="definition" type="struct";
+
+	/**
+	 * Whether defaultValue() was called, since a default of null or "" is still a default
+	 */
+	property name="hasDefault" type="boolean";
+
+	static{
+		// The types a fact can declare, and how a value is checked against each one
+		TYPES = [ "any", "string", "numeric", "integer", "boolean", "date", "struct", "array", "object" ]
+	}
+
+	/**
+	 * Constructor
+	 *
+	 * @name The fact's name, as it appears in the facts struct
+	 */
+	FactDefinition function init( required string name ){
+		if( !len( trim( arguments.name ) ) ){
+			throw(
+				type    = "RuleBox.InvalidFactDefinitionException",
+				message = "A fact needs a name."
+			)
+		}
+		variables.definition = [
+			"name"        : trim( arguments.name ),
+			"type"        : "any",
+			"required"    : false,
+			"description" : ""
+		]
+		variables.hasDefault = false
+		return this
+	}
+
+	/**
+	 * The fact's name
+	 *
+	 * @return The name given to the constructor
+	 */
+	string function getName(){
+		return variables.definition.name
+	}
+
+	/**
+	 * Whether the fact must be present when the RuleBook enforces its facts
+	 *
+	 * @return true for a required fact
+	 */
+	boolean function isRequired(){
+		return variables.definition.required
+	}
+
+	/**
+	 * The value a missing optional fact gets when the RuleBook enforces its facts
+	 *
+	 * @return The default value. Check getHasDefault() first: a fact without a default returns null.
+	 */
+	any function getDefaultValue(){
+		return variables.definition.default ?: null
+	}
+
+	/**
+	 * Set the type of value the fact holds
+	 *
+	 * @type One of any (the default), string, numeric, integer, boolean, date, struct, array or object
+	 *
+	 * @throws RuleBox.InvalidFactDefinitionException For an unknown type
+	 *
+	 * @return This definition, to allow for chaining of calls
+	 */
+	FactDefinition function type( required string type ){
+		var typeName = lCase( trim( arguments.type ) )
+		if( !static.TYPES.contains( typeName ) ){
+			throw(
+				type    = "RuleBox.InvalidFactDefinitionException",
+				message = "The fact [#variables.definition.name#] has an unknown type [#arguments.type#].",
+				detail  = "A fact's type is one of: #static.TYPES.toList( ', ' )#."
+			)
+		}
+		variables.definition.type = typeName
+		return this
+	}
+
+	/**
+	 * Mark the fact as required: a RuleBook that enforces its facts rejects a run without it.
+	 * Facts are optional unless marked.
+	 *
+	 * @value Pass false to mark the fact optional again
+	 *
+	 * @return This definition, to allow for chaining of calls
+	 */
+	FactDefinition function required( boolean value = true ){
+		variables.definition.required = arguments.value
+		return this
+	}
+
+	/**
+	 * Set the value a missing fact gets when the RuleBook enforces its facts. It is named defaultValue()
+	 * because default is a reserved word.
+	 *
+	 * @value The default value
+	 *
+	 * @return This definition, to allow for chaining of calls
+	 */
+	FactDefinition function defaultValue( any value ){
+		variables.definition[ "default" ] = arguments.value ?: null
+		variables.hasDefault = true
+		return this
+	}
+
+	/**
+	 * Describe the fact, for documentation and the Rule Visualizer
+	 *
+	 * @text What the fact is
+	 *
+	 * @return This definition, to allow for chaining of calls
+	 */
+	FactDefinition function description( required string text ){
+		variables.definition.description = arguments.text
+		return this
+	}
+
+	/**
+	 * Give an example value, for documentation and to prefill the Rule Visualizer's dry run form
+	 *
+	 * @value An example value
+	 *
+	 * @return This definition, to allow for chaining of calls
+	 */
+	FactDefinition function example( required any value ){
+		variables.definition[ "example" ] = arguments.value
+		return this
+	}
+
+	/**
+	 * Restrict the fact to a list of values. When the RuleBook enforces its facts, any other value is
+	 * rejected (simple values compare without regard to case).
+	 *
+	 * @values The allowed values
+	 *
+	 * @return This definition, to allow for chaining of calls
+	 */
+	FactDefinition function values( required array values ){
+		variables.definition[ "values" ] = duplicate( arguments.values )
+		return this
+	}
+
+	/**
+	 * Check one run's facts against this definition: a missing required fact, a value of the wrong type,
+	 * or a value outside values(). A missing optional fact is not a problem, and neither is a null value
+	 * for one; both count as absent. Values are never echoed in the messages, since facts can be sensitive.
+	 *
+	 * @facts The facts of the run
+	 *
+	 * @return The problems found, each as { fact, problem, message }, where problem is "missing", "type"
+	 *         or "value". Empty when the facts satisfy the definition.
+	 */
+	array function check( required struct facts ){
+		var name = variables.definition.name
+		if( isNull( arguments.facts[ name ] ) ){
+			return variables.definition.required
+				? [ problemOf( "missing", "Missing required fact [#name#]." ) ]
+				: []
+		}
+
+		var value = arguments.facts[ name ]
+		if( !static.isOfType( value, variables.definition.type ) ){
+			return [ problemOf( "type", "Fact [#name#] must be #static.describeType( variables.definition.type )#." ) ]
+		}
+
+		var allowed = variables.definition.values ?: []
+		if( allowed.len() && !( isSimpleValue( value ) && allowed.findNoCase( value ) ) ){
+			return [ problemOf( "value", "Fact [#name#] must be one of: #allowed.filter( ( v ) => isSimpleValue( v ) ).toList( ', ' )#." ) ]
+		}
+
+		return []
+	}
+
+	/**
+	 * Build a problem struct for this fact
+	 *
+	 * @problem missing, type or value
+	 * @message The human-readable message
+	 *
+	 * @return { fact, problem, message }
+	 */
+	private struct function problemOf( required string problem, required string message ){
+		return [
+			"fact"    : variables.definition.name,
+			"problem" : arguments.problem,
+			"message" : arguments.message
+		]
+	}
+
+	/**
+	 * Whether a value is of a fact type
+	 *
+	 * @value The value
+	 * @type One of TYPES
+	 *
+	 * @return true when the value fits the type
+	 */
+	static boolean function isOfType( required any value, required string type ){
+		switch( arguments.type ){
+			case "string":
+				return isSimpleValue( arguments.value )
+			case "numeric":
+				return isNumeric( arguments.value )
+			case "integer":
+				return isValid( "integer", arguments.value )
+			case "boolean":
+				return isBoolean( arguments.value )
+			case "date":
+				return isDate( arguments.value )
+			case "struct":
+				return isStruct( arguments.value ) && !isObject( arguments.value )
+			case "array":
+				return isArray( arguments.value )
+			case "object":
+				return isObject( arguments.value )
+			default:
+				return true
+		}
+	}
+
+	/**
+	 * A type as it reads in a message: "numeric" becomes "a numeric value", "array" becomes "an array"
+	 *
+	 * @type One of TYPES
+	 *
+	 * @return The phrase
+	 */
+	private static string function describeType( required string type ){
+		switch( arguments.type ){
+			case "string":
+			case "numeric":
+			case "integer":
+			case "boolean":
+			case "date":
+				return "a #arguments.type# value"
+			case "array":
+			case "object":
+				return "an #arguments.type#"
+			default:
+				return "a #arguments.type#"
+		}
+	}
+
+}

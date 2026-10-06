@@ -21,8 +21,8 @@ class{
 	}
 
 	/**
-	 * Validate a whole rule definition: its `when`/`except` condition trees and its
-	 * `activeFrom`/`activeUntil` values.
+	 * Validate a whole rule definition: its `when`/`except` condition trees, its
+	 * `activeFrom`/`activeUntil` values and its `description`.
 	 *
 	 * @def The rule-definition struct, as returned by a rule source's load()
 	 * @index The 1-based position of the definition in its source, used to identify unnamed rules
@@ -39,6 +39,10 @@ class{
 			if( arguments.def.keyExists( key ) && !isNull( arguments.def[ key ] ) ){
 				static.validateNode( arguments.def[ key ], key, ruleLabel, true )
 			}
+		}
+
+		if( arguments.def.keyExists( "description" ) && !isSimpleValue( arguments.def.description ?: "" ) ){
+			static.fail( ruleLabel, "description", "must be a string (received: #static.describe( arguments.def.description )#)" )
 		}
 
 		for( var key in [ "activeFrom", "activeUntil" ] ){

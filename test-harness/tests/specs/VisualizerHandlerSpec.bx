@@ -1,10 +1,10 @@
 /**
  * Integration tests for handlers/Visualizer.bx: the enabled/disabled gate and its JSON-returning
  * actions. The test-harness enables the visualizer suite-wide (test-harness/config/Coldbox.bx)
- * with the in-memory metrics store, and declares two rulebooks via convention
- * (test-harness/config/rulebox/*.json): "testconvention" (loads cleanly) and "needsaction"
+ * with the in-memory metrics store, and declares rulebooks via convention
+ * (test-harness/config/rulebox/*.json), among them "testconvention" (loads cleanly), "needsaction"
  * (references an unregistered action, so it fails to load - used to prove the dashboard
- * survives one bad rulebook).
+ * survives one bad rulebook) and "loanapproval" (declares and enforces its facts).
  */
 class extends="tests.resources.BaseSpec"{
 
@@ -341,6 +341,125 @@ class extends="tests.resources.BaseSpec"{
 					structDelete( settings.rulebooks, "throwsOnDryRun" );
 					registry.reload();
 				}
+			} );
+
+			it( "apiFacts() returns the facts a rulebook declares, in order, with its enforcement", function(){
+				url.name = "loanapproval";
+				var event = execute( event="rulebox:visualizer.apiFacts", renderResults=true );
+				var body  = jsonDeserialize( event.getRenderedContent() );
+
+				expect( body.name ).toBe( "loanapproval" );
+				expect( body.enforced ).toBeTrue();
+				expect( body.strict ).toBeFalse();
+				expect( body.facts.map( ( f ) => f.name ) ).toBe( [ "creditScore", "loanAmount", "loanType", "firstTimeBuyer" ] );
+				expect( body.facts[ 1 ].required ).toBeTrue();
+				expect( body.facts[ 1 ].example ).toBe( 680 );
+				expect( body.facts[ 3 ].values ).toBe( [ "fixed", "variable" ] );
+				expect( body.facts[ 3 ][ "default" ] ).toBe( "fixed" );
+			} );
+
+			it( "apiFacts() returns no facts for a rulebook that declares none", function(){
+				url.name = "testconvention";
+				var body = jsonDeserialize( execute( event="rulebox:visualizer.apiFacts", renderResults=true ).getRenderedContent() );
+
+				expect( body.facts ).toBeEmpty();
+				expect( body.enforced ).toBeFalse();
+			} );
+
+			it( "apiFacts() 404s for an unknown rulebook and 422s for one that cannot load", function(){
+				url.name = "doesNotExist";
+				var event = execute( event="rulebox:visualizer.apiFacts", renderResults=true );
+				expect( event.getRenderData().statusCode ).toBe( 404 );
+
+				setup();
+				url.name = "needsaction";
+				event = execute( event="rulebox:visualizer.apiFacts", renderResults=true );
+				expect( event.getRenderData().statusCode ).toBe( 422 );
+				expect( jsonDeserialize( event.getRenderedContent() ) ).toHaveKey( "error" );
+			} );
+
+			it( "runDryRun() 400s with every problem, naming facts but not values, when a rulebook enforces its facts", function(){
+				sendAs( "POST" );
+				url.name  = "loanapproval";
+				url.facts = jsonSerialize( { "loanAmount" : "SECRET-AMOUNT", "loanType" : "balloon" } );
+				var event = execute( event="rulebox:visualizer.runDryRun", renderResults=true );
+
+				expect( event.getRenderData().statusCode ).toBe( 400 );
+				var content = event.getRenderedContent();
+				var body    = jsonDeserialize( content );
+				expect( body ).toHaveKey( "error" );
+				expect( body.problems.map( ( p ) => p.fact ) ).toBe( [ "creditScore", "loanAmount", "loanType" ] );
+				expect( body.problems.map( ( p ) => p.problem ) ).toBe( [ "missing", "type", "value" ] );
+				expect( content ).notToInclude( "SECRET-AMOUNT" );
+				expect( content ).notToInclude( "balloon" );
+			} );
+
+			it( "runDryRun() runs a rulebook that enforces its facts once they are valid", function(){
+				sendAs( "POST" );
+				url.name  = "loanapproval";
+				url.facts = jsonSerialize( { "creditScore" : 700 } );
+				var report = jsonDeserialize( execute( event="rulebox:visualizer.runDryRun", renderResults=true ).getRenderedContent() );
+
+				expect( report.filter( ( row ) => row.wouldExecute ).map( ( row ) => row.name ) ).toBe( [ "autoApprove" ] );
+			} );
+
+			it( "shows the declared facts on the chain view", function(){
+				url.name = "loanapproval";
+				var content = execute( event="rulebox:visualizer.chain", renderResults=true ).getRenderedContent();
+
+				expect( content ).toInclude( "Facts" );
+				expect( content ).toInclude( "creditScore" );
+				expect( content ).toInclude( "one of: fixed, variable" );
+				expect( content ).toInclude( "credit score, from 300 to 850" );
+				expect( content ).toInclude( "enforced" );
+			} );
+
+			it( "apiFacts() returns the rulebook's description", function(){
+				url.name = "loanapproval";
+				var body = jsonDeserialize( execute( event="rulebox:visualizer.apiFacts", renderResults=true ).getRenderedContent() );
+
+				expect( body.description ).toInclude( "credit score" );
+			} );
+
+			it( "runDryRun() reports each rule's description", function(){
+				sendAs( "POST" );
+				url.name  = "loanapproval";
+				url.facts = jsonSerialize( { "creditScore" : 700 } );
+				var report = jsonDeserialize( execute( event="rulebox:visualizer.runDryRun", renderResults=true ).getRenderedContent() );
+
+				expect( report.filter( ( row ) => row.name == "autoApprove" )[ 1 ].description ).toBe( "Approves a score of 680 or more" );
+			} );
+
+			it( "shows rulebook and rule descriptions, HTML-encoded, on the dashboard and chain view", function(){
+				var settings = getWireBox().getInstance( dsl="coldbox:moduleSettings:rulebox" );
+				var registry = getWireBox().getInstance( "RuleBookRegistry@rulebox" );
+				settings.rulebooks[ "describedBook" ] = {
+					"source"      : [ { "name" : "describedRule", "description" : "Rule <img src=x onerror=alert(2)>" } ],
+					"description" : "Book <script>alert(1)</script>"
+				};
+				registry.reload();
+				try{
+					var dashboard = execute( event="rulebox:visualizer.index", renderResults=true ).getRenderedContent();
+					expect( dashboard ).toInclude( "Book &lt;script&gt;alert(1)&lt;/script&gt;" );
+					expect( dashboard ).notToInclude( "<script>alert(1)" );
+
+					setup();
+					url.name = "describedBook";
+					var chain = execute( event="rulebox:visualizer.chain", renderResults=true ).getRenderedContent();
+					expect( chain ).toInclude( "Book &lt;script&gt;alert(1)&lt;/script&gt;" );
+					expect( chain ).toInclude( "Rule &lt;img src=x onerror=alert(2)&gt;" );
+					expect( chain ).notToInclude( "<img src=x" );
+				} finally {
+					structDelete( settings.rulebooks, "describedBook" );
+					registry.reload();
+				}
+			} );
+
+			it( "leaves the Facts panel off the chain view of a rulebook that declares none", function(){
+				url.name = "testconvention";
+				var content = execute( event="rulebox:visualizer.chain", renderResults=true ).getRenderedContent();
+
+				expect( content ).notToInclude( "rb-facts-table" );
 			} );
 
 			it( "runDryRun() 405s a GET without running the dry run", function(){

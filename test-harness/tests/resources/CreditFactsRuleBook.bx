@@ -1,0 +1,27 @@
+/**
+ * A RuleBook that declares its facts, for the fact specs: one required numeric fact, one optional fact
+ * with a default, and one restricted to a list of values. Enforcement is left to each spec.
+ */
+class extends="rulebox.models.RuleBook"{
+
+	/**
+	 * Declare the facts this rulebook takes
+	 */
+	function defineFacts(){
+		fact( "creditScore" ).type( "numeric" ).required().description( "FICO score, 300 to 850" ).example( 680 )
+		fact( "cashOnHand" ).type( "numeric" ).defaultValue( 0 ).description( "Cash available for the down payment" )
+		fact( "loanType" ).type( "string" ).values( [ "fixed", "variable" ] ).defaultValue( "fixed" )
+	}
+
+	/**
+	 * Approve a credit score of 600 or more, and remember the cash on hand it saw
+	 */
+	function defineRules(){
+		addRule(
+			newRule( "approve" )
+				.when( ( facts ) => facts.creditScore >= 600 )
+				.then( ( facts, result ) => result.setValue( "approved with #facts.cashOnHand ?: 'no'# cash" ) )
+		)
+	}
+
+}

@@ -1,0 +1,447 @@
+/**
+ * Tests for declared facts: FactDefinition, fact()/defineFacts()/withFacts(), getFactDefinitions(),
+ * validateFacts(), enforceFacts()/strictFacts() on run() and dryRun(), rule-source envelopes, and the
+ * registry's facts/enforceFacts/strictFacts keys.
+ */
+class extends="tests.resources.BaseSpec"{
+
+	/**
+	 * Run a closure and return the exception it throws, failing the spec if it does not throw
+	 *
+	 * @target The closure to run
+	 *
+	 * @return The caught exception
+	 */
+	private any function catchFrom( required any target ){
+		try{
+			arguments.target()
+		} catch( any e ){
+			return e
+		}
+		fail( "Expected an exception" )
+	}
+
+	/**
+	 * Whether the optional bx-yaml module is installed
+	 */
+	private boolean function yamlModuleInstalled(){
+		return structKeyExists( getFunctionList(), "yamlDeserializeFile" )
+	}
+
+	/**
+	 * A standalone registry with the given settings, bypassing the shared WireBox singleton
+	 *
+	 * @settings The module settings to give it
+	 */
+	private any function newRegistry( required struct settings ){
+		var registry = new rulebox.models.RuleBookRegistry()
+		registry.setWirebox( getWireBox() )
+		registry.setSettings( arguments.settings )
+		registry.reload()
+		return registry
+	}
+
+	function run( testResults, testBox ){
+		describe( "Declared facts", () => {
+
+			describe( "FactDefinition", () => {
+
+				it( "describes a fact with chained builder methods", () => {
+					var definition = new rulebox.models.FactDefinition( "creditScore" )
+						.type( "numeric" )
+						.required()
+						.defaultValue( 0 )
+						.description( "FICO score" )
+						.example( 680 )
+						.values( [ 600, 700 ] )
+						.getDefinition()
+
+					expect( definition.name ).toBe( "creditScore" )
+					expect( definition.type ).toBe( "numeric" )
+					expect( definition.required ).toBeTrue()
+					expect( definition[ "default" ] ).toBe( 0 )
+					expect( definition.description ).toBe( "FICO score" )
+					expect( definition.example ).toBe( 680 )
+					expect( definition.values ).toBe( [ 600, 700 ] )
+				} )
+
+				it( "defaults to an optional fact of any type, with no default, example or values", () => {
+					var definition = new rulebox.models.FactDefinition( "applicant" ).getDefinition()
+
+					expect( definition.type ).toBe( "any" )
+					expect( definition.required ).toBeFalse()
+					expect( definition ).notToHaveKey( "default" )
+					expect( definition ).notToHaveKey( "example" )
+					expect( definition ).notToHaveKey( "values" )
+				} )
+
+				it( "rejects an unknown type", () => {
+					expect( () => new rulebox.models.FactDefinition( "x" ).type( "money" ) )
+						.toThrow( "RuleBox.InvalidFactDefinitionException" )
+				} )
+
+				it( "rejects a blank name", () => {
+					expect( () => new rulebox.models.FactDefinition( " " ) )
+						.toThrow( "RuleBox.InvalidFactDefinitionException" )
+				} )
+
+				it( "checks each type", () => {
+					var cases = [
+						{ type : "string", good : "abc", bad : [ 1 ] },
+						{ type : "numeric", good : 1.5, bad : "abc" },
+						{ type : "integer", good : 3, bad : 1.5 },
+						{ type : "boolean", good : true, bad : "maybe" },
+						{ type : "date", good : "2026-01-01", bad : "not a date" },
+						{ type : "struct", good : { a : 1 }, bad : [ 1 ] },
+						{ type : "array", good : [ 1 ], bad : { a : 1 } },
+						{ type : "object", good : new tests.resources.Applicant( 1, 1, true ), bad : { a : 1 } }
+					]
+					for( var testCase in cases ){
+						var definition = new rulebox.models.FactDefinition( "x" ).type( testCase.type )
+						expect( definition.check( { x : testCase.good } ) ).toBeEmpty( "#testCase.type# should accept its good value" )
+						expect( definition.check( { x : testCase.bad } ).first().problem ).toBe( "type", "#testCase.type# should reject its bad value" )
+					}
+				} )
+
+				it( "reports a missing required fact, and never a missing optional one", () => {
+					var required = new rulebox.models.FactDefinition( "x" ).required()
+					var optional = new rulebox.models.FactDefinition( "x" )
+
+					expect( required.check( {} ).first().problem ).toBe( "missing" )
+					expect( optional.check( {} ) ).toBeEmpty()
+				} )
+
+				it( "checks values without regard to case, and never echoes the value", () => {
+					var definition = new rulebox.models.FactDefinition( "loanType" ).values( [ "fixed", "variable" ] )
+
+					expect( definition.check( { loanType : "FIXED" } ) ).toBeEmpty()
+					var problem = definition.check( { loanType : "secret-value" } ).first()
+					expect( problem.problem ).toBe( "value" )
+					expect( problem.message ).toInclude( "fixed, variable" )
+					expect( problem.message ).notToInclude( "secret-value" )
+				} )
+			} )
+
+			describe( "Declaring facts on a RuleBook", () => {
+
+				it( "declares facts in defineFacts(), in declaration order", () => {
+					var facts = getInstance( "tests.resources.CreditFactsRuleBook" ).getFactDefinitions()
+
+					expect( facts.map( ( f ) => f.name ) ).toBe( [ "creditScore", "cashOnHand", "loanType" ] )
+					expect( facts[ 1 ].required ).toBeTrue()
+					expect( facts[ 1 ].example ).toBe( 680 )
+					expect( facts[ 2 ][ "default" ] ).toBe( 0 )
+					expect( facts[ 3 ].values ).toBe( [ "fixed", "variable" ] )
+				} )
+
+				it( "returns the same definition when a fact is declared again, so it can be refined", () => {
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+					ruleBook.fact( "score" ).type( "numeric" )
+					ruleBook.fact( "score" ).required()
+
+					var facts = ruleBook.getFactDefinitions()
+					expect( facts ).toHaveLength( 1 )
+					expect( facts[ 1 ].type ).toBe( "numeric" )
+					expect( facts[ 1 ].required ).toBeTrue()
+				} )
+
+				it( "declares facts from data with withFacts()", () => {
+					var facts = getInstance( "RuleBook@rulebox" )
+						.withFacts( {
+							"creditScore" : { "type" : "numeric", "required" : true, "example" : 680 },
+							"cashOnHand"  : { "type" : "numeric", "default" : 0, "description" : "Cash" }
+						} )
+						.getFactDefinitions()
+
+					expect( facts ).toHaveLength( 2 )
+					var byName = {}
+					facts.each( ( f ) => byName[ f.name ] = f )
+					expect( byName.creditScore.required ).toBeTrue()
+					expect( byName.cashOnHand[ "default" ] ).toBe( 0 )
+					expect( byName.cashOnHand.description ).toBe( "Cash" )
+				} )
+
+				it( "rejects an invalid withFacts() declaration and declares nothing", () => {
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+					var invalid  = [
+						{ "a" : "numeric" },
+						{ "a" : { "kind" : "numeric" } },
+						{ "a" : { "type" : "money" } },
+						{ "a" : { "required" : "yes please" } },
+						{ "a" : { "values" : "fixed" } }
+					]
+					for( var declaration in invalid ){
+						expect( () => ruleBook.withFacts( declaration ) )
+							.toThrow( type = "RuleBox.InvalidFactDefinitionException", message = jsonSerialize( declaration ) )
+					}
+					expect( () => ruleBook.withFacts( { "ok" : { "type" : "numeric" }, "bad" : { "type" : "money" } } ) )
+						.toThrow( "RuleBox.InvalidFactDefinitionException" )
+					expect( ruleBook.getFactDefinitions() ).toBeEmpty()
+				} )
+
+				it( "only describes the facts unless enforced: a run without a required fact still runs", () => {
+					var ruleBook = getInstance( "tests.resources.CreditFactsRuleBook" ).run( { creditScore : 700 } )
+
+					expect( ruleBook.getResult().getValue() ).toBe( "approved with no cash" )
+					expect( ruleBook.getFactsEnforced() ).toBeFalse()
+				} )
+			} )
+
+			describe( "validateFacts()", () => {
+
+				it( "lists every problem without running or throwing", () => {
+					var problems = getInstance( "tests.resources.CreditFactsRuleBook" )
+						.validateFacts( { cashOnHand : "lots", loanType : "balloon" } )
+
+					expect( problems.map( ( p ) => p.fact & ":" & p.problem ) )
+						.toBe( [ "creditScore:missing", "cashOnHand:type", "loanType:value" ] )
+				} )
+
+				it( "applies defaults before checking, so an optional fact with a default is fine when missing", () => {
+					expect( getInstance( "tests.resources.CreditFactsRuleBook" ).validateFacts( { creditScore : 700 } ) ).toBeEmpty()
+				} )
+
+				it( "does not change the facts it is given", () => {
+					var facts = { creditScore : 700 }
+					getInstance( "tests.resources.CreditFactsRuleBook" ).validateFacts( facts )
+					expect( facts ).notToHaveKey( "cashOnHand" )
+				} )
+
+				it( "reports undeclared facts only when the rulebook is strict", () => {
+					var facts = { creditScore : 700, mystery : 1 }
+
+					expect( getInstance( "tests.resources.CreditFactsRuleBook" ).validateFacts( facts ) ).toBeEmpty()
+
+					var problems = getInstance( "tests.resources.CreditFactsRuleBook" ).strictFacts().validateFacts( facts )
+					expect( problems ).toHaveLength( 1 )
+					expect( problems[ 1 ].problem ).toBe( "undeclared" )
+					expect( problems[ 1 ].message ).toInclude( "creditScore, cashOnHand, loanType" )
+				} )
+			} )
+
+			describe( "enforceFacts()", () => {
+
+				it( "applies defaults to missing optional facts on run()", () => {
+					var ruleBook = getInstance( "tests.resources.CreditFactsRuleBook" )
+						.enforceFacts()
+						.run( { creditScore : 700 } )
+
+					expect( ruleBook.getResult().getValue() ).toBe( "approved with 0 cash" )
+					expect( ruleBook.getFacts().loanType ).toBe( "fixed" )
+				} )
+
+				it( "throws RuleBox.InvalidFactsException listing every problem, before any rule runs", () => {
+					var ruleBook = getInstance( "tests.resources.CreditFactsRuleBook" ).enforceFacts()
+					var e = catchFrom( () => ruleBook.run( { cashOnHand : "lots", loanType : "balloon" } ) )
+
+					expect( e.type ).toBe( "RuleBox.InvalidFactsException" )
+					expect( e.message ).toInclude( "Missing required fact [creditScore]" )
+					expect( e.message ).toInclude( "Fact [cashOnHand] must be a numeric value" )
+					expect( e.message ).toInclude( "Fact [loanType] must be one of: fixed, variable" )
+					expect( e.message ).notToInclude( "lots" )
+					expect( jsonDeserialize( e.extendedInfo ) ).toHaveLength( 3 )
+					expect( ruleBook.getRuleStatus( "approve" ) ).toBe( ruleBook.RULE_STATES.NOT_AVAILABLE )
+				} )
+
+				it( "still allows undeclared facts", () => {
+					expect(
+						getInstance( "tests.resources.CreditFactsRuleBook" )
+							.enforceFacts()
+							.run( { creditScore : 700, mystery : 1 } )
+							.getResult()
+							.getValue()
+					).toBe( "approved with 0 cash" )
+				} )
+
+				it( "enforces on dryRun() too, without changing the rulebook's facts", () => {
+					var ruleBook = getInstance( "tests.resources.CreditFactsRuleBook" ).enforceFacts()
+
+					expect( () => ruleBook.dryRun( {} ) ).toThrow( "RuleBox.InvalidFactsException" )
+
+					var report = ruleBook.dryRun( { creditScore : 700 } )
+					expect( report[ 1 ].wouldExecute ).toBeTrue()
+					expect( ruleBook.getFacts() ).notToHaveKey( "cashOnHand" )
+				} )
+
+				it( "can be turned on from defineFacts(), for every instance", () => {
+					var ruleBook = getInstance( "tests.resources.StrictCreditRuleBook" )
+
+					expect( () => ruleBook.run( {} ) ).toThrow( "RuleBox.InvalidFactsException" )
+					expect( ruleBook.getFactsEnforced() ).toBeTrue()
+					expect( ruleBook.getFactsStrict() ).toBeTrue()
+				} )
+
+				it( "lets an instance call win over the class's defineFacts()", () => {
+					// The class calls strictFacts() in defineFacts(); the instance relaxes it afterwards
+					var ruleBook = getInstance( "tests.resources.StrictCreditRuleBook" ).enforceFacts()
+
+					expect( ruleBook.getFactsStrict() ).toBeFalse()
+					expect( ruleBook.run( { creditScore : 700, mystery : 1 } ).getResult().getValue() ).toBe( "approved" )
+				} )
+
+				it( "works on a Builder rulebook with withFacts()", () => {
+					var builder  = getInstance( "Builder@rulebox" )
+					var ruleBook = builder.rulebook( "Greeter" )
+						.withFacts( { name : { type : "string", required : true } } )
+						.enforceFacts()
+						.addRule( builder.rule( "hello" ).then( ( facts, result ) => result.setValue( "Hello " & facts.name ) ) )
+
+					expect( ruleBook.run( { name : "World" } ).getResult().getValue() ).toBe( "Hello World" )
+					expect( () => ruleBook.run( { name : [ "not", "a", "string" ] } ) ).toThrow( "RuleBox.InvalidFactsException" )
+				} )
+			} )
+
+			describe( "strictFacts()", () => {
+
+				it( "rejects undeclared facts and names the declared ones", () => {
+					var e = catchFrom( () => getInstance( "tests.resources.CreditFactsRuleBook" )
+						.strictFacts()
+						.run( { creditScore : 700, creditscroe : 5 } ) )
+
+					expect( e.type ).toBe( "RuleBox.InvalidFactsException" )
+					expect( e.message ).toInclude( "Undeclared fact [creditscroe]" )
+					expect( e.message ).toInclude( "This rulebook takes: creditScore, cashOnHand, loanType" )
+				} )
+
+				it( "is the same as enforceFacts( strict = true )", () => {
+					var ruleBook = getInstance( "tests.resources.CreditFactsRuleBook" ).enforceFacts( strict = true )
+
+					expect( ruleBook.getFactsEnforced() ).toBeTrue()
+					expect( ruleBook.getFactsStrict() ).toBeTrue()
+					expect( () => ruleBook.run( { creditScore : 700, mystery : 1 } ) ).toThrow( "RuleBox.InvalidFactsException" )
+				} )
+			} )
+
+			describe( "Rule-source envelopes", () => {
+
+				it( "loads facts, enforcement and rules from an envelope struct", () => {
+					var ruleBook = getInstance( "RuleBook@rulebox" ).loadRules( new tests.resources.EnvelopeRuleSource( {
+						"facts"        : { "creditScore" : { "type" : "numeric", "required" : true } },
+						"enforceFacts" : true,
+						"rules"        : [ { "name" : "approve", "when" : { "gte" : [ "creditScore", 600 ] } } ]
+					} ) )
+
+					expect( ruleBook.getFactDefinitions()[ 1 ].name ).toBe( "creditScore" )
+					expect( ruleBook.getFactsEnforced() ).toBeTrue()
+					expect( ruleBook.getFactsStrict() ).toBeFalse()
+					expect( ruleBook.hasRules() ).toBeTrue()
+					expect( () => ruleBook.run( {} ) ).toThrow( "RuleBox.InvalidFactsException" )
+				} )
+
+				it( "turns on strict mode with strictFacts", () => {
+					var ruleBook = getInstance( "RuleBook@rulebox" ).loadRules( new tests.resources.EnvelopeRuleSource( {
+						"facts"       : { "a" : {} },
+						"strictFacts" : true,
+						"rules"       : []
+					} ) )
+
+					expect( ruleBook.getFactsStrict() ).toBeTrue()
+				} )
+
+				it( "still accepts a bare array of rules", () => {
+					var ruleBook = getInstance( "RuleBook@rulebox" ).loadRules( new tests.resources.EnvelopeRuleSource( [ { "name" : "r1" } ] ) )
+
+					expect( ruleBook.hasRules() ).toBeTrue()
+					expect( ruleBook.getFactDefinitions() ).toBeEmpty()
+				} )
+
+				it( "rejects a malformed envelope and adds nothing", () => {
+					var invalid = [
+						{ "facts" : {} },
+						{ "rules" : "nope" },
+						{ "rules" : [], "facts" : [] },
+						{ "rules" : [], "enforceFacts" : "sometimes" },
+						{ "rules" : [], "extra" : true },
+						"just a string"
+					]
+					for( var loaded in invalid ){
+						var ruleBook = getInstance( "RuleBook@rulebox" )
+						expect( () => ruleBook.loadRules( new tests.resources.EnvelopeRuleSource( loaded ) ) )
+							.toThrow( type = "RuleBox.InvalidRuleDefinitionException", message = jsonSerialize( loaded ) )
+						expect( ruleBook.hasRules() ).toBeFalse()
+					}
+				} )
+
+				it( "declares no facts when a rule in the envelope fails to build", () => {
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+					expect( () => ruleBook.loadRules( new tests.resources.EnvelopeRuleSource( {
+						"facts" : { "a" : {} },
+						"rules" : [ { "name" : "bad", "when" : { "nope" : [] } } ]
+					} ) ) ).toThrow( "RuleBox.InvalidRuleDefinitionException" )
+
+					expect( ruleBook.getFactDefinitions() ).toBeEmpty()
+					expect( ruleBook.getFactsEnforced() ).toBeFalse()
+				} )
+
+				it( "loads an envelope from a JSON rule file", () => {
+					var ruleBook = getInstance( "RuleBook@rulebox" ).loadRules(
+						getInstance( "JSONRuleSource@rulebox", { filePath : expandPath( "/tests/resources/rules/credit-envelope.json" ) } )
+					)
+
+					expect( ruleBook.getFactDefinitions().map( ( f ) => f.name ) ).toBe( [ "creditScore", "cashOnHand" ] )
+					expect( ruleBook.getFactsEnforced() ).toBeTrue()
+					expect( ruleBook.dryRun( { creditScore : 700 } )[ 1 ].wouldExecute ).toBeTrue()
+				} )
+
+				it( "loads an envelope from a YAML rule file, when the optional YAML module is installed", () => {
+					if( !yamlModuleInstalled() ){
+						skip( "The optional bx-yaml module is not installed" )
+					}
+					var ruleBook = getInstance( "RuleBook@rulebox" ).loadRules(
+						getInstance( "YAMLRuleSource@rulebox", { filePath : expandPath( "/tests/resources/rules/credit-envelope.yaml" ) } )
+					)
+
+					var facts = ruleBook.getFactDefinitions()
+					expect( facts.map( ( f ) => f.name ) ).toBe( [ "creditScore", "loanType" ] )
+					expect( facts[ 2 ].values ).toBe( [ "fixed", "variable" ] )
+					expect( ruleBook.getFactsStrict() ).toBeTrue()
+				} )
+			} )
+
+			describe( "Declared rulebooks", () => {
+
+				it( "reads facts, enforceFacts and strictFacts from a config declaration", () => {
+					var registry = newRegistry( {
+						rulebooks : {
+							"credit" : {
+								"source"      : [ { "name" : "approve", "when" : { "gte" : [ "creditScore", 600 ] } } ],
+								"facts"       : { "creditScore" : { "type" : "numeric", "required" : true } },
+								"strictFacts" : true
+							}
+						}
+					} )
+
+					var ruleBook = registry.getRuleBook( "credit" )
+					expect( ruleBook.getFactDefinitions()[ 1 ].name ).toBe( "creditScore" )
+					expect( ruleBook.getFactsStrict() ).toBeTrue()
+					expect( () => ruleBook.run( { creditScore : 700, mystery : 1 } ) ).toThrow( "RuleBox.InvalidFactsException" )
+				} )
+
+				it( "layers config facts on top of the facts a rule file declares", () => {
+					var registry = newRegistry( {
+						rulebooks : {
+							"credit" : {
+								"source" : "tests/resources/rules/credit-envelope.json",
+								"facts"  : { "creditScore" : { "description" : "From config" }, "region" : { "type" : "string" } }
+							}
+						}
+					} )
+
+					var facts = registry.getRuleBook( "credit" ).getFactDefinitions()
+					expect( facts.map( ( f ) => f.name ) ).toBe( [ "creditScore", "cashOnHand", "region" ] )
+					expect( facts[ 1 ].description ).toBe( "From config" )
+					expect( facts[ 1 ].required ).toBeTrue()
+				} )
+
+				it( "rejects invalid facts keys in a declaration", () => {
+					expect( () => newRegistry( { rulebooks : { "x" : { "source" : [], "facts" : "nope" } } } ) )
+						.toThrow( "RuleBox.InvalidRuleBookDeclarationException" )
+					expect( () => newRegistry( { rulebooks : { "x" : { "source" : [], "enforceFacts" : "sometimes" } } } ) )
+						.toThrow( "RuleBox.InvalidRuleBookDeclarationException" )
+				} )
+			} )
+
+		} )
+	}
+
+}

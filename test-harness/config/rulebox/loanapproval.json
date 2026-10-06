@@ -1,23 +1,54 @@
-[
-	{
-		"name": "highRiskDecline",
-		"priority": 20,
-		"when": { "lt": [ "creditScore", 580 ] },
-		"stop": true
-	},
-	{
-		"name": "requiresManualReview",
-		"priority": 10,
-		"when": {
-			"and": [
-				{ "gte": [ "creditScore", 580 ] },
-				{ "lt": [ "creditScore", 680 ] }
-			]
+{
+	"description": "Decides a loan application from the applicant's credit score: declines poor scores, sends middling ones to a person, and approves good ones.",
+	"facts": {
+		"creditScore": {
+			"type": "numeric",
+			"required": true,
+			"description": "The applicant's credit score, from 300 to 850",
+			"example": 680
+		},
+		"loanAmount": {
+			"type": "numeric",
+			"description": "The amount requested, in dollars",
+			"example": 25000
+		},
+		"loanType": {
+			"type": "string",
+			"values": [ "fixed", "variable" ],
+			"default": "fixed",
+			"description": "The kind of rate the applicant wants"
+		},
+		"firstTimeBuyer": {
+			"type": "boolean",
+			"default": false,
+			"description": "Whether this is the applicant's first home"
 		}
 	},
-	{
-		"name": "autoApprove",
-		"priority": 0,
-		"when": { "gte": [ "creditScore", 680 ] }
-	}
-]
+	"enforceFacts": true,
+	"rules": [
+		{
+			"name": "highRiskDecline",
+			"description": "Declines a score under 580 and stops the chain",
+			"priority": 20,
+			"when": { "lt": [ "creditScore", 580 ] },
+			"stop": true
+		},
+		{
+			"name": "requiresManualReview",
+			"description": "Sends a score from 580 to 679 to a loan officer",
+			"priority": 10,
+			"when": {
+				"and": [
+					{ "gte": [ "creditScore", 580 ] },
+					{ "lt": [ "creditScore", 680 ] }
+				]
+			}
+		},
+		{
+			"name": "autoApprove",
+			"description": "Approves a score of 680 or more",
+			"priority": 0,
+			"when": { "gte": [ "creditScore", 680 ] }
+		}
+	]
+}

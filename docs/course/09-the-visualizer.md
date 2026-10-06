@@ -54,9 +54,9 @@ Restart your app, then open:
 ::: image-gallery columns="3"
 ::: image src="../assets/visualizer/dashboard.png" alt="The Dashboard: totals, Problem rules and Slowest rules panels, a table of every rulebook with its outcomes, and a recent activity feed" caption="Dashboard"
 :::
-::: image src="../assets/visualizer/chain-loanapproval.png" alt="The chain view for a rulebook, showing priority badges, a stops-chain marker and per-rule outcome counts" caption="Rule Visualizer"
+::: image src="../assets/visualizer/chain-loanapproval.png" alt="The chain view for a rulebook: the facts it declares, then its rules with priority badges, a stops-chain marker and per-rule outcome counts" caption="Rule Visualizer"
 :::
-::: image src="../assets/visualizer/dryrun.png" alt="The Dry Run screen: facts as JSON on the left, which rules would execute on the right" caption="Dry Run"
+::: image src="../assets/visualizer/dryrun.png" alt="The Dry Run screen: a form for the rulebook's facts on the left, which rules would execute on the right" caption="Dry Run"
 :::
 ::: image src="../assets/visualizer/metrics.png" alt="The Metrics screen: evaluation count, average duration, completion and error rates, a rule health table and outcomes by state" caption="Metrics"
 :::
@@ -75,11 +75,13 @@ longest, so you know where to look first.
 
 **Rule Visualizer.** Click **View chain** on a rulebook to see its rules in
 the order they really run, with their priorities and which ones stop the
-chain. This is lesson 4 as a picture.
+chain. This is lesson 4 as a picture. If the rulebook declares its facts
+(lesson 3), they are listed above the rules.
 
 **Dry Run.** Pick a rulebook, type facts as JSON, such as
 `{ "creditScore": 640 }`, and press **Run dry run**. It is `dryRun()` from
-lesson 5 with a button. Nothing is executed or recorded.
+lesson 5 with a button. Nothing is executed or recorded. A rulebook that
+declares its facts gets a form instead, with a field for each fact.
 
 **Metrics.** Totals and averages per rulebook, gathered across every run, not
 just one RuleBook instance. The **Rule health** table shows each rule's

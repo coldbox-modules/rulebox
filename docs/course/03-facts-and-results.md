@@ -31,6 +31,23 @@ getInstance( "LoanApproval" )
 
 Inside a rule, facts are just a struct: `facts.creditScore`.
 
+## Say which facts a rulebook takes
+
+A rulebook can list the facts it expects. Add a `defineFacts()` method next
+to `defineRules()`:
+
+```js
+function defineFacts(){
+	fact( "creditScore" ).type( "numeric" ).required().description( "Credit score, 300 to 850" )
+	fact( "income" ).type( "numeric" ).defaultValue( 0 )
+}
+```
+
+This documents the rulebook, and the Visualizer (lesson 9) turns it into a
+form. To reject a run with a missing or invalid fact, add `enforceFacts()`
+to `defineFacts()`. The [Declaring Facts guide](../guides/declaring-facts.md)
+has the details.
+
 ## Reading the Result
 
 `getResult()` returns a **Result** object. These are the methods you will
