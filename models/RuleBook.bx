@@ -37,6 +37,18 @@ class{
 	property name="name" type="string" default="";
 
 	/**
+	 * What this rulebook decides, set with withDescription() (or a rule file's or config's
+	 * description). getDescription() falls back to the class's hint when it is empty.
+	 */
+	property name="description" type="string";
+
+	/**
+	 * The description read from a RuleBook subclass's @description or @hint annotation or its
+	 * docblock, resolved once on first use. Null until then.
+	 */
+	property name="classDescription" type="string";
+
+	/**
 	 * The result object, where a rulebook can keep track of result across the rule chain
 	 */
 	property name="result" type="Result";
@@ -115,7 +127,7 @@ class{
 	// Static lookup map for rule states, and the keys fact declarations and rule-source envelopes accept
 	static{
 		FACT_KEYS     = [ "type", "required", "default", "description", "example", "values" ]
-		ENVELOPE_KEYS = [ "rules", "facts", "enforceFacts", "strictFacts" ]
+		ENVELOPE_KEYS = [ "rules", "description", "facts", "enforceFacts", "strictFacts" ]
 		RULE_STATES = {
 			NOT_AVAILABLE 	= "NOT_AVAILABLE",
 			EXECUTED      	= "EXECUTED",
@@ -134,6 +146,7 @@ class{
 	RuleBook function init( name="" ){
 		variables.facts 			= {}
 		variables.name 				= arguments.name
+		variables.description 		= ""
 		variables.result 			= new Result()
 		variables.ruleStatusMap 	= {}
 		variables.rules 			= []
@@ -165,6 +178,60 @@ class{
 		variables.result.setDefaultValue( arguments.result )
 		variables.result.reset()
 		return this
+	}
+
+	/**
+	 * Describe what this rulebook decides, for documentation and the Rule Visualizer. It has no effect
+	 * on how the rulebook runs, and it wins over the class's hint.
+	 *
+	 * @description What the rulebook decides, in a sentence or two
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function withDescription( required string description ){
+		variables.description = trim( arguments.description )
+		return this
+	}
+
+	/**
+	 * What this rulebook decides: the description given with withDescription(), a rule file or config,
+	 * else the hint of a RuleBook subclass, read from its @description or @hint annotation or else its
+	 * docblock. A plain RuleBook (from the Builder or the registry) without a description returns "".
+	 *
+	 * @return The description, or "" when there is none
+	 */
+	string function getDescription(){
+		if( len( variables.description ) ){
+			return variables.description
+		}
+		if( isNull( variables.classDescription ) ){
+			variables.classDescription = static.hintOf( getMetadata( this ) )
+		}
+		return variables.classDescription
+	}
+
+	/**
+	 * The hint a RuleBook subclass declares: its @description or @hint annotation (or attribute), else
+	 * its docblock, with line breaks folded into spaces. RuleBook itself extends nothing, so its own
+	 * docblock is never returned for a plain RuleBook.
+	 *
+	 * @metadata The class metadata, from getMetadata()
+	 *
+	 * @return The hint, or "" when the class is RuleBook itself or declares none
+	 */
+	private static string function hintOf( required struct metadata ){
+		if( isNull( arguments.metadata.extends ) || arguments.metadata.extends.isEmpty() ){
+			return ""
+		}
+		var annotations   = arguments.metadata.annotations ?: {}
+		var documentation = arguments.metadata.documentation ?: {}
+		for( var hint in [ annotations.description ?: "", annotations.hint ?: "", documentation.description ?: "", documentation.hint ?: "" ] ){
+			if( isSimpleValue( hint ) && len( trim( hint ) ) ){
+				return trim( reReplace( hint, "\s*
+\s*", " ", "all" ) )
+			}
+		}
+		return ""
 	}
 
 	/**
@@ -688,6 +755,10 @@ class{
 				rule.withPriority( def.priority )
 			}
 
+			if( len( def.description ?: "" ) ){
+				rule.withDescription( def.description )
+			}
+
 			if( def.keyExists( "activeFrom" ) || def.keyExists( "activeUntil" ) ){
 				rule.active(
 					def.activeFrom ?: null,
@@ -724,8 +795,11 @@ class{
 			builtRules.append( rule )
 		}
 
-		// Only now that every definition built cleanly do we touch the book: the envelope's facts first,
-		// since withFacts() checks every declaration before applying any
+		// Only now that every definition built cleanly do we touch the book: the envelope's description
+		// and facts first, since withFacts() checks every declaration before applying any
+		if( len( loaded.description ) ){
+			withDescription( loaded.description )
+		}
 		if( !isNull( loaded.facts ) ){
 			withFacts( loaded.facts )
 		}
@@ -749,12 +823,13 @@ class{
 	 * @throws RuleBox.DuplicateRuleNameException If two definitions, or a definition and an existing rule, share a name
 	 * @throws RuleBox.InvalidRuleDefinitionException If the envelope is malformed
 	 *
-	 * @return { rules, facts (null when absent), enforceFacts, strictFacts }
+	 * @return { rules, description, facts (null when absent), enforceFacts, strictFacts }
 	 */
 	private struct function loadDefinitions( required any source ){
 		var loaded   = arguments.source.load()
 		var envelope = {
 			rules        : loaded,
+			description  : "",
 			facts        : null,
 			enforceFacts : false,
 			strictFacts  : false
@@ -768,6 +843,9 @@ class{
 			if( isNull( loaded.rules ) || !isArray( loaded.rules ) ){
 				throwInvalidEnvelope( "its 'rules' must be an array of rule definitions" )
 			}
+			if( loaded.keyExists( "description" ) && !isSimpleValue( loaded.description ?: [] ) ){
+				throwInvalidEnvelope( "its 'description' must be a string" )
+			}
 			if( loaded.keyExists( "facts" ) && ( isNull( loaded.facts ) || !isStruct( loaded.facts ) ) ){
 				throwInvalidEnvelope( "its 'facts' must be a struct of fact name to declaration" )
 			}
@@ -777,11 +855,12 @@ class{
 				}
 			}
 			envelope.rules        = loaded.rules
+			envelope.description  = loaded.description ?: ""
 			envelope.facts        = loaded.facts ?: null
 			envelope.enforceFacts = loaded.enforceFacts ?: false
 			envelope.strictFacts  = loaded.strictFacts ?: false
 		} else if( !isArray( loaded ) ){
-			throwInvalidEnvelope( "load() must return an array of rule definitions or a struct { rules, facts, enforceFacts, strictFacts }" )
+			throwInvalidEnvelope( "load() must return an array of rule definitions or a struct { rules, description, facts, enforceFacts, strictFacts }" )
 		}
 
 		var definitions = envelope.rules
@@ -929,7 +1008,7 @@ class{
 	 *
 	 * @facts A structure of name-value pairs representing the facts to evaluate against
 	 *
-	 * @return An array of structs, one per rule reached in execution order: { name, wouldExecute, wouldStop }
+	 * @return An array of structs, one per rule reached in execution order: { name, description, wouldExecute, wouldStop }
 	 */
 	array function dryRun( struct facts={} ){
 		var report = []

@@ -1,4 +1,5 @@
 {
+	"description": "Decides a loan application from the applicant's credit score: declines poor scores, sends middling ones to a person, and approves good ones.",
 	"facts": {
 		"creditScore": {
 			"type": "numeric",
@@ -27,12 +28,14 @@
 	"rules": [
 		{
 			"name": "highRiskDecline",
+			"description": "Declines a score under 580 and stops the chain",
 			"priority": 20,
 			"when": { "lt": [ "creditScore", 580 ] },
 			"stop": true
 		},
 		{
 			"name": "requiresManualReview",
+			"description": "Sends a score from 580 to 679 to a loan officer",
 			"priority": 10,
 			"when": {
 				"and": [
@@ -43,6 +46,7 @@
 		},
 		{
 			"name": "autoApprove",
+			"description": "Approves a score of 680 or more",
 			"priority": 0,
 			"when": { "gte": [ "creditScore", 680 ] }
 		}

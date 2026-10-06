@@ -414,6 +414,47 @@ class extends="tests.resources.BaseSpec"{
 				expect( content ).toInclude( "enforced" );
 			} );
 
+			it( "apiFacts() returns the rulebook's description", function(){
+				url.name = "loanapproval";
+				var body = jsonDeserialize( execute( event="rulebox:visualizer.apiFacts", renderResults=true ).getRenderedContent() );
+
+				expect( body.description ).toInclude( "credit score" );
+			} );
+
+			it( "runDryRun() reports each rule's description", function(){
+				sendAs( "POST" );
+				url.name  = "loanapproval";
+				url.facts = jsonSerialize( { "creditScore" : 700 } );
+				var report = jsonDeserialize( execute( event="rulebox:visualizer.runDryRun", renderResults=true ).getRenderedContent() );
+
+				expect( report.filter( ( row ) => row.name == "autoApprove" )[ 1 ].description ).toBe( "Approves a score of 680 or more" );
+			} );
+
+			it( "shows rulebook and rule descriptions, HTML-encoded, on the dashboard and chain view", function(){
+				var settings = getWireBox().getInstance( dsl="coldbox:moduleSettings:rulebox" );
+				var registry = getWireBox().getInstance( "RuleBookRegistry@rulebox" );
+				settings.rulebooks[ "describedBook" ] = {
+					"source"      : [ { "name" : "describedRule", "description" : "Rule <img src=x onerror=alert(2)>" } ],
+					"description" : "Book <script>alert(1)</script>"
+				};
+				registry.reload();
+				try{
+					var dashboard = execute( event="rulebox:visualizer.index", renderResults=true ).getRenderedContent();
+					expect( dashboard ).toInclude( "Book &lt;script&gt;alert(1)&lt;/script&gt;" );
+					expect( dashboard ).notToInclude( "<script>alert(1)" );
+
+					setup();
+					url.name = "describedBook";
+					var chain = execute( event="rulebox:visualizer.chain", renderResults=true ).getRenderedContent();
+					expect( chain ).toInclude( "Book &lt;script&gt;alert(1)&lt;/script&gt;" );
+					expect( chain ).toInclude( "Rule &lt;img src=x onerror=alert(2)&gt;" );
+					expect( chain ).notToInclude( "<img src=x" );
+				} finally {
+					structDelete( settings.rulebooks, "describedBook" );
+					registry.reload();
+				}
+			} );
+
 			it( "leaves the Facts panel off the chain view of a rulebook that declares none", function(){
 				url.name = "testconvention";
 				var content = execute( event="rulebox:visualizer.chain", renderResults=true ).getRenderedContent();

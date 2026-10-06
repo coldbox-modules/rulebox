@@ -25,6 +25,7 @@
 				</div>
 			</div>
 			<div class="card-body">
+				<p class="text-secondary small mb-3" x-show="description" x-text="description"></p>
 				<template x-if="definitions.length">
 					<div class="d-flex align-items-center gap-2 mb-3 small">
 						<span class="text-secondary" x-text="definitions.length + ' declared ' + ( definitions.length === 1 ? 'fact' : 'facts' )"></span>
@@ -109,6 +110,7 @@
 						:class="{ 'opacity-50': !row.wouldExecute }">
 						<div>
 							<div class="fw-medium" x-text="row.name"></div>
+							<div class="small" x-show="row.description" x-text="row.description"></div>
 							<div class="small text-secondary" x-text="row.wouldExecute ? (row.wouldStop ? 'would execute, then stop the chain' : 'would execute') : 'would not execute'"></div>
 						</div>
 						<i class="ph" :class="row.wouldExecute ? 'ph-check-circle text-success' : 'ph-minus-circle text-secondary'"></i>
@@ -129,6 +131,7 @@
 			rulebookNames,
 			rulebookName: initialName || ( rulebookNames[ 0 ] ?? '' ),
 			definitions: [],
+			description: '',
 			enforced: false,
 			strict: false,
 			values: {},
@@ -152,6 +155,7 @@
 			// Load the facts the selected rulebook declares, and prefill the form with defaults, else examples
 			async loadFacts(){
 				this.definitions = []
+				this.description = ''
 				this.enforced = false
 				this.strict = false
 				this.values = {}
@@ -166,6 +170,7 @@
 					const body = await res.json().catch( () => ( {} ) )
 					if( !res.ok ) throw new Error( body.error || ( 'Server returned ' + res.status ) )
 					this.definitions = body.facts || []
+					this.description = body.description || ''
 					this.enforced = !!body.enforced
 					this.strict = !!body.strict
 					const values = {}

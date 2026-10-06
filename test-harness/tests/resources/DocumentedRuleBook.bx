@@ -1,0 +1,6 @@
+/**
+ * Approves loans
+ * from a docblock.
+ */
+class extends="rulebox.models.RuleBook"{
+}

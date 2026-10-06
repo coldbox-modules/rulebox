@@ -25,7 +25,7 @@ class{
 
 	/**
 	 * Normalized rulebook definitions, keyed by declared name:
-	 * { source, actions, predicates, facts, enforceFacts, strictFacts }
+	 * { source, actions, predicates, description, facts, enforceFacts, strictFacts }
 	 */
 	property name="definitions" type="struct";
 
@@ -98,6 +98,11 @@ class{
 		// Nothing is cached: every call re-reads the source file / re-runs the SQL, by design
 		ruleBook.loadRules( resolveSource( def.source ) )
 
+		// A description in config wins over the source file's
+		if( len( def.description ) ){
+			ruleBook.withDescription( def.description )
+		}
+
 		// Facts declared in config layer on top of any the source file declares
 		if( !def.facts.isEmpty() ){
 			ruleBook.withFacts( def.facts )
@@ -155,6 +160,7 @@ class{
 				source       : filePath,
 				actions      : {},
 				predicates   : {},
+				description  : "",
 				facts        : {},
 				enforceFacts : false,
 				strictFacts  : false
@@ -173,7 +179,7 @@ class{
 	 * - a string:  a rule-source file path (JSON/YAML inferred from extension)
 	 * - an array:  inline rule-definition structs
 	 * - a struct:  { source: <string|array|{type:"db",...}>, actions: {...}, predicates: {...},
-	 *              facts: {...}, enforceFacts: boolean, strictFacts: boolean }
+	 *              description: "...", facts: {...}, enforceFacts: boolean, strictFacts: boolean }
 	 *
 	 * Anything else - or an entry that ends up with no usable source - throws a typed
 	 * RuleBox.InvalidRuleBookDeclarationException naming the rulebook, so a bad declaration fails
@@ -184,6 +190,7 @@ class{
 			source       : existing.source ?: "",
 			actions      : existing.actions ?: {},
 			predicates   : existing.predicates ?: {},
+			description  : existing.description ?: "",
 			facts        : existing.facts ?: {},
 			enforceFacts : existing.enforceFacts ?: false,
 			strictFacts  : existing.strictFacts ?: false
@@ -203,6 +210,12 @@ class{
 					}
 					normalized[ key ] = arguments.entry[ key ]
 				}
+			}
+			if( arguments.entry.keyExists( "description" ) ){
+				if( isNull( arguments.entry.description ) || !isSimpleValue( arguments.entry.description ) ){
+					throwInvalidDeclaration( arguments.name, "'description' must be a string" )
+				}
+				normalized.description = trim( arguments.entry.description )
 			}
 			if( arguments.entry.keyExists( "facts" ) ){
 				if( isNull( arguments.entry.facts ) || !isStruct( arguments.entry.facts ) ){
@@ -276,7 +289,7 @@ class{
 		throw(
 			type    = "RuleBox.InvalidRuleBookDeclarationException",
 			message = "Invalid declaration for rulebook '#arguments.name#': #arguments.problem#.",
-			detail  = "Declare it under moduleSettings.rulebox.rulebooks.#arguments.name# as a source file path, an array of inline rule definitions, or a struct { source, actions, predicates, facts, enforceFacts, strictFacts }."
+			detail  = "Declare it under moduleSettings.rulebox.rulebooks.#arguments.name# as a source file path, an array of inline rule definitions, or a struct { source, actions, predicates, description, facts, enforceFacts, strictFacts }."
 		)
 	}
 

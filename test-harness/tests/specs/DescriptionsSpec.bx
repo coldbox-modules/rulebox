@@ -1,0 +1,164 @@
+/**
+ * Tests for rulebook and rule descriptions: withDescription(), the class hint fallback, rule-definition,
+ * envelope and config description keys, and descriptions in dryRun() reports.
+ */
+class extends="tests.resources.BaseSpec"{
+
+	function run( testResults, testBox ){
+		describe( "Descriptions", () => {
+
+			beforeEach( () => {
+				setup()
+			} )
+
+			describe( "RuleBook descriptions", () => {
+
+				it( "is empty by default, and never RuleBook's own docblock", () => {
+					expect( getInstance( "RuleBook@rulebox" ).getDescription() ).toBe( "" )
+					expect( getInstance( "Builder@rulebox" ).rulebook( "plain" ).getDescription() ).toBe( "" )
+					expect( getInstance( "tests.resources.UndescribedRuleBook" ).getDescription() ).toBe( "" )
+				} )
+
+				it( "is set with withDescription(), trimmed, and chains", () => {
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+
+					expect( ruleBook.withDescription( "  Decides loans  " ) ).toBe( ruleBook )
+					expect( ruleBook.getDescription() ).toBe( "Decides loans" )
+				} )
+
+				it( "falls back to the class's @description annotation over its docblock", () => {
+					expect( getInstance( "tests.resources.AnnotatedRuleBook" ).getDescription() ).toBe( "Approves loans from an annotation" )
+				} )
+
+				it( "falls back to the class's @hint annotation", () => {
+					expect( getInstance( "tests.resources.HintedRuleBook" ).getDescription() ).toBe( "Approves loans from a hint" )
+				} )
+
+				it( "falls back to the class's docblock, with its line breaks folded into spaces", () => {
+					expect( getInstance( "tests.resources.DocumentedRuleBook" ).getDescription() ).toBe( "Approves loans from a docblock." )
+				} )
+
+				it( "lets withDescription() win over the class's hint", () => {
+					var ruleBook = getInstance( "tests.resources.AnnotatedRuleBook" ).withDescription( "From the instance" )
+
+					expect( ruleBook.getDescription() ).toBe( "From the instance" )
+				} )
+
+				it( "goes back to the class's hint when the description is cleared", () => {
+					var ruleBook = getInstance( "tests.resources.HintedRuleBook" ).withDescription( "From the instance" )
+					ruleBook.withDescription( "" )
+
+					expect( ruleBook.getDescription() ).toBe( "Approves loans from a hint" )
+				} )
+			} )
+
+			describe( "Rule descriptions", () => {
+
+				it( "is empty by default and set with withDescription(), trimmed", () => {
+					var rule = getInstance( "RuleBook@rulebox" ).newRule( "approve" )
+
+					expect( rule.getDescription() ).toBe( "" )
+					expect( rule.withDescription( " Approves good scores " ) ).toBe( rule )
+					expect( rule.getDescription() ).toBe( "Approves good scores" )
+				} )
+
+				it( "is reported by dryRun(), on the rule and the rulebook", () => {
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+					ruleBook.addRule(
+						ruleBook.newRule( "approve" )
+							.withDescription( "Approves good scores" )
+							.when( ( facts ) => facts.creditScore >= 600 )
+					)
+					ruleBook.addRule( ruleBook.newRule( "undescribed" ) )
+
+					var report = ruleBook.dryRun( { creditScore : 700 } )
+
+					expect( report[ 1 ].description ).toBe( "Approves good scores" )
+					expect( report[ 2 ].description ).toBe( "" )
+					expect( ruleBook.getRules()[ 1 ].dryRun( { creditScore : 700 } ).description ).toBe( "Approves good scores" )
+				} )
+			} )
+
+			describe( "Rule sources", () => {
+
+				it( "reads a rule definition's description", () => {
+					var ruleBook = getInstance( "RuleBook@rulebox" ).loadRules(
+						new rulebox.models.InlineRuleSource( [ { "name" : "approve", "description" : "Approves everyone" } ] )
+					)
+
+					expect( ruleBook.getRules()[ 1 ].getDescription() ).toBe( "Approves everyone" )
+				} )
+
+				it( "rejects a rule definition whose description is not a string", () => {
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+
+					expect( () => ruleBook.loadRules( new rulebox.models.InlineRuleSource( [ { "name" : "approve", "description" : [ "no" ] } ] ) ) )
+						.toThrow( "RuleBox.InvalidRuleDefinitionException" )
+					expect( ruleBook.hasRules() ).toBeFalse()
+				} )
+
+				it( "reads an envelope's description", () => {
+					var ruleBook = getInstance( "RuleBook@rulebox" ).loadRules(
+						new tests.resources.EnvelopeRuleSource( {
+							"description" : "Decides loans from a file",
+							"rules"       : [ { "name" : "approve" } ]
+						} )
+					)
+
+					expect( ruleBook.getDescription() ).toBe( "Decides loans from a file" )
+				} )
+
+				it( "rejects an envelope whose description is not a string, and adds nothing", () => {
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+
+					expect( () => ruleBook.loadRules( new tests.resources.EnvelopeRuleSource( { "description" : { "a" : 1 }, "rules" : [ { "name" : "approve" } ] } ) ) )
+						.toThrow( "RuleBox.InvalidRuleDefinitionException" )
+					expect( ruleBook.hasRules() ).toBeFalse()
+					expect( ruleBook.getDescription() ).toBe( "" )
+				} )
+
+				it( "reads the description of the harness's loanapproval rule file", () => {
+					var ruleBook = getInstance( "RuleBookRegistry@rulebox" ).getRuleBook( "loanapproval" )
+
+					expect( ruleBook.getDescription() ).notToBe( "" )
+					expect( ruleBook.getRules().filter( ( rule ) => len( rule.getDescription() ) ) ).notToBeEmpty()
+				} )
+			} )
+
+			describe( "Declared rulebooks", () => {
+
+				it( "reads a description from config, which wins over the rule file's", () => {
+					var settings = getWireBox().getInstance( dsl = "coldbox:moduleSettings:rulebox" )
+					var registry = getInstance( "RuleBookRegistry@rulebox" )
+					settings.rulebooks[ "describedInFile" ]   = "tests/resources/rules/credit-envelope.json"
+					settings.rulebooks[ "describedInConfig" ] = {
+						"source"      : "tests/resources/rules/credit-envelope.json",
+						"description" : "From config"
+					}
+					try{
+						registry.reload()
+						expect( registry.getRuleBook( "describedInFile" ).getDescription() ).toBe( "Approves credit scores of 600 or more" )
+						expect( registry.getRuleBook( "describedInConfig" ).getDescription() ).toBe( "From config" )
+					} finally{
+						structDelete( settings.rulebooks, "describedInFile" )
+						structDelete( settings.rulebooks, "describedInConfig" )
+						registry.reload()
+					}
+				} )
+
+				it( "rejects a description in config that is not a string", () => {
+					var settings = getWireBox().getInstance( dsl = "coldbox:moduleSettings:rulebox" )
+					var registry = getInstance( "RuleBookRegistry@rulebox" )
+					settings.rulebooks[ "badDescription" ] = { "source" : [ { "name" : "approve" } ], "description" : [ "no" ] }
+					try{
+						expect( () => registry.reload() ).toThrow( "RuleBox.InvalidRuleBookDeclarationException" )
+					} finally{
+						structDelete( settings.rulebooks, "badDescription" )
+						registry.reload()
+					}
+				} )
+			} )
+		} )
+	}
+
+}

@@ -85,6 +85,11 @@ class{
 	 */
 	property name="activeUntil";
 
+	/**
+	 * What this rule does, for documentation and the Rule Visualizer. Set with withDescription().
+	 */
+	property name="description" type="string";
+
 	// Static enum for valid states for rules
 	static{
 		STATES = {
@@ -105,6 +110,7 @@ class{
 		variables.factsNameMap 	= {}
 		variables.currentState 	= static.STATES.NEXT
 		variables.priority 		= 0
+		variables.description 	= ""
 
 		// Expose the static rule states enum on the instance for external access
 		this.STATES = static.STATES
@@ -269,7 +275,7 @@ class{
 	 *
 	 * @facts A structure of name-value pairs representing the facts to evaluate against
 	 *
-	 * @return A struct: { name, wouldExecute, wouldStop }
+	 * @return A struct: { name, description, wouldExecute, wouldStop }
 	 */
 	struct function dryRun( struct facts={} ){
 		// Build an evaluation-only fact set: this rule's sticky facts + the facts passed here, without
@@ -281,6 +287,7 @@ class{
 
 		return {
 			"name"         : variables.name,
+			"description"  : variables.description,
 			"wouldExecute" : wouldExecute,
 			"wouldStop"    : ( wouldExecute && variables.currentState == static.STATES.STOP )
 		}
@@ -370,6 +377,19 @@ class{
 		variables.priority = arguments.priority
 		// Already attached? Have the owning book re-derive its priority-ordered chain
 		variables.ruleBook?.relinkRules()
+		return this
+	}
+
+	/**
+	 * Describe what this rule does, for documentation and the Rule Visualizer. It has no effect on how
+	 * the rule runs.
+	 *
+	 * @description What the rule does, in a sentence or two
+	 *
+	 * @return The rule instance
+	 */
+	Rule function withDescription( required string description ){
+		variables.description = trim( arguments.description )
 		return this
 	}
 
