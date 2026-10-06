@@ -83,8 +83,8 @@ class extends="tests.resources.BaseSpec"{
 				bus.setLockTimeout( 1 );
 
 				var holderName = "ruleEventBusLockHolder_#createUUID()#";
-				thread name="#holderName#" {
-					lock name="rulebox_event_bus_subscribers" type="exclusive" timeout="5" {
+				bx:thread name="#holderName#" {
+					bx:lock name="rulebox_event_bus_subscribers" type="exclusive" timeout="5" {
 						sleep( 2500 );
 					}
 				}

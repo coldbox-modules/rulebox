@@ -131,7 +131,7 @@ class implements="IMetricsStore"{
 			return true
 		}
 		var allowed = false
-		lock name="rulebox_sqlite_store_state" type="exclusive" timeout="5"{
+		bx:lock name="rulebox_sqlite_store_state" type="exclusive" timeout="5"{
 			var now = nowMillis()
 			if( variables.circuitOpen && ( now - variables.circuitOpenedAt ) >= variables.breakerCooldownMs ){
 				// Claim the trial; others stay shut out until the next cool-down or until we close it
@@ -148,7 +148,7 @@ class implements="IMetricsStore"{
 	 * Count one failure; opens the circuit (logging ONE error) at the threshold.
 	 */
 	void function recordFailure( required string message ){
-		lock name="rulebox_sqlite_store_state" type="exclusive" timeout="5"{
+		bx:lock name="rulebox_sqlite_store_state" type="exclusive" timeout="5"{
 			variables.consecutiveFailures++
 			variables.lastError = arguments.message
 			if( variables.circuitOpen ){
@@ -173,7 +173,7 @@ class implements="IMetricsStore"{
 		if( variables.consecutiveFailures == 0 && !variables.circuitOpen ){
 			return
 		}
-		lock name="rulebox_sqlite_store_state" type="exclusive" timeout="5"{
+		bx:lock name="rulebox_sqlite_store_state" type="exclusive" timeout="5"{
 			var wasOpen = variables.circuitOpen
 			variables.consecutiveFailures = 0
 			variables.circuitOpen         = false
@@ -193,7 +193,7 @@ class implements="IMetricsStore"{
 			return false
 		}
 		var due = false
-		lock name="rulebox_sqlite_store_state" type="exclusive" timeout="5"{
+		bx:lock name="rulebox_sqlite_store_state" type="exclusive" timeout="5"{
 			variables.insertsSincePrune++
 			if( variables.insertsSincePrune >= variables.pruneEvery ){
 				variables.insertsSincePrune = 0
