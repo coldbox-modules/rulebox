@@ -14,12 +14,20 @@
 				</bx:loop>
 			</select>
 		</form>
-		<a class="btn btn-sm btn-primary" href="#prc.vizLink( 'dryrun' )#?name=#urlEncodedFormat( prc.rulebookName )#">
-			<i class="ph ph-flask"></i> Dry Run
-		</a>
+		<bx:if !prc.chainLoadError.len()>
+			<a class="btn btn-sm btn-primary" href="#prc.vizLink( 'dryrun' )#?name=#urlEncodedFormat( prc.rulebookName )#">
+				<i class="ph ph-flask"></i> Dry Run
+			</a>
+		</bx:if>
 	</div>
 </div>
 
+<bx:if prc.chainLoadError.len()>
+	<div class="alert alert-danger" role="alert">
+		<strong>This rulebook could not be loaded.</strong>
+		<bx:output>#htmlEditFormat( prc.chainLoadError )#</bx:output>
+	</div>
+<bx:else>
 <div class="d-flex flex-column gap-2">
 	<bx:loop array="#prc.chain#" index="node">
 	<bx:output>
@@ -69,4 +77,5 @@
 		<div class="text-secondary">This rulebook has no rules.</div>
 	</bx:if>
 </div>
+</bx:if>
 </bx:output>

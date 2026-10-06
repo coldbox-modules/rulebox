@@ -55,6 +55,14 @@ class extends="tests.resources.BaseSpec"{
 				expect( content ).toInclude( "conventionRule" );
 			} );
 
+			it( "renders a useful error when a rulebook references an unregistered action", function(){
+				url.name = "needsaction";
+				var content = execute( event="rulebox:visualizer.chain", renderResults=true ).getRenderedContent();
+
+				expect( content ).toInclude( "This rulebook could not be loaded." );
+				expect( content ).notToInclude( "This rulebook has no rules." );
+			} );
+
 			it( "hides the Rule Visualizer sidebar link when no rulebooks are registered", function(){
 				var settings                 = getWireBox().getInstance( dsl="coldbox:moduleSettings:rulebox" )
 				var registry                 = getInstance( "RuleBookRegistry@rulebox" )

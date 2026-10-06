@@ -120,11 +120,19 @@ class{
 		}
 
 		var store    = getMetricsStore()
-		var ruleBook = registry.getRuleBook( rc.name )
 
 		prc.rulebookName   = rc.name
 		prc.rulebookNames  = rulebookNames
-		prc.chain          = walkChain( ruleBook )
+		prc.chain          = []
+		prc.chainLoadError = ""
+
+		try{
+			var ruleBook = registry.getRuleBook( rc.name )
+			prc.chain = walkChain( ruleBook )
+		} catch( any e ){
+			prc.chainLoadError = e.message
+		}
+
 		prc.chain.each( ( node ) => {
 			node[ "metrics" ] = store.queryRuleMetrics( rc.name, node.name )
 		} )
