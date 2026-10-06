@@ -25,7 +25,7 @@
     "devDependencies":{
         "commandbox-boxlang":"*",
         "commandbox-docbox":"*",
-        "bx-sites":"^1"
+        "bx-sites":"be"
     },
     "ignore":[
         "**/.*",
