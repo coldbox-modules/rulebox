@@ -62,7 +62,7 @@ code, pre, kbd, samp {
     font-family: var(--rb-mono);
 }
 
-/* The RuleBox icon in the docs navbar: the white (mono dark) version, which reads on the navbar's gradient */
+/* The colorized RuleBox icon in the docs navbar */
 .brand-logo {
     width: auto;
     height: 34px;
