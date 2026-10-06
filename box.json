@@ -1,5 +1,5 @@
 {
-    "name":"RuleBox: A ColdBox Rules Engine",
+    "name":"RuleBox: A ColdBox Rules Engine Powered by BoxLang",
     "version":"2.0.0",
     "location":"https://downloads.ortussolutions.com/ortussolutions/coldbox-modules/rulebox/@build.version@/rulebox-@build.version@.zip",
     "author":"Ortus Solutions <info@ortussolutions.com>",
@@ -22,15 +22,10 @@
     ],
     "contributors":[],
     "dependencies":{},
-    "peerDependencies":{
-        "bx-sqlite":"*"
-    },
-    "peerDependenciesNote":"Optional. bx-sqlite is only needed if you opt in to SQLite metrics persistence for the visualizer by setting moduleSettings.rulebox.visualizer.metricsStore to SQLiteMetricsStore@rulebox. The default is InMemoryMetricsStore, which needs nothing extra.",
     "devDependencies":{
         "commandbox-boxlang":"*",
         "commandbox-docbox":"*",
-        "bx-sites":"be",
-        "bx-sqlite":"*"
+        "bx-sites":"*"
     },
     "ignore":[
         "**/.*",
