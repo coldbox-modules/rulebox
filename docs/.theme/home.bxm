@@ -254,8 +254,8 @@
 				<img class="rb-logo-dark" src="#variables.assetUrl#brand/rulebox-logo-full-dark.svg" alt="#encodeForHTML( variables.siteConfig.name )#">
 			</a>
 			<nav class="rb-navlinks" id="rb-navlinks" :class="menu && 'rb-navlinks-open'" @click.outside="menu = false" aria-label="Main">
-				<a href="#variables.basePath#getting-started/">Getting Started</a>
-				<a href="#variables.basePath#course/">Tutorial Course</a>
+				<a href="#variables.basePath#getting-started/">Docs</a>
+				<a href="#variables.basePath#course/">Course</a>
 				<a href="#variables.basePath#guides/">Guides</a>
 				<a href="#variables.basePath#guides/visualizer/">Visualizer</a>
 			</nav>
