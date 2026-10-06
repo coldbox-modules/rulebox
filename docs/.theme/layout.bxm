@@ -236,6 +236,13 @@
 
 			<!--- Main content --->
 			<main class="col-lg-9 #variables.mainContentClass# content">
+				<!--- bx-sites builds the unreleased docs (plain docs/) at /next/, labelled "Next"; the first version is the released default --->
+				<bx:if variables.currentVersion == "Next" and variables.versions.len() gt 1>
+					<div class="rb-next-banner" role="note">
+						You're reading the docs for the next, unreleased version of RuleBox. For the current release, see the
+						<a href="#bxsitesUrlAttr( variables.versions[ 1 ].url )#">#encodeForHTML( variables.versions[ 1 ].label )# docs</a>.
+					</div>
+				</bx:if>
 				<bx:include template="#variables.themeDir#/#variables.bodyFile#">
 			</main>
 

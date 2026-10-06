@@ -42,4 +42,4 @@ footer: true
 lastUpdated: true
 mermaid: true
 versions:
-    default: ""
+    default: "2.0.0"
