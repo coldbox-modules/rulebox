@@ -10,7 +10,6 @@ const OUT = path.join( __dirname, process.env.OUTDIR || "out" );
 const W = 1280, H = 800;
 const sleep = ( ms ) => new Promise( ( r ) => setTimeout( r, ms ) );
 
-const MARK = `<svg width="72" height="72" viewBox="0 0 40 40"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00BFF3"/><stop offset="1" stop-color="#00E08A"/></linearGradient></defs><rect x="3" y="3" width="34" height="34" rx="9" fill="none" stroke="url(#g)" stroke-width="3"/><path d="M11 14h14M11 20h9M11 26.5l3.2 3.2 6.6-6.6" fill="none" stroke="url(#g)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 function card( title, sub, extra = "" ){
 	return `<!doctype html><html><head><meta charset="utf-8">
@@ -35,6 +34,9 @@ p{margin:0;font-size:24px;color:#9fb0cc}
 
 const fs = require( "fs" );
 const svgData = ( f ) => "data:image/svg+xml;base64," + fs.readFileSync( path.join( __dirname, f ) ).toString( "base64" );
+
+// The RuleBox icon from the docs brand assets, on the title, outro and end cards
+const MARK = `<img src="${ svgData( "../../docs/assets/brand/rulebox-icon-full.svg" ) }" height="120" style="margin:-16px 0" alt="">`;
 
 function endScreen(){
 	const cb = svgData( "coldbox-icon-full.svg" ), bl = svgData( "boxlang-icon-full.svg" );

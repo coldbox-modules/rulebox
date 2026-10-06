@@ -54,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - BoxLang only version of the module
+- The new RuleBox logo in the Rule Visualizer: the sidebar brand and the browser tab icon
 
 ## [1.0.0] => 2018-OCT-29
 
