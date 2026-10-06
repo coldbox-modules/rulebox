@@ -18,6 +18,8 @@ extraCss:
 ogImage: "assets/video/rulebox-visualizer-intro-poster.png"
 imageGallery: true
 search: true
+mcp: true
+pageActions: true
 nav: []
 markdown:
     enableFootnotes: true
