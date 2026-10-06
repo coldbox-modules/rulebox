@@ -24,15 +24,18 @@ class extends="tests.resources.BaseSpec"{
 				prepareMock( getRequestContext() ).$( "getOriginalHTTPMethod", arguments.method );
 			}
 
-			// url.* leaks between specs, so clear what sendAs() set; and a rejected method flags the
+			// url.* leaks between specs, so clear what sendAs() and the specs set; and a rejected method flags the
 			// request context as an invalid HTTP method, which would 405 every later spec that reuses it,
 			// so each spec starts from a fresh context.
 			beforeEach( function(){
 				setup();
 			} );
 
+			// Specs set url.name/rule/facts to drive the actions; clear them so the next spec starts without them
 			afterEach( function(){
-				structDelete( url, "_method" );
+				for( var key in [ "_method", "name", "rule", "facts" ] ){
+					structDelete( url, key );
+				}
 			} );
 
 			it( "renders the dashboard with every declared rulebook, even one that fails to load", function(){
@@ -204,6 +207,44 @@ class extends="tests.resources.BaseSpec"{
 				expect( body ).toHaveKey( "error" );
 			} );
 
+			it( "runDryRun() 404s when no rulebook name is given", function(){
+				sendAs( "POST" );
+				var event = execute( event="rulebox:visualizer.runDryRun", renderResults=true );
+
+				expect( event.getRenderData().statusCode ).toBe( 404 );
+				expect( jsonDeserialize( event.getRenderedContent() ) ).toHaveKey( "error" );
+			} );
+
+			it( "chain() 404s when no rulebook name is given", function(){
+				var event = execute( event="rulebox:visualizer.chain", renderResults=true );
+
+				expect( event.getRenderData().statusCode ).toBe( 404 );
+			} );
+
+			it( "apiMetrics() returns recent events when no rulebook name is given", function(){
+				getInstance( "RuleEventBus@rulebox" ).publish( {
+					rulebookName : "testconvention",
+					ruleName     : "recentRule",
+					state        : "EXECUTED",
+					durationMs   : 1,
+					timestamp    : "2026-01-01T00:00:00.000"
+				} );
+				try{
+					var events = jsonDeserialize( execute( event="rulebox:visualizer.apiMetrics", renderResults=true ).getRenderedContent() );
+
+					expect( isArray( events ) ).toBeTrue();
+					expect( events.map( ( event ) => event.ruleName ) ).toInclude( "recentRule" );
+				} finally {
+					getInstance( "InMemoryMetricsStore@rulebox" ).reset();
+				}
+			} );
+
+			it( "apiRuleErrors() 404s when no rulebook name is given", function(){
+				var event = execute( event="rulebox:visualizer.apiRuleErrors", renderResults=true );
+
+				expect( event.getRenderData().statusCode ).toBe( 404 );
+			} );
+
 			it( "runDryRun() treats missing facts as an empty fact set", function(){
 				sendAs( "POST" );
 				url.name    = "testconvention";
@@ -306,6 +347,122 @@ class extends="tests.resources.BaseSpec"{
 
 				expect( summary ).toHaveKey( "totalEvaluations" );
 				expect( summary ).toHaveKey( "countsByState" );
+			} );
+
+			/**
+			 * Record evaluations of rules in the declared "testconvention" rulebook straight onto the bus
+			 */
+			function seedHealth(){
+				var bus = getInstance( "RuleEventBus@rulebox" );
+				var base = { rulebookName: "testconvention", durationMs: 1, timestamp: "2026-01-01T00:00:00.000" };
+				bus.publish( base.copy().append( { ruleName: "healthyRule", state: "EXECUTED" } ) );
+				bus.publish( base.copy().append( { ruleName: "slowRule", state: "EXECUTED", durationMs: 900 } ) );
+				bus.publish( base.copy().append( { ruleName: "brokenRule", state: "EXECUTED" } ) );
+				bus.publish( base.copy().append( {
+					ruleName     : "brokenRule",
+					state        : "FAILED",
+					errorType    : "TestBoom",
+					errorMessage : "<script>alert(1)</script> credit service down",
+					timestamp    : "2026-01-01T00:00:05.000"
+				} ) );
+			}
+
+			it( "lists failing rules under Problem rules, with the HTML-encoded last error, and the slowest rules", function(){
+				seedHealth();
+				try{
+					var content = execute( event="rulebox:visualizer.index", renderResults=true ).getRenderedContent();
+
+					var problems = content.mid( content.find( "rb-problem-rules" ), content.find( "rb-slowest-rules" ) - content.find( "rb-problem-rules" ) );
+					expect( problems ).toInclude( "brokenRule" );
+					expect( problems ).notToInclude( "healthyRule" );
+					expect( problems ).toInclude( "TestBoom" );
+					expect( problems ).toInclude( "50.0%" );
+					expect( problems ).toInclude( "&lt;script&gt;alert(1)&lt;/script&gt; credit service down" );
+					expect( content ).notToInclude( "<script>alert(1)" );
+
+					var slowest = content.mid( content.find( "rb-slowest-rules" ), 2000 );
+					expect( slowest.find( "slowRule" ) ).toBeGT( 0 );
+					expect( slowest.find( "slowRule" ) ).toBeLT( slowest.find( "brokenRule" ) );
+				} finally {
+					getInstance( "InMemoryMetricsStore@rulebox" ).reset();
+				}
+			} );
+
+			it( "apiMetrics() adds the health of every rule that has run", function(){
+				seedHealth();
+				try{
+					url.name = "testconvention";
+					var summary = jsonDeserialize( execute( event="rulebox:visualizer.apiMetrics", renderResults=true ).getRenderedContent() );
+
+					expect( summary.errorRate ).toBe( 0.25 );
+					expect( summary.rules ).toHaveLength( 3 );
+					var broken = summary.rules.filter( ( rule ) => rule.ruleName == "brokenRule" )[ 1 ];
+					expect( broken.errorRate ).toBe( 0.5 );
+					expect( broken.lastError.type ).toBe( "TestBoom" );
+				} finally {
+					getInstance( "InMemoryMetricsStore@rulebox" ).reset();
+					structDelete( url, "name" );
+				}
+			} );
+
+			it( "apiRuleErrors() returns a rule's distinct errors once each, with counts, causes and traces", function(){
+				var bus = getInstance( "RuleEventBus@rulebox" );
+				var failure = {
+					rulebookName       : "testconvention",
+					ruleName           : "brokenRule",
+					state              : "FAILED",
+					durationMs         : 1,
+					timestamp          : "2026-01-01T00:00:01.000",
+					errorType          : "TestBoom",
+					errorMessage       : "Kaboom",
+					errorFingerprint   : "fpHandler",
+					errorCausedBy      : [ { type: "Cause", message: "<b>why</b>" } ],
+					errorStackTrace    : [ "run() /app/Rules.bx:4" ],
+					errorRawStackTrace : "java trace"
+				};
+				try{
+					bus.publish( failure );
+					bus.publish( failure.copy().append( { timestamp: "2026-01-01T00:00:02.000" } ) );
+					url.name = "testconvention";
+					url.rule = "brokenRule";
+
+					var errors = jsonDeserialize( execute( event="rulebox:visualizer.apiRuleErrors", renderResults=true ).getRenderedContent() );
+
+					expect( errors ).toHaveLength( 1 );
+					expect( errors[ 1 ].count ).toBe( 2 );
+					expect( errors[ 1 ].lastAt ).toBe( "2026-01-01T00:00:02.000" );
+					expect( errors[ 1 ].causedBy[ 1 ].message ).toBe( "<b>why</b>" );
+					expect( errors[ 1 ].stackTrace ).toBe( [ "run() /app/Rules.bx:4" ] );
+				} finally {
+					getInstance( "InMemoryMetricsStore@rulebox" ).reset();
+					structDelete( url, "name" );
+					structDelete( url, "rule" );
+				}
+			} );
+
+			it( "apiRuleErrors() 404s for an unknown rulebook", function(){
+				url.name = "nope";
+				try{
+					var event = execute( event="rulebox:visualizer.apiRuleErrors", renderResults=true );
+
+					expect( event.getRenderData().statusCode ).toBe( 404 );
+				} finally {
+					structDelete( url, "name" );
+				}
+			} );
+
+			it( "metrics() opens the errors of the rule named in rc.rule, HTML-encoded", function(){
+				url.name = "testconvention";
+				url.rule = "<img src=x>";
+				try{
+					var content = execute( event="rulebox:visualizer.metrics", renderResults=true ).getRenderedContent();
+
+					expect( content ).toInclude( "&quot;rule&quot;:&quot;&lt;img src=x&gt;&quot;" );
+					expect( content ).notToInclude( "<img src=x>" );
+				} finally {
+					structDelete( url, "name" );
+					structDelete( url, "rule" );
+				}
 			} );
 
 			describe( "stream() connection cap", function(){

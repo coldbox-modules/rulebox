@@ -41,8 +41,18 @@
 					</div>
 					<div class="text-secondary small">
 						#numberFormat( node.metrics.totalEvaluations )# evaluations &middot;
-						avg #numberFormat( node.metrics.avgDurationMs, "0.00" )#ms
+						avg #numberFormat( node.metrics.avgDurationMs, "0.00" )#ms &middot;
+						max #numberFormat( node.metrics.maxDurationMs, "0.00" )#ms &middot;
+						<span class="#node.metrics.failed ? 'text-danger fw-medium' : ''#">#numberFormat( node.metrics.errorRate * 100, "0.0" )#% errors</span>
 					</div>
+					<bx:if node.metrics.keyExists( "lastError" )>
+						<div class="small mt-1 rb-error-text">
+							<i class="ph ph-warning-circle"></i>
+							<span class="fw-medium">#htmlEditFormat( node.metrics.lastError.type )#</span>: #htmlEditFormat( node.metrics.lastError.message )#
+							<span class="text-secondary">(#htmlEditFormat( node.metrics.lastError.at )#)</span>
+							<a class="ms-1" href="#prc.vizLink( 'metrics' )#?name=#urlEncodedFormat( prc.rulebookName )#&rule=#urlEncodedFormat( node.name )#">Show errors and stack traces</a>
+						</div>
+					</bx:if>
 				</div>
 				<div class="d-flex gap-1 flex-wrap" style="max-width: 360px">
 					<bx:loop collection="#node.metrics.countsByState#" item="state">

@@ -115,6 +115,9 @@ This is BoxLang, not Java. Write it the BoxLang way:
 - **`null`:** use the `null` keyword, never `javaCast( "null", "" )`.
 - **Elvis and safe navigation:** use `x ?: default` instead of `s.keyExists( "k" ) ? s.k : default` or `isNull( x ) ? default : x`. Use `obj?.method()` instead of an `if( !isNull( obj ) )` guard around a single call. `?:` falls back only on null or a missing key, never on `""`, `false` or `0`, and its right side runs only when needed.
 - **Truthiness and types:** BoxLang does truthy comparisons and type coercion behind the scenes. Don't add Java-style conversions or casts it already does for you.
+- **Attribute pairs mean component syntax:** whenever a statement takes attribute pairs, write it as a BoxLang component with the `bx:` prefix: `bx:lock name="x" type="exclusive" timeout="5" { ... }`, `bx:thread name="t1" { ... }`, `bx:param name="rc.name" default="";`. A component without a body ends with `;`. Never write the bare form (`lock name=...`, `param name=...`).
+- **`param`:** prefer the shorthand `param rc.name = ""`. Use `bx:param name="rc.name" default="";` only when you need its other attributes. A bare `param name="rc.name" default=""` without `;` reads as the shorthand: it declares a local `name` (default `"rc.name"`) and assigns a local `default`, so `rc.name` is never set.
+- **No backslash escapes:** BoxLang strings are literal, so `"\\"` is two backslashes. Write `"\"` for one.
 - **`static`:** constants that never change, and the defaults a module loads once, live in a `static {}` block and are read as `static.NAME`. A helper with no state is a class of `static` functions, called as `ClassName::method()`, not an instance.
 
 ### BoxLang Classes

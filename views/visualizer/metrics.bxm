@@ -2,7 +2,7 @@
 <h1 class="h3 mb-4">Metrics</h1>
 
 <div
-	x-data="rbMetrics( #htmlEditFormat( jsonSerialize( prc.rulebookNames ) )#, '#prc.vizLink( 'apiMetrics' )#' )"
+	x-data="rbMetrics( #htmlEditFormat( jsonSerialize( prc.rulebookNames ) )#, '#prc.vizLink( 'apiMetrics' )#', #htmlEditFormat( jsonSerialize( { errorsUrl: prc.vizLink( 'apiRuleErrors' ), name: prc.selectedName, rule: prc.selectedRule } ) )# )"
 	x-init="load()"
 >
 	<div class="d-flex align-items-center gap-2 mb-4">
@@ -29,15 +29,99 @@
 		</div>
 		<div class="col-sm-3">
 			<div class="card bg-body-tertiary"><div class="card-body">
-				<div class="text-secondary small">Total duration</div>
-				<div class="fs-4 fw-semibold" x-text="(summary.totalDurationMs ?? 0).toFixed(0) + 'ms'"></div>
+				<div class="text-secondary small">Completion rate</div>
+				<div class="fs-4 fw-semibold text-success" x-text="percent( summary.completionRate )"></div>
 			</div></div>
 		</div>
 		<div class="col-sm-3">
 			<div class="card bg-body-tertiary"><div class="card-body">
-				<div class="text-secondary small">States seen</div>
-				<div class="fs-4 fw-semibold" x-text="Object.keys(summary.countsByState ?? {}).length"></div>
+				<div class="text-secondary small">Error rate</div>
+				<div class="fs-4 fw-semibold" :class="summary.failed ? 'text-danger' : ''" x-text="percent( summary.errorRate )"></div>
 			</div></div>
+		</div>
+	</div>
+
+	<div class="card bg-body-tertiary mb-4">
+		<div class="card-header d-flex align-items-center gap-2">
+			<i class="ph ph-heartbeat"></i>
+			<span>Rule health</span>
+			<span class="text-secondary small ms-auto">Click a column to sort</span>
+		</div>
+		<div class="table-responsive">
+			<table class="table table-hover align-middle mb-0" id="rb-rule-health">
+				<thead>
+					<tr>
+						<template x-for="col in columns" :key="col.key">
+							<th class="text-nowrap" :class="col.numeric && 'text-end'" role="button" @click="sortBy( col.key )">
+								<span x-text="col.label"></span>
+								<i class="ph" :class="sortKey === col.key ? ( sortDesc ? 'ph-caret-down' : 'ph-caret-up' ) : ''"></i>
+							</th>
+						</template>
+						<th>Last error</th>
+					</tr>
+				</thead>
+				<!--- One tbody per rule: its row, then its errors panel (an x-for template needs a single root) --->
+				<template x-for="rule in sortedRules()" :key="rule.ruleName">
+					<tbody class="border-top-0">
+						<tr :class="rule.failed && 'rb-row-failed'">
+							<td class="fw-medium" x-text="rule.ruleName"></td>
+							<td class="text-end" x-text="rule.totalEvaluations"></td>
+							<td class="text-end text-success" x-text="percent( rule.completionRate )"></td>
+							<td class="text-end" :class="rule.failed ? 'text-danger fw-medium' : 'text-secondary'" x-text="percent( rule.errorRate )"></td>
+							<td class="text-end" x-text="ms( rule.avgDurationMs )"></td>
+							<td class="text-end text-secondary" x-text="ms( rule.maxDurationMs )"></td>
+							<td class="small">
+								<template x-if="rule.lastError">
+									<div style="max-width: 260px">
+										<div class="fw-medium rb-error-text text-truncate" :title="rule.lastError.type" x-text="rule.lastError.type"></div>
+										<div class="text-secondary text-truncate" :title="rule.lastError.message" x-text="rule.lastError.message"></div>
+										<div class="text-secondary" style="font-size:.7rem" x-text="rule.lastError.at"></div>
+										<button type="button" class="btn btn-link btn-sm p-0 mt-1 rb-errors-toggle" @click="toggleErrors( rule.ruleName )">
+											<i class="ph" :class="openRule === rule.ruleName ? 'ph-caret-up' : 'ph-caret-down'"></i>
+											<span x-text="openRule === rule.ruleName ? 'Hide errors' : 'Show errors'"></span>
+										</button>
+									</div>
+								</template>
+							</td>
+						</tr>
+						<template x-if="openRule === rule.ruleName">
+						<tr>
+							<td colspan="7" class="rb-errors-cell">
+								<div class="text-secondary small py-2" x-show="errorsLoading">Loading errors&hellip;</div>
+								<template x-for="err in errors" :key="err.fingerprint">
+									<div class="rb-error-card">
+										<div class="d-flex align-items-start gap-2 flex-wrap">
+											<span class="fw-medium rb-error-text" x-text="err.type"></span>
+											<span class="badge border rb-badge-FAILED" x-text="err.count + ( err.count === 1 ? ' time' : ' times' )"></span>
+											<span class="text-secondary small ms-auto" x-text="'first ' + err.firstAt + ' · last ' + err.lastAt"></span>
+										</div>
+										<div class="small mb-2" x-text="err.message"></div>
+										<template x-for="( cause, depth ) in err.causedBy" :key="depth">
+											<div class="small rb-cause" :style="'margin-left:' + ( depth * 12 ) + 'px'">
+												<span class="text-secondary">Caused by</span>
+												<span class="fw-medium rb-error-text" x-text="cause.type"></span>:
+												<span x-text="cause.message"></span>
+											</div>
+										</template>
+										<pre class="rb-trace" x-show="err.stackTrace.length" x-text="err.stackTrace.map( ( frame ) => 'at ' + frame ).join( '\n' )"></pre>
+										<details x-show="err.rawStackTrace">
+											<summary class="small text-secondary">Raw Java stack trace</summary>
+											<pre class="rb-trace rb-trace-raw" x-text="err.rawStackTrace"></pre>
+										</details>
+									</div>
+								</template>
+								<div class="text-secondary small py-2" x-show="!errorsLoading && !errors.length">No error details recorded for this rule.</div>
+							</td>
+						</tr>
+						</template>
+					</tbody>
+				</template>
+				<tbody x-show="!( summary.rules ?? [] ).length">
+					<tr>
+						<td colspan="7" class="text-secondary text-center py-4">No rule has run yet in this rulebook.</td>
+					</tr>
+				</tbody>
+			</table>
 		</div>
 	</div>
 
@@ -63,15 +147,63 @@
 </div>
 
 <script>
-	function rbMetrics( rulebookNames, apiUrl ){
+	function rbMetrics( rulebookNames, apiUrl, options ){
 		return {
 			rulebookNames,
-			rulebookName: rulebookNames[ 0 ] ?? '',
+			rulebookName: options.name || ( rulebookNames[ 0 ] ?? '' ),
 			summary: {},
+			openRule: '',
+			errors: [],
+			errorsLoading: false,
+			sortKey: 'errorRate',
+			sortDesc: true,
+			columns: [
+				{ key: 'ruleName', label: 'Rule', numeric: false },
+				{ key: 'totalEvaluations', label: 'Evaluations', numeric: true },
+				{ key: 'completionRate', label: 'Completion', numeric: true },
+				{ key: 'errorRate', label: 'Error rate', numeric: true },
+				{ key: 'avgDurationMs', label: 'Avg', numeric: true },
+				{ key: 'maxDurationMs', label: 'Max', numeric: true }
+			],
+			percent( rate ){ return ( ( rate ?? 0 ) * 100 ).toFixed( 1 ) + '%' },
+			ms( value ){ return Number( value ?? 0 ).toFixed( 2 ) + 'ms' },
+			sortBy( key ){
+				this.sortDesc = this.sortKey === key ? !this.sortDesc : key !== 'ruleName'
+				this.sortKey = key
+			},
+			// Ties fall back to the slowest average first, so the worst rules stay on top
+			sortedRules(){
+				const key = this.sortKey, dir = this.sortDesc ? -1 : 1
+				return [ ...( this.summary.rules ?? [] ) ].sort( ( a, b ) => {
+					if( a[ key ] < b[ key ] ) return -dir
+					if( a[ key ] > b[ key ] ) return dir
+					return b.avgDurationMs - a.avgDurationMs
+				} )
+			},
+			// Each distinct error once, with its count, causes and trimmed traces (apiRuleErrors)
+			async toggleErrors( ruleName ){
+				if( this.openRule === ruleName ){
+					this.openRule = ''
+					return
+				}
+				this.openRule = ruleName
+				this.errors = []
+				this.errorsLoading = true
+				const res = await fetch( options.errorsUrl + '?name=' + encodeURIComponent( this.rulebookName ) + '&rule=' + encodeURIComponent( ruleName ) )
+				this.errors = res.ok ? await res.json() : []
+				this.errorsLoading = false
+			},
 			async load(){
 				if( !this.rulebookName ) return
+				this.openRule = ''
 				const res = await fetch( apiUrl + '?name=' + encodeURIComponent( this.rulebookName ) )
 				this.summary = res.ok ? await res.json() : {}
+				// Opened from a link with ?rule=: show that rule's errors once
+				if( options.rule ){
+					const rule = options.rule
+					options.rule = ''
+					await this.toggleErrors( rule )
+				}
 			}
 		}
 	}

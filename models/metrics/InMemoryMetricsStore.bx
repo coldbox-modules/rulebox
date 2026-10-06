@@ -24,7 +24,8 @@ class implements="IMetricsStore"{
 	 * Exact running aggregates, keyed by rulebook name. Updated on every recordEvent() and never evicted,
 	 * so summaries stay correct no matter how many events have rolled out of the feed. Each value is
 	 * { totals, rules } where totals and rules[ ruleName ] share the shape
-	 * { totalEvaluations, countsByState, totalDurationMs, minDurationMs, maxDurationMs, lastRunAt }.
+	 * { totalEvaluations, countsByState, totalDurationMs, minDurationMs, maxDurationMs, lastRunAt }. A rule's
+	 * aggregate also keeps lastError and errors, its distinct errors (see RuleHealth::foldError()).
 	 */
 	property name="aggregatesByRulebook" type="struct";
 
@@ -40,6 +41,13 @@ class implements="IMetricsStore"{
 	property name="sequence" type="numeric";
 
 	/**
+	 * Fields of a FAILED event that are kept once per distinct error, never in the event feed
+	 */
+	static {
+		ERROR_DETAIL_FIELDS = [ "errorCausedBy", "errorStackTrace", "errorRawStackTrace" ]
+	}
+
+	/**
 	 * Constructor: an empty store
 	 *
 	 * @return This store
@@ -53,14 +61,19 @@ class implements="IMetricsStore"{
 
 	/**
 	 * Persist one rule-evaluation event: append it to its rulebook's feed (capped at
-	 * maxEventsPerRulebook) and fold it into the running aggregates.
+	 * maxEventsPerRulebook) and fold it into the running aggregates. A FAILED event's error is stored
+	 * once per distinct error in the rule's aggregate; the feed keeps only its type, message and
+	 * fingerprint, never another copy of the stack trace.
 	 *
-	 * @event { rulebookName, ruleName, state, durationMs, timestamp }
+	 * @event { rulebookName, ruleName, state, durationMs, timestamp }, plus the error fields on FAILED
 	 */
 	void function recordEvent( required struct event ){
 		lock name="rulebox_inmemory_metrics" type="exclusive" timeout="5"{
 			var rulebookName = arguments.event.rulebookName
 			var stored = arguments.event.copy()
+			for( var heavy in static.ERROR_DETAIL_FIELDS ){
+				stored.delete( heavy )
+			}
 
 			// Recent-activity feed, bounded per rulebook
 			variables.sequence++
@@ -83,6 +96,9 @@ class implements="IMetricsStore"{
 			}
 			accumulate( aggregates.totals, stored )
 			accumulate( aggregates.rules[ stored.ruleName ], stored )
+			if( stored.state == "FAILED" && stored.keyExists( "errorFingerprint" ) ){
+				RuleHealth::foldError( aggregates.rules[ stored.ruleName ].errors, errorOfEvent( arguments.event ), stored.timestamp )
+			}
 		}
 	}
 
@@ -123,7 +139,8 @@ class implements="IMetricsStore"{
 	 *
 	 * @rulebookName The rulebook to summarize
 	 *
-	 * @return { rulebookName, totalEvaluations, countsByState, avgDurationMs, totalDurationMs }
+	 * @return { rulebookName, totalEvaluations, countsByState, avgDurationMs, totalDurationMs,
+	 *         completed, failed, completionRate, errorRate }
 	 */
 	struct function queryRuleBookSummary( required string rulebookName ){
 		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
@@ -140,22 +157,47 @@ class implements="IMetricsStore"{
 	 * @rulebookName The rule's owning rulebook
 	 * @ruleName The rule to summarize
 	 *
-	 * @return { rulebookName, ruleName, totalEvaluations, countsByState, avgDurationMs, minDurationMs, maxDurationMs, lastRunAt }
+	 * @return { rulebookName, ruleName, totalEvaluations, countsByState, avgDurationMs, minDurationMs, maxDurationMs,
+	 *         lastRunAt, completed, failed, completionRate, errorRate, lastError? }
 	 */
 	struct function queryRuleMetrics( required string rulebookName, required string ruleName ){
 		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
-			var aggregate = newAggregate()
-			if(
-				variables.aggregatesByRulebook.keyExists( arguments.rulebookName )
-				&& variables.aggregatesByRulebook[ arguments.rulebookName ].rules.keyExists( arguments.ruleName )
-			){
-				aggregate = variables.aggregatesByRulebook[ arguments.rulebookName ].rules[ arguments.ruleName ]
+			var aggregate = variables.aggregatesByRulebook[ arguments.rulebookName ].rules[ arguments.ruleName ] ?: newAggregate()
+			return ruleSummary( arguments.rulebookName, arguments.ruleName, aggregate )
+		}
+	}
+
+	/**
+	 * Aggregated stats for every rule of a rulebook that has at least one recorded event.
+	 *
+	 * @rulebookName The rulebook whose rules to summarize
+	 *
+	 * @return An array of queryRuleMetrics() structs, one per rule
+	 */
+	array function queryAllRuleMetrics( required string rulebookName ){
+		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
+			var rules = variables.aggregatesByRulebook[ arguments.rulebookName ].rules ?: {}
+			var list  = []
+			for( var ruleName, aggregate in rules ){
+				list.append( ruleSummary( arguments.rulebookName, ruleName, aggregate ) )
 			}
-			var summary = summarize( aggregate, { rulebookName: arguments.rulebookName, ruleName: arguments.ruleName } )
-			summary[ "minDurationMs" ] = aggregate.minDurationMs
-			summary[ "maxDurationMs" ] = aggregate.maxDurationMs
-			summary[ "lastRunAt" ]     = aggregate.lastRunAt
-			return summary
+			return list
+		}
+	}
+
+	/**
+	 * A rule's distinct errors, most recently seen first. Each is stored once with a count.
+	 *
+	 * @rulebookName The rule's owning rulebook
+	 * @ruleName The rule
+	 * @limit Max errors to return
+	 *
+	 * @return An array of { fingerprint, type, message, causedBy, stackTrace, rawStackTrace, count, firstAt, lastAt }
+	 */
+	array function queryRuleErrors( required string rulebookName, required string ruleName, numeric limit=10 ){
+		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
+			var errors = variables.aggregatesByRulebook[ arguments.rulebookName ].rules[ arguments.ruleName ].errors ?: []
+			return duplicate( errors.len() > arguments.limit ? errors.slice( 1, arguments.limit ) : errors )
 		}
 	}
 
@@ -190,7 +232,8 @@ class implements="IMetricsStore"{
 			totalDurationMs  : 0,
 			minDurationMs    : 0,
 			maxDurationMs    : 0,
-			lastRunAt        : ""
+			lastRunAt        : "",
+			errors           : []
 		}
 	}
 
@@ -212,6 +255,32 @@ class implements="IMetricsStore"{
 		agg.totalDurationMs += duration
 		agg.countsByState[ state ] = ( agg.countsByState[ state ] ?: 0 ) + 1
 		agg.lastRunAt = arguments.event.timestamp
+		if( state == "FAILED" && arguments.event.keyExists( "errorType" ) ){
+			agg.lastError = {
+				"type"        : arguments.event.errorType,
+				"message"     : arguments.event.errorMessage ?: "",
+				"at"          : arguments.event.timestamp,
+				"fingerprint" : arguments.event.errorFingerprint ?: ""
+			}
+		}
+	}
+
+	/**
+	 * Rebuild a RuleHealth::errorOf() struct from a FAILED event's error fields
+	 *
+	 * @event The FAILED event
+	 *
+	 * @return { fingerprint, type, message, causedBy, stackTrace, rawStackTrace }
+	 */
+	private struct function errorOfEvent( required struct event ){
+		return {
+			"fingerprint"   : arguments.event.errorFingerprint,
+			"type"          : arguments.event.errorType ?: "",
+			"message"       : arguments.event.errorMessage ?: "",
+			"causedBy"      : duplicate( arguments.event.errorCausedBy ?: [] ),
+			"stackTrace"    : duplicate( arguments.event.errorStackTrace ?: [] ),
+			"rawStackTrace" : arguments.event.errorRawStackTrace ?: ""
+		}
 	}
 
 	/**
@@ -224,15 +293,40 @@ class implements="IMetricsStore"{
 	}
 
 	/**
-	 * Shared shaping for queryRuleBookSummary()/queryRuleMetrics(): counts, total/avg duration.
-	 * Copies countsByState so callers can't mutate the live aggregate.
+	 * Shared shaping for queryRuleBookSummary() and the rule summaries: counts, total and average
+	 * duration, and the RuleHealth figures. Copies countsByState so callers can't mutate the live aggregate.
+	 *
+	 * @aggregate The running aggregate to summarize
+	 * @identity The keys that name what is summarized ({ rulebookName } or { rulebookName, ruleName })
+	 *
+	 * @return The summary struct
 	 */
 	private struct function summarize( required struct aggregate, required struct identity ){
 		var summary = arguments.identity.copy()
 		summary[ "totalEvaluations" ] = arguments.aggregate.totalEvaluations
 		summary[ "countsByState" ]    = arguments.aggregate.countsByState.copy()
 		summary[ "totalDurationMs" ]  = arguments.aggregate.totalDurationMs
-		summary[ "avgDurationMs" ]    = arguments.aggregate.totalEvaluations == 0 ? 0 : arguments.aggregate.totalDurationMs / arguments.aggregate.totalEvaluations
+		summary.append( RuleHealth::of( arguments.aggregate.countsByState, arguments.aggregate.totalEvaluations, arguments.aggregate.totalDurationMs ) )
+		return summary
+	}
+
+	/**
+	 * One rule's summary: summarize() plus its min/max duration, last run and last error.
+	 *
+	 * @rulebookName The rule's owning rulebook
+	 * @ruleName The rule
+	 * @aggregate The rule's running aggregate
+	 *
+	 * @return A queryRuleMetrics() struct
+	 */
+	private struct function ruleSummary( required string rulebookName, required string ruleName, required struct aggregate ){
+		var summary = summarize( arguments.aggregate, { rulebookName: arguments.rulebookName, ruleName: arguments.ruleName } )
+		summary[ "minDurationMs" ] = arguments.aggregate.minDurationMs
+		summary[ "maxDurationMs" ] = arguments.aggregate.maxDurationMs
+		summary[ "lastRunAt" ]     = arguments.aggregate.lastRunAt
+		if( arguments.aggregate.keyExists( "lastError" ) ){
+			summary[ "lastError" ] = arguments.aggregate.lastError.copy()
+		}
 		return summary
 	}
 

@@ -40,6 +40,17 @@
 		.rb-badge-SKIPPED, .rb-badge-REGISTERED, .rb-badge-NOT_AVAILABLE{ color: var(--rb-state-skipped); border-color: var(--rb-state-skipped); }
 		.rb-badge-STOPPED{ color: var(--rb-state-stopped); border-color: var(--rb-state-stopped); }
 		.rb-badge-FAILED{ color: var(--rb-state-failed); border-color: var(--rb-state-failed); }
+		.rb-error-text{ color: var(--rb-state-failed); }
+		.rb-row-failed{ --bs-table-bg-state: rgba(220, 38, 38, .12); }
+		.rb-row-failed > td:first-child{ border-left: 3px solid var(--rb-state-failed); }
+		.rb-errors-cell{ background: rgba(0, 0, 0, .18); }
+		/* width: 0 + min-width: 100% fills the row without letting a long trace widen the table */
+		.rb-error-card{ width: 0; min-width: 100%; box-sizing: border-box; padding: .75rem 1rem; border-left: 3px solid var(--rb-state-failed); margin: .25rem 0 .5rem; background: var(--bs-body-bg); border-radius: .375rem; font-family: var(--bs-body-font-family); }
+		.rb-error-card + .rb-error-card{ margin-top: .75rem; }
+		.rb-cause{ margin-bottom: .25rem; }
+		.rb-trace{ margin: .5rem 0 0; padding: .5rem .75rem; max-height: 16rem; overflow: auto; font-size: .75rem; line-height: 1.5; white-space: pre; background: rgba(0, 0, 0, .3); border-radius: .375rem; }
+		.rb-trace-raw{ color: var(--bs-secondary-color); }
+		.rb-errors-toggle{ font-size: .75rem; text-decoration: none; }
 	</style>
 </head>
 <body>
@@ -88,7 +99,8 @@
 				</div>
 			</div>
 		</nav>
-		<main class="flex-grow-1 p-4">
+		<!--- min-width: 0 lets a wide table scroll inside its card instead of widening the page --->
+		<main class="flex-grow-1 p-4" style="min-width: 0">
 			#renderView()#
 		</main>
 	</div>

@@ -35,6 +35,9 @@ Both loop variables are function-local, with or without `var`. Keep a classic `f
 - Use elvis for defaults: `s.k ?: default`, not `s.keyExists( "k" ) ? s.k : default` or `isNull( x ) ? default : x`. `?:` falls back only on null or a missing key (deep paths included), never on `""`, `false` or `0`, and its right side runs only when needed.
 - Use safe navigation for a single call on something that may be null: `obj?.method()`, not `if( !isNull( obj ) ){ obj.method() }`.
 - BoxLang does truthy comparisons and type coercion behind the scenes. Don't add Java-style conversions or casts it already does.
+- Attribute pairs mean component syntax: write `bx:lock name="x" type="exclusive" timeout="5" { ... }`, `bx:thread name="t1" { ... }`, `bx:param name="rc.name" default="";`, never the bare `lock name=...` or `param name=...`. A component without a body ends with `;`.
+- Prefer the `param` shorthand, `param rc.name = ""`. A bare `param name="rc.name" default=""` without `;` reads as the shorthand (a local `name` and a local `default`), so `rc.name` is never set.
+- Strings have no backslash escapes: `"\\"` is two backslashes, `"\"` is one.
 
 ## Static
 
@@ -95,3 +98,4 @@ class{
 7. Defaults use `?:` and single guarded calls use `?.`.
 8. Properties come before any `static {}` block.
 9. Every method has a docblock.
+10. Statements with attribute pairs use `bx:` component syntax (`bx:lock`, `bx:thread`, `bx:param ...;`), and `param` prefers the shorthand.
