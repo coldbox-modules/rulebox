@@ -52,7 +52,7 @@ Restart your app, then open:
 </figure>
 
 ::: image-gallery columns="3"
-::: image src="../assets/visualizer/dashboard.png" alt="The Dashboard: totals, Problem rules and Slowest rules panels, a table of every rulebook with its outcomes, and a recent activity feed" caption="Dashboard"
+::: image src="../assets/visualizer/dashboard.png" alt="The Dashboard: totals, Problem rules and Slowest rules panels, a table of every rulebook with its description and outcomes, and a recent activity feed" caption="Dashboard"
 :::
 ::: image src="../assets/visualizer/chain-loanapproval.png" alt="The chain view for a rulebook: the facts it declares, then its rules with priority badges, a stops-chain marker and per-rule outcome counts" caption="Rule Visualizer"
 :::
@@ -74,14 +74,18 @@ rules** lists the rules that fail most and **Slowest rules** the ones that take
 longest, so you know where to look first.
 
 **Rule Visualizer.** Click **View chain** on a rulebook to see its rules in
-the order they really run, with their priorities and which ones stop the
-chain. This is lesson 4 as a picture. If the rulebook declares its facts
-(lesson 3), they are listed above the rules.
+the order they really run, with their priorities, their descriptions and
+which ones stop the chain. This is lesson 4 as a picture. The rulebook's
+description sits under its name, and if it declares its facts (lesson 3),
+they are listed above the rules, with a badge that says whether they are
+enforced.
 
-**Dry Run.** Pick a rulebook, type facts as JSON, such as
-`{ "creditScore": 640 }`, and press **Run dry run**. It is `dryRun()` from
-lesson 5 with a button. Nothing is executed or recorded. A rulebook that
-declares its facts gets a form instead, with a field for each fact.
+**Dry Run.** Pick a rulebook, fill in its facts, and press **Run dry run**.
+It is `dryRun()` from lesson 5 with a button. Nothing is executed or
+recorded. A rulebook that declares its facts gets a form, with a field for
+each fact; switch to **JSON** to type them as `{ "creditScore": 640 }`
+instead. If the rulebook enforces its facts, leave out a required one and
+the problem shows next to its field.
 
 **Metrics.** Totals and averages per rulebook, gathered across every run, not
 just one RuleBook instance. The **Rule health** table shows each rule's

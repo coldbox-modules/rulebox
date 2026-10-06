@@ -58,6 +58,7 @@ which rules fired, skipped, stopped, or failed.
 - [Tutorial Course](course/index.md) - learn RuleBox in ten short lessons by building a loan decision
 - [Defining RuleBooks](guides/defining-rulebooks.md) - your first rules
 - [The RuleBook DSL](guides/the-dsl.md) - `given`/`when`/`except`/`then`/`using`/`stop`
+- [Declaring Facts](guides/declaring-facts.md) - say which facts a rulebook takes, and enforce them
 - [External Rules](guides/external-rules.md) - load rules from JSON, YAML, or a database
 - [A Complex Example](guides/complex-example.md) - a full, real-world walkthrough
 - [Rule Visualizer](guides/visualizer.md) - an admin UI to browse rulebooks, dry-run them, and watch metrics

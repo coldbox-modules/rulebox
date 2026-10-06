@@ -124,7 +124,7 @@ async function traffic( n ){
 	} );
 	// Load every screen once in a throwaway tab, so the cache above is full before recording starts
 	const warm = await context.newPage();
-	for( const a of [ "index", "chain?name=fraudcheck", "dryrun", "metrics", "live" ] ){
+	for( const a of [ "index", "chain?name=fraudcheck", "chain?name=loanapproval", "dryrun?name=loanapproval", "metrics", "live" ] ){
 		await warm.goto( a === "index" ? VIZ : VIZ + "/" + a, { waitUntil: "networkidle", timeout: 90000 } ).catch( () => {} );
 	}
 	await warm.setContent( card( "warm", "warm" ), { waitUntil: "networkidle", timeout: 90000 } ).catch( () => {} );
@@ -167,28 +167,45 @@ async function traffic( n ){
 	await glide( page, page.locator( ".card", { hasText: "callFraudService" } ).first() );
 	await sleep( 2600 );
 
-	// 4. Dry run
-	const dryLink = page.getByRole( "link", { name: /dry run/i } ).first();
+	// 4. A rulebook that describes itself and declares the facts it takes
+	const bookSelect = page.locator( 'select[name="name"]' ).first();
+	await glide( page, bookSelect );
+	await Promise.all( [ page.waitForNavigation( { waitUntil: "load" } ), bookSelect.selectOption( "loanapproval" ) ] );
+	await caption( page, "Facts and descriptions", "A rulebook can describe itself and declare the facts it takes" );
+	await sleep( 1400 );
+	await glide( page, page.locator( ".rb-facts-table tbody tr" ).first() );
+	await sleep( 1200 );
+	await glide( page, page.locator( ".rb-facts-table tbody tr" ).nth( 2 ) );
+	await sleep( 1600 );
+
+	// 5. Dry run, with a form built from those facts
+	const dryLink = page.locator( "a.btn", { hasText: /dry run/i } ).first();
 	await glide( page, dryLink );
 	await dryLink.click();
 	await page.waitForLoadState( "load" );
-	await caption( page, "Dry Run", "Try any facts. Nothing executes, nothing is recorded." );
-	const select = page.locator( 'select[x-model="rulebookName"]' ).first();
-	await glide( page, select );
-	await select.selectOption( "loanapproval" );
-	await sleep( 600 );
-	const facts = page.locator( 'textarea[x-model="factsText"]' ).first();
-	await glide( page, facts );
-	await facts.click();
-	await facts.fill( "" );
-	await facts.pressSequentially( '{ "creditScore": 640 }', { delay: 70 } );
-	await sleep( 500 );
-	const runBtn = page.locator( "button", { hasText: /run/i } ).first();
+	await page.locator( "#fact-creditScore" ).waitFor( { timeout: 15000 } );
+	await caption( page, "Dry Run", "A form built from the declared facts. Nothing executes, nothing is recorded." );
+	const score = page.locator( "#fact-creditScore" );
+	await glide( page, score );
+	await score.click();
+	await score.fill( "" );
+	await score.pressSequentially( "640", { delay: 110 } );
+	await sleep( 400 );
+	const runBtn = page.locator( "button", { hasText: /run dry run/i } ).first();
 	await glide( page, runBtn );
 	await runBtn.click();
-	await sleep( 3000 );
+	await sleep( 2600 );
+	// The rulebook enforces its facts: leave out the required one and the run is rejected
+	await glide( page, score );
+	await score.click();
+	await score.fill( "" );
+	await sleep( 300 );
+	await glide( page, runBtn );
+	await runBtn.click();
+	await caption( page, "Enforced facts", "A missing or invalid fact is rejected before any rule runs" );
+	await sleep( 2800 );
 
-	// 5. Metrics: rule health, sorting, then one rule's errors and stack traces
+	// 6. Metrics: rule health, sorting, then one rule's errors and stack traces
 	const metricsLink = page.getByRole( "link", { name: /metrics/i } ).first();
 	await glide( page, metricsLink );
 	await metricsLink.click();
@@ -219,7 +236,7 @@ async function traffic( n ){
 	await raw.click();
 	await sleep( 2200 );
 
-	// 6. Live tracker, with traffic flowing; open a failed evaluation
+	// 7. Live tracker, with traffic flowing; open a failed evaluation
 	const liveLink = page.getByRole( "link", { name: /live/i } ).first();
 	await glide( page, liveLink );
 	await liveLink.click();
@@ -245,12 +262,12 @@ async function traffic( n ){
 	await sleep( 3200 );
 	mark( "tourEnd" );
 
-	// 7. Outro (marks go after setContent: a card is only on screen once it has loaded)
+	// 8. Outro (marks go after setContent: a card is only on screen once it has loaded)
 	await page.setContent( card( 'Turn it on in <span class="grad">one setting</span>', "visualizer = { enabled = true }", '<div class="chip"><span style="color:#2bf59a">$</span> box install rulebox</div>' ), { waitUntil: "load", timeout: 20000 } );
 	mark( "outro" );
 	await sleep( 3500 );
 
-	// 8. End screen
+	// 9. End screen
 	await page.setContent( endScreen(), { waitUntil: "load", timeout: 20000 } );
 	mark( "end" );
 	await sleep( 6000 );

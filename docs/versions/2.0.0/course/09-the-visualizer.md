@@ -46,23 +46,23 @@ Restart your app, then open:
 ## A tour
 
 <figure class="rb-video">
-<video controls preload="metadata" playsinline poster="../../assets/video/rulebox-visualizer-intro-poster.png" aria-label="A one-minute tour of the RuleBox Visualizer">
-<source src="../../assets/video/rulebox-visualizer-intro.mp4" type="video/mp4">
+<video controls preload="metadata" playsinline poster="../../assets/video/2.0.0/rulebox-visualizer-intro-poster.png" aria-label="A one-minute tour of the RuleBox Visualizer">
+<source src="../../assets/video/2.0.0/rulebox-visualizer-intro.mp4" type="video/mp4">
 </video>
 </figure>
 
 ::: image-gallery columns="3"
-::: image src="../assets/visualizer/dashboard.png" alt="The Dashboard: totals, Problem rules and Slowest rules panels, a table of every rulebook with its outcomes, and a recent activity feed" caption="Dashboard"
+::: image src="../assets/visualizer/2.0.0/dashboard.png" alt="The Dashboard: totals, Problem rules and Slowest rules panels, a table of every rulebook with its outcomes, and a recent activity feed" caption="Dashboard"
 :::
-::: image src="../assets/visualizer/chain-loanapproval.png" alt="The chain view for a rulebook, showing priority badges, a stops-chain marker and per-rule outcome counts" caption="Rule Visualizer"
+::: image src="../assets/visualizer/2.0.0/chain-loanapproval.png" alt="The chain view for a rulebook, showing priority badges, a stops-chain marker and per-rule outcome counts" caption="Rule Visualizer"
 :::
-::: image src="../assets/visualizer/dryrun.png" alt="The Dry Run screen: facts as JSON on the left, which rules would execute on the right" caption="Dry Run"
+::: image src="../assets/visualizer/2.0.0/dryrun.png" alt="The Dry Run screen: facts as JSON on the left, which rules would execute on the right" caption="Dry Run"
 :::
-::: image src="../assets/visualizer/metrics.png" alt="The Metrics screen: evaluation count, average duration, completion and error rates, a rule health table and outcomes by state" caption="Metrics"
+::: image src="../assets/visualizer/2.0.0/metrics.png" alt="The Metrics screen: evaluation count, average duration, completion and error rates, a rule health table and outcomes by state" caption="Metrics"
 :::
-::: image src="../assets/visualizer/metrics-errors.png" alt="A failing rule's errors: each distinct error once, with how many times it happened, what caused it and where it was thrown" caption="Errors and stack traces"
+::: image src="../assets/visualizer/2.0.0/metrics-errors.png" alt="A failing rule's errors: each distinct error once, with how many times it happened, what caused it and where it was thrown" caption="Errors and stack traces"
 :::
-::: image src="../assets/visualizer/live.png" alt="The Live Tracker: rule evaluations streaming in as they run, with a failed one opened to show why it failed" caption="Live Tracker"
+::: image src="../assets/visualizer/2.0.0/live.png" alt="The Live Tracker: rule evaluations streaming in as they run, with a failed one opened to show why it failed" caption="Live Tracker"
 :::
 :::
 

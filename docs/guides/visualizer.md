@@ -80,13 +80,13 @@ A one-minute tour of every screen, including rule health, errors and stack trace
 Click any screenshot to enlarge it:
 
 ::: image-gallery columns="3"
-::: image src="../assets/visualizer/dashboard.png" alt="The Dashboard: totals, Problem rules and Slowest rules panels, a table of every rulebook with its outcomes and error rate, and a recent activity feed" caption="Dashboard"
+::: image src="../assets/visualizer/dashboard.png" alt="The Dashboard: totals, Problem rules and Slowest rules panels, a table of every rulebook with its description, outcomes and error rate, and a recent activity feed" caption="Dashboard"
 :::
 ::: image src="../assets/visualizer/chain-loanapproval.png" alt="The chain view for the loanapproval rulebook: a Facts panel listing its four declared facts with type, required, default and description, then its rules with priority badges, a stops-chain marker and per-rule outcome counts" caption="Rule Visualizer (chain view)"
 :::
-::: image src="../assets/visualizer/chain-fraudcheck.png" alt="The chain view for fraudcheck: each rule's evaluations, average and maximum duration and error rate, with callFraudService failing 34% of the time and showing its last error" caption="Chain view with a failing rule"
+::: image src="../assets/visualizer/chain-fraudcheck.png" alt="The chain view for fraudcheck: the rulebook's description, then each rule's description, evaluations, average and maximum duration and error rate, with callFraudService failing and showing its last error" caption="Chain view with a failing rule"
 :::
-::: image src="../assets/visualizer/chain-seasonalpromo.png" alt="The chain view for seasonalpromo, showing active windows on two rules" caption="Chain view with active windows"
+::: image src="../assets/visualizer/chain-seasonalpromo.png" alt="The chain view for seasonalpromo, showing rule descriptions and active windows on two rules" caption="Chain view with active windows"
 :::
 ::: image src="../assets/visualizer/dryrun.png" alt="The Dry Run playground: a form built from the rulebook's declared facts on the left, which rules would execute on the right" caption="Dry Run"
 :::
