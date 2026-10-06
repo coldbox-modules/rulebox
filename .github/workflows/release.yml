@@ -43,7 +43,7 @@ jobs:
       - name: Setup CommandBox
         uses: ortus-boxlang/setup-boxlang@1.5.0
         with:
-          with-commandbox: true
+          modules: bx-cli
           forgeboxAPIKey: ${{ secrets.FORGEBOX_TOKEN }}
 
       - name: Setup Java
@@ -187,7 +187,7 @@ jobs:
       - name: Setup CommandBox
         uses: ortus-boxlang/setup-boxlang@1.5.0
         with:
-          with-commandbox: true
+          modules: bx-cli
           forgeboxAPIKey: ${{ secrets.FORGEBOX_TOKEN }}
 
       - name: Download build artifacts
