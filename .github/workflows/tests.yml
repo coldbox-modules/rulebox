@@ -54,6 +54,25 @@ jobs:
         with:
           modules: bx-cli
 
+      # On its first run CommandBox installs its own modules (commandbox-cfconfig and the packages it needs).
+      # A dropped download there does not fail the run, but it leaves a module half-installed, and every
+      # later box command then fails with 'Command "testbox run ..." cannot be resolved'. So do that first
+      # run here, check the testbox command resolves, and start over from a clean CommandBox home if not.
+      - name: Warm Up CommandBox
+        run: |
+          for attempt in 1 2 3; do
+            box version || true
+            out=$( box testbox run help 2>&1 || true )
+            if ! grep -qE "cannot be resolved|failed to load" <<< "$out"; then
+              exit 0
+            fi
+            echo "$out"
+            echo "::warning::CommandBox did not finish installing its modules (attempt $attempt), retrying from a clean CommandBox home"
+            rm -rf "$HOME/.CommandBox"
+          done
+          echo "::error::CommandBox could not install its modules after 3 attempts"
+          exit 1
+
       - name: Install Dependencies
         run: |
           box install
