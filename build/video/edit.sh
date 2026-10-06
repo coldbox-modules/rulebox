@@ -20,10 +20,10 @@ TOUR_SPEED="${TOUR_SPEED:-1.1}"
 
 # start:end:speed, in raw recording seconds
 SEGMENTS=(
-	"0:3.9:1"                    # title card
-	"4.0:57.1:$TOUR_SPEED"       # Dashboard, Chain, Dry Run, Metrics and errors, Live Tracker
-	"57.25:61.25:1"              # outro: turn it on in one setting
-	"61.35:67.5:1"               # end screen: rulebox.coldbox.org
+	"0:3.85:1"                   # title card
+	"3.95:57.75:$TOUR_SPEED"     # Dashboard, Chain, Dry Run, Metrics and errors, Live Tracker
+	"57.9:61.8:1"                # outro: turn it on in one setting
+	"61.95:68.1:1"               # end screen: rulebox.coldbox.org
 )
 XF=0.6         # crossfade length
 FADE_IN=0.8

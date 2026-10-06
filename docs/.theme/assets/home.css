@@ -72,7 +72,7 @@
 }
 .rb-navrow { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 68px; }
 .rb-brand { display: flex; align-items: center; gap: 10px; color: var(--rb-text) !important; text-decoration: none !important; }
-.rb-brand img { width: 32px; height: 32px; }
+.rb-brand img { width: auto; height: 32px; }
 .rb-brand-name { font-family: var(--rb-display, sans-serif); font-size: 21px; font-weight: 700; letter-spacing: -0.02em; }
 .rb-version { font-family: var(--rb-mono, monospace); font-size: 11px; color: var(--rb-muted); border: 1px solid var(--rb-line); border-radius: 999px; padding: 2px 8px; }
 .rb-navlinks { display: flex; gap: 26px; font-size: 15px; font-weight: 600; white-space: nowrap; }

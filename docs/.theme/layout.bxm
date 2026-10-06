@@ -64,9 +64,12 @@
 	</bx:if>
 
 	<!--- Favicon --->
+	<!--- A PNG first for browsers without SVG favicons; the SVG after it wins where supported --->
+	<link rel="icon" type="image/png" sizes="32x32" href="#resolveAssetUrl( 'assets/brand/favicon-32.png' )#">
 	<bx:if len( variables.faviconUrl )>
 		<link rel="icon" href="#resolveAssetUrl( variables.faviconUrl )#">
 	</bx:if>
+	<link rel="apple-touch-icon" href="#resolveAssetUrl( 'assets/brand/apple-touch-icon.png' )#">
 
 	<!--- Theme color and accent color --->
 	<script>

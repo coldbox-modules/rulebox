@@ -4,6 +4,42 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>RuleBox Visualizer</title>
+	<!--- The RuleBox mark (docs/assets/brand/rulebox-mark.svg), inline so the Visualizer needs no asset route: the sidebar brand and the favicon --->
+	<bx:savecontent variable="brandMark" trim="true">
+		<svg xmlns="http://www.w3.org/2000/svg" viewBox="16 18 386 330">
+			<defs>
+				<linearGradient id="rb-mark" gradientUnits="userSpaceOnUse" x1="60" y1="40" x2="430" y2="320">
+					<stop offset="0" stop-color="#18F0AE"/>
+					<stop offset="0.5" stop-color="#0FCFEA"/>
+					<stop offset="1" stop-color="#1B78FF"/>
+				</linearGradient>
+				<linearGradient id="rb-shade-l" gradientUnits="userSpaceOnUse" x1="98" y1="0" x2="134" y2="0">
+					<stop offset="0" stop-color="#000" stop-opacity="0"/>
+					<stop offset="1" stop-color="#000" stop-opacity=".22"/>
+				</linearGradient>
+				<linearGradient id="rb-shade-r" gradientUnits="userSpaceOnUse" x1="343" y1="0" x2="378" y2="0">
+					<stop offset="0" stop-color="#fff" stop-opacity=".10"/>
+					<stop offset="1" stop-color="#000" stop-opacity=".10"/>
+				</linearGradient>
+			</defs>
+			<g fill="url(#rb-mark)" stroke="url(#rb-mark)" stroke-width="8" stroke-linejoin="round">
+				<polygon points="110,99 241,26 240,64 139,116"/>
+				<polygon points="241,26 369,99 333,116 240,64"/>
+				<polygon points="101,116 130,131 130,244 101,229"/>
+				<polygon points="346,134 374,119 374,252 346,268"/>
+			</g>
+			<polygon points="101,116 130,131 130,244 101,229" fill="url(#rb-shade-l)" stroke="url(#rb-shade-l)" stroke-width="8" stroke-linejoin="round"/>
+			<polygon points="346,134 374,119 374,252 346,268" fill="url(#rb-shade-r)" stroke="url(#rb-shade-r)" stroke-width="8" stroke-linejoin="round"/>
+			<g fill="url(#rb-mark)">
+				<rect x="216" y="107" width="48" height="48" rx="8" transform="rotate(45 240 131)"/>
+				<path d="M240 160 V185 M185 210 V185 H295 V210" fill="none" stroke="url(#rb-mark)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+				<rect x="161" y="207" width="48" height="46" rx="9"/>
+				<rect x="271" y="207" width="48" height="46" rx="9"/>
+				<path d="M80 158 C -16 200 -10 324 205 342 C 308 350 378 306 398 250 C 352 290 290 304 206 298 C 72 288 34 216 80 158 Z"/>
+			</g>
+		</svg>
+	</bx:savecontent>
+	<bx:output><link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,#toBase64( brandMark )#"></bx:output>
 	<!-- Pinned CDN versions with Subresource Integrity. When bumping a version, recompute the hash:
 	     curl -sSL <url> | openssl dgst -sha384 -binary | openssl base64 -A   (prefix with "sha384-") -->
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
@@ -26,6 +62,7 @@
 			background: var(--rb-sidebar-bg);
 			min-height: 100vh;
 		}
+		.rb-brand-mark svg{ display: block; height: 30px; width: auto; }
 		.rb-sidebar .nav-link{ color: #cbd5e1; }
 		.rb-sidebar .nav-link.active{ color: #fff; background: var(--rb-accent); border-radius: .375rem; }
 		.rb-sidebar .nav-link i{ width: 1.25rem; }
@@ -58,7 +95,7 @@
 	<div class="d-flex rb-shell">
 		<nav class="rb-sidebar flex-shrink-0 p-3 d-flex flex-column">
 			<div class="d-flex align-items-center gap-2 mb-4 px-2">
-				<i class="ph-duotone ph-flow-arrow fs-3 text-primary"></i>
+				<span class="rb-brand-mark" aria-hidden="true">#brandMark#</span>
 				<span class="fs-5 fw-semibold text-white">RuleBox</span>
 			</div>
 			<ul class="nav nav-pills flex-column gap-1 mb-auto">

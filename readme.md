@@ -1,3 +1,7 @@
+<p align="center">
+  <a href="https://rulebox.coldbox.org"><img src="https://rulebox.coldbox.org/assets/brand/rulebox-logo.png" alt="RuleBox" width="420"></a>
+</p>
+
 # RuleBox: A Rule Engine For ColdBox Applications
 
 **RuleBox** is a modern, intuitive, natural-language rules engine for

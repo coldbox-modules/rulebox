@@ -158,9 +158,12 @@
 	</bx:if>
 
 	<!--- Favicon --->
+	<!--- A PNG first for browsers without SVG favicons; the SVG after it wins where supported --->
+	<link rel="icon" type="image/png" sizes="32x32" href="#resolveAssetUrl( 'assets/brand/favicon-32.png' )#">
 	<bx:if len( variables.faviconUrl )>
 		<link rel="icon" href="#resolveAssetUrl( variables.faviconUrl )#">
 	</bx:if>
+	<link rel="apple-touch-icon" href="#resolveAssetUrl( 'assets/brand/apple-touch-icon.png' )#">
 
 	<!--- Color mode detection (before CSS, to avoid flash) --->
 	<script>
@@ -259,7 +262,7 @@
 	<header class="rb-nav">
 		<div class="rb-wrap rb-navrow">
 			<a class="rb-brand" href="#variables.basePath#">
-				<img src="#variables.assetUrl#rulebox-icon.svg" alt="">
+				<img src="#variables.assetUrl#brand/rulebox-mark.svg" alt="">
 				<span class="rb-brand-name">#encodeForHTML( variables.siteConfig.name )#</span>
 			</a>
 			<nav class="rb-navlinks" id="rb-navlinks" :class="menu && 'rb-navlinks-open'" @click.outside="menu = false" aria-label="Main">
@@ -570,7 +573,7 @@
 		<div class="rb-wrap rb-foot">
 			<div class="rb-foot-brand">
 				<a class="rb-brand" href="#variables.basePath#">
-					<img src="#variables.assetUrl#rulebox-icon.svg" alt="">
+					<img src="#variables.assetUrl#brand/rulebox-mark.svg" alt="">
 					<span class="rb-brand-name">#encodeForHTML( variables.siteConfig.name )#</span>
 				</a>
 				<p>A natural-language rules engine for BoxLang and ColdBox, based on RuleBook.</p>
