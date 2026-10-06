@@ -235,7 +235,7 @@
 						<source src="/assets/video/rulebox-visualizer-intro.mp4" type="video/mp4">
 					</video>
 				</div>
-				<p class="rb-video-note">Dashboard, chain view, dry runs, metrics and the live tracker, recorded against the RuleBox test app.</p>
+				<p class="rb-video-note">Dashboard, chain view, dry runs, rule health, errors with stack traces and the live tracker, recorded against the RuleBox test app.</p>
 			</div>
 		</section>
 
@@ -365,7 +365,7 @@
 						<a class="rb-feature rb-card" href="/guides/visualizer/">
 							<span class="rb-feature-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M216,40H136V24a8,8,0,0,0-16,0V40H40A16,16,0,0,0,24,56V176a16,16,0,0,0,16,16H79.36L57.75,219a8,8,0,0,0,12.5,10l29.59-37h56.32l29.59,37a8,8,0,1,0,12.5-10l-21.61-27H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,136H40V56H216V176ZM104,120v24a8,8,0,0,1-16,0V120a8,8,0,0,1,16,0Zm32-16v40a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm32-16v56a8,8,0,0,1-16,0V88a8,8,0,0,1,16,0Z"/></svg></span>
 							<h3>Rule Visualizer</h3>
-							<p>Dashboard, chain view, dry run, metrics and a live tracker.</p>
+							<p>Dashboard, chain view, dry run, rule health, errors with stack traces and a live tracker.</p>
 							<code>visualizer.enabled &#x3d; true</code>
 						</a>
 					
@@ -438,20 +438,20 @@
 					<div class="rb-section-head">
 						<span class="rb-eyebrow"><span class="rb-eyebrow-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M208,40H48A24,24,0,0,0,24,64V176a24,24,0,0,0,24,24H208a24,24,0,0,0,24-24V64A24,24,0,0,0,208,40Zm8,136a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V64a8,8,0,0,1,8-8H208a8,8,0,0,1,8,8Zm-48,48a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,224Z"/></svg></span>Rule Visualizer</span>
 						<h2>See your rules. <span class="rb-grad">Watch them fire.</span></h2>
-						<p>A built-in admin UI: browse every rulebook, view its chain in run order, dry-run any facts, read metrics, and stream evaluations live.</p>
+						<p>A built-in admin UI: browse every rulebook, view its chain in run order, dry-run any facts, find the rules that fail or run slow, read each error with its stack trace, and stream evaluations live.</p>
 					</div>
 					<a href="/guides/visualizer/">Turn it on in one setting</a>
 				</div>
 				<div class="bxsites-image-gallery bxsites-image-gallery--cols-3">
 					
 						<figure class="bxsites-image-gallery__item">
-							<img class="bxsites-image-gallery__image" src="/assets/visualizer/dashboard.png" alt="Dashboard&#x3a;&#x20;Every&#x20;declared&#x20;rulebook,&#x20;its&#x20;outcomes&#x20;and&#x20;recent&#x20;activity." data-bxsites-lightbox loading="lazy">
-							<figcaption class="bxsites-image-gallery__caption"><b>Dashboard.</b> Every declared rulebook, its outcomes and recent activity.</figcaption>
+							<img class="bxsites-image-gallery__image" src="/assets/visualizer/dashboard.png" alt="Dashboard&#x3a;&#x20;Every&#x20;rulebook,&#x20;plus&#x20;the&#x20;rules&#x20;that&#x20;fail&#x20;most&#x20;and&#x20;the&#x20;slowest&#x20;ones." data-bxsites-lightbox loading="lazy">
+							<figcaption class="bxsites-image-gallery__caption"><b>Dashboard.</b> Every rulebook, plus the rules that fail most and the slowest ones.</figcaption>
 						</figure>
 					
 						<figure class="bxsites-image-gallery__item">
-							<img class="bxsites-image-gallery__image" src="/assets/visualizer/chain-loanapproval.png" alt="Chain&#x20;view&#x3a;&#x20;Rules&#x20;in&#x20;run&#x20;order,&#x20;with&#x20;priorities&#x20;and&#x20;stops." data-bxsites-lightbox loading="lazy">
-							<figcaption class="bxsites-image-gallery__caption"><b>Chain view.</b> Rules in run order, with priorities and stops.</figcaption>
+							<img class="bxsites-image-gallery__image" src="/assets/visualizer/chain-fraudcheck.png" alt="Chain&#x20;view&#x3a;&#x20;Rules&#x20;in&#x20;run&#x20;order,&#x20;with&#x20;durations,&#x20;error&#x20;rates&#x20;and&#x20;the&#x20;last&#x20;error." data-bxsites-lightbox loading="lazy">
+							<figcaption class="bxsites-image-gallery__caption"><b>Chain view.</b> Rules in run order, with durations, error rates and the last error.</figcaption>
 						</figure>
 					
 						<figure class="bxsites-image-gallery__item">
@@ -460,18 +460,18 @@
 						</figure>
 					
 						<figure class="bxsites-image-gallery__item">
-							<img class="bxsites-image-gallery__image" src="/assets/visualizer/metrics.png" alt="Metrics&#x3a;&#x20;Evaluations,&#x20;durations&#x20;and&#x20;outcomes&#x20;by&#x20;state." data-bxsites-lightbox loading="lazy">
-							<figcaption class="bxsites-image-gallery__caption"><b>Metrics.</b> Evaluations, durations and outcomes by state.</figcaption>
+							<img class="bxsites-image-gallery__image" src="/assets/visualizer/metrics.png" alt="Metrics&#x3a;&#x20;Completion&#x20;and&#x20;error&#x20;rates&#x20;and&#x20;every&#x20;rule&#x27;s&#x20;health." data-bxsites-lightbox loading="lazy">
+							<figcaption class="bxsites-image-gallery__caption"><b>Metrics.</b> Completion and error rates and every rule&#x27;s health.</figcaption>
 						</figure>
 					
 						<figure class="bxsites-image-gallery__item">
-							<img class="bxsites-image-gallery__image" src="/assets/visualizer/live.png" alt="Live&#x20;tracker&#x3a;&#x20;Every&#x20;evaluation,&#x20;streamed&#x20;as&#x20;it&#x20;happens." data-bxsites-lightbox loading="lazy">
-							<figcaption class="bxsites-image-gallery__caption"><b>Live tracker.</b> Every evaluation, streamed as it happens.</figcaption>
+							<img class="bxsites-image-gallery__image" src="/assets/visualizer/metrics-errors.png" alt="Errors&#x20;and&#x20;stack&#x20;traces&#x3a;&#x20;Each&#x20;distinct&#x20;error&#x20;once,&#x20;with&#x20;a&#x20;count,&#x20;its&#x20;cause&#x20;and&#x20;where&#x20;it&#x20;was&#x20;thrown." data-bxsites-lightbox loading="lazy">
+							<figcaption class="bxsites-image-gallery__caption"><b>Errors and stack traces.</b> Each distinct error once, with a count, its cause and where it was thrown.</figcaption>
 						</figure>
 					
 						<figure class="bxsites-image-gallery__item">
-							<img class="bxsites-image-gallery__image" src="/assets/visualizer/chain-seasonalpromo.png" alt="Time&#x20;windows&#x3a;&#x20;A&#x20;seasonal&#x20;rulebook&#x20;with&#x20;active&#x28;&#x29;&#x20;date&#x20;ranges." data-bxsites-lightbox loading="lazy">
-							<figcaption class="bxsites-image-gallery__caption"><b>Time windows.</b> A seasonal rulebook with active&#x28;&#x29; date ranges.</figcaption>
+							<img class="bxsites-image-gallery__image" src="/assets/visualizer/live.png" alt="Live&#x20;tracker&#x3a;&#x20;Every&#x20;evaluation&#x20;as&#x20;it&#x20;happens.&#x20;Open&#x20;a&#x20;failure&#x20;to&#x20;see&#x20;why." data-bxsites-lightbox loading="lazy">
+							<figcaption class="bxsites-image-gallery__caption"><b>Live tracker.</b> Every evaluation as it happens. Open a failure to see why.</figcaption>
 						</figure>
 					
 				</div>
