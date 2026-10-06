@@ -74,6 +74,15 @@ jobs:
           box server start serverConfigFile="server-${{ matrix.cfengine }}.json" --noSaveSettings --debug
           curl http://127.0.0.1:60299
 
+      - name: Show BoxLang Modules
+        if: always()
+        run: |
+          # Which BoxLang modules the test server can load, and any installed outside it, as notices on the run
+          echo "::notice title=BOXLANG_HOME::${BOXLANG_HOME:-unset}"
+          for dir in .engine/boxlang/WEB-INF/boxlang/modules "${BOXLANG_HOME:-$HOME/.boxlang}/modules" boxlang_modules test-harness/modules; do
+            echo "::notice title=Modules in $dir::$( ls "$dir" 2>/dev/null | tr '\n' ' ' )"
+          done
+
       - name: Run Tests
         run: |
           mkdir -p test-harness/tests/results
