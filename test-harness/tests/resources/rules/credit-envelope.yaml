@@ -1,0 +1,12 @@
+facts:
+  creditScore:
+    type: numeric
+    required: true
+  loanType:
+    type: string
+    values: [ fixed, variable ]
+strictFacts: true
+rules:
+  - name: approve
+    when:
+      gte: [ creditScore, 600 ]

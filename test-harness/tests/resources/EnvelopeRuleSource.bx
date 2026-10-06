@@ -1,0 +1,29 @@
+/**
+ * A test rule source whose load() returns whatever it was given as is: an envelope struct, an array,
+ * or something invalid, for the envelope specs
+ */
+class{
+
+	/**
+	 * What load() returns
+	 */
+	property name="loaded";
+
+	/**
+	 * Constructor
+	 *
+	 * @loaded What load() returns
+	 */
+	EnvelopeRuleSource function init( required any loaded ){
+		variables.loaded = arguments.loaded
+		return this
+	}
+
+	/**
+	 * @return The value given to the constructor
+	 */
+	any function load(){
+		return variables.loaded
+	}
+
+}

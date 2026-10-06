@@ -1,0 +1,25 @@
+/**
+ * A RuleBook that makes every instance strict from inside defineFacts(), for the fact specs
+ */
+class extends="rulebox.models.RuleBook"{
+
+	/**
+	 * Declare the facts this rulebook takes, and reject any other
+	 */
+	function defineFacts(){
+		strictFacts()
+		fact( "creditScore" ).type( "numeric" ).required()
+	}
+
+	/**
+	 * Approve a credit score of 600 or more
+	 */
+	function defineRules(){
+		addRule(
+			newRule( "approve" )
+				.when( ( facts ) => facts.creditScore >= 600 )
+				.then( ( facts, result ) => result.setValue( "approved" ) )
+		)
+	}
+
+}

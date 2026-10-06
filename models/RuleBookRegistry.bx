@@ -24,7 +24,8 @@ class{
 	property name="settings" type="struct";
 
 	/**
-	 * Normalized rulebook definitions, keyed by declared name: { source, actions, predicates }
+	 * Normalized rulebook definitions, keyed by declared name:
+	 * { source, actions, predicates, facts, enforceFacts, strictFacts }
 	 */
 	property name="definitions" type="struct";
 
@@ -97,6 +98,16 @@ class{
 		// Nothing is cached: every call re-reads the source file / re-runs the SQL, by design
 		ruleBook.loadRules( resolveSource( def.source ) )
 
+		// Facts declared in config layer on top of any the source file declares
+		if( !def.facts.isEmpty() ){
+			ruleBook.withFacts( def.facts )
+		}
+		if( def.strictFacts ){
+			ruleBook.strictFacts()
+		} else if( def.enforceFacts ){
+			ruleBook.enforceFacts()
+		}
+
 		return ruleBook
 	}
 
@@ -141,9 +152,12 @@ class{
 
 			sources[ name ] = filePath
 			found[ name ]   = {
-				source     : filePath,
-				actions    : {},
-				predicates : {}
+				source       : filePath,
+				actions      : {},
+				predicates   : {},
+				facts        : {},
+				enforceFacts : false,
+				strictFacts  : false
 			}
 		}
 
@@ -158,7 +172,8 @@ class{
 	 * The entry can be:
 	 * - a string:  a rule-source file path (JSON/YAML inferred from extension)
 	 * - an array:  inline rule-definition structs
-	 * - a struct:  { source: <string|array|{type:"db",...}>, actions: {...}, predicates: {...} }
+	 * - a struct:  { source: <string|array|{type:"db",...}>, actions: {...}, predicates: {...},
+	 *              facts: {...}, enforceFacts: boolean, strictFacts: boolean }
 	 *
 	 * Anything else - or an entry that ends up with no usable source - throws a typed
 	 * RuleBox.InvalidRuleBookDeclarationException naming the rulebook, so a bad declaration fails
@@ -166,9 +181,12 @@ class{
 	 */
 	private struct function normalizeDefinition( required string name, required any entry, required struct existing ){
 		var normalized = {
-			source     : existing.source ?: "",
-			actions    : existing.actions ?: {},
-			predicates : existing.predicates ?: {}
+			source       : existing.source ?: "",
+			actions      : existing.actions ?: {},
+			predicates   : existing.predicates ?: {},
+			facts        : existing.facts ?: {},
+			enforceFacts : existing.enforceFacts ?: false,
+			strictFacts  : existing.strictFacts ?: false
 		}
 
 		if( isStruct( arguments.entry ) ){
@@ -184,6 +202,20 @@ class{
 						throwInvalidDeclaration( arguments.name, "'#key#' must be a struct of name => mapping ID" )
 					}
 					normalized[ key ] = arguments.entry[ key ]
+				}
+			}
+			if( arguments.entry.keyExists( "facts" ) ){
+				if( isNull( arguments.entry.facts ) || !isStruct( arguments.entry.facts ) ){
+					throwInvalidDeclaration( arguments.name, "'facts' must be a struct of fact name => declaration" )
+				}
+				normalized.facts = arguments.entry.facts
+			}
+			for( var flag in [ "enforceFacts", "strictFacts" ] ){
+				if( arguments.entry.keyExists( flag ) ){
+					if( !isBoolean( arguments.entry[ flag ] ?: "" ) ){
+						throwInvalidDeclaration( arguments.name, "'#flag#' must be true or false" )
+					}
+					normalized[ flag ] = arguments.entry[ flag ]
 				}
 			}
 		} else {
@@ -204,6 +236,8 @@ class{
 		}
 		normalized.actions    = duplicate( normalized.actions, false )
 		normalized.predicates = duplicate( normalized.predicates, false )
+		// Fact declarations are plain data
+		normalized.facts      = duplicate( normalized.facts, true )
 
 		return normalized
 	}
@@ -242,7 +276,7 @@ class{
 		throw(
 			type    = "RuleBox.InvalidRuleBookDeclarationException",
 			message = "Invalid declaration for rulebook '#arguments.name#': #arguments.problem#.",
-			detail  = "Declare it under moduleSettings.rulebox.rulebooks.#arguments.name# as a source file path, an array of inline rule definitions, or a struct { source, actions, predicates }."
+			detail  = "Declare it under moduleSettings.rulebox.rulebooks.#arguments.name# as a source file path, an array of inline rule definitions, or a struct { source, actions, predicates, facts, enforceFacts, strictFacts }."
 		)
 	}
 

@@ -4,14 +4,14 @@
 class{
 
 	/**
-	 * Path to the JSON file containing an array of rule definitions
+	 * Path to the JSON file containing an array of rule definitions, or an envelope { rules, facts, enforceFacts, strictFacts }
 	 */
 	property name="filePath" type="string";
 
 	/**
 	 * Constructor
 	 *
-	 * @filePath Absolute or resolvable path to a JSON file containing an array of rule definitions
+	 * @filePath Absolute or resolvable path to a JSON file containing an array of rule definitions, or an envelope { rules, facts, enforceFacts, strictFacts }
 	 */
 	JSONRuleSource function init( required string filePath ){
 		variables.filePath = arguments.filePath
@@ -22,9 +22,9 @@ class{
 	 * @throws RuleBox.RuleSourceParseException If the file is not valid JSON. The message names the file
 	 *         and the parse position only - never the file's content.
 	 *
-	 * @return An array of rule-definition structs
+	 * @return An array of rule-definition structs, or the envelope struct as written in the file
 	 */
-	array function load(){
+	any function load(){
 		var content = fileRead( variables.filePath )
 		try{
 			return jsonDeserialize( content )
