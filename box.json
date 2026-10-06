@@ -29,8 +29,7 @@
     "devDependencies":{
         "commandbox-boxlang":"*",
         "commandbox-docbox":"*",
-        "bx-sites":"be",
-        "bx-sqlite":"*"
+        "bx-sites":"be"
     },
     "ignore":[
         "**/.*",
