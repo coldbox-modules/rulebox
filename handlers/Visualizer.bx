@@ -53,9 +53,10 @@ class{
 		}
 		prc.visualizerSettings = variables.settings.visualizer
 
-		// event.buildLink( "visualizer.x" ) drops the module's entry point (-> /visualizer/x, a 500),
-		// so every layout/view link goes through this instead.
-		prc.vizLink = ( required string target ) => event.buildLink( "rulebox-visualizer/visualizer/#target#" )
+		// Every layout/view link goes through this one helper so the module routes stay the single
+		// source of truth. The dashboard is the entry point itself (/rulebox-visualizer); the rest
+		// are one segment deeper (/rulebox-visualizer/chain, /rulebox-visualizer/live, ...).
+		prc.vizLink = ( required string target ) => event.buildLink( target == "index" ? "rulebox-visualizer" : "rulebox-visualizer/#target#" )
 
 		// this.layout is not reliably picked up as a handler convention in every environment
 		// this module runs in (seen in this repo's own test-harness) - setting it explicitly at
@@ -107,7 +108,12 @@ class{
 	function chain( event, rc, prc ){
 		param rc.name = ""
 
-		if( !rc.name.len() || !registry.getRuleBookNames().contains( rc.name ) ){
+		var rulebookNames = registry.getRuleBookNames()
+		if( !rc.name.len() && !rulebookNames.isEmpty() ){
+			rc.name = rulebookNames[ 1 ]
+		}
+
+		if( !rc.name.len() || !rulebookNames.contains( rc.name ) ){
 			event.renderData( data={ error: "Unknown rulebook '#rc.name#'." }, statusCode=404, type="json" )
 			return
 		}
@@ -116,7 +122,7 @@ class{
 		var ruleBook = registry.getRuleBook( rc.name )
 
 		prc.rulebookName   = rc.name
-		prc.rulebookNames  = registry.getRuleBookNames()
+		prc.rulebookNames  = rulebookNames
 		prc.chain          = walkChain( ruleBook )
 		prc.chain.each( ( node ) => {
 			node[ "metrics" ] = store.queryRuleMetrics( rc.name, node.name )

@@ -70,9 +70,19 @@ class {
 			visualizer = duplicate( static.VISUALIZER_DEFAULTS )
 		}
 
-		// Visualizer routes
+		// Visualizer routes: the visualizer is a single handler, so give each of its screens and its
+		// JSON/SSE endpoints a clean, flat URL under the /rulebox-visualizer entry point. Route
+		// patterns are relative to the entry point; handler/action are unqualified (module context).
 		variables.routes = [
-			{ pattern="/", handler="visualizer", action="index" }
+			{ pattern="/",              handler="visualizer", action="index" },
+			{ pattern="/chain",         handler="visualizer", action="chain" },
+			{ pattern="/dryrun",        handler="visualizer", action="dryrun" },
+			{ pattern="/runDryRun",     handler="visualizer", action="runDryRun" },
+			{ pattern="/metrics",       handler="visualizer", action="metrics" },
+			{ pattern="/apiMetrics",    handler="visualizer", action="apiMetrics" },
+			{ pattern="/apiRuleErrors", handler="visualizer", action="apiRuleErrors" },
+			{ pattern="/live",          handler="visualizer", action="live" },
+			{ pattern="/stream",        handler="visualizer", action="stream" }
 		]
 	}
 

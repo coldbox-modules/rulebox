@@ -4,9 +4,13 @@
         "opencode",
         "pi"
     ],
-    "coldboxCliVersion":"8.15.0",
+    "coldboxCliVersion":"8.17.0",
     "customSkills":[
-        "rulebox-boxlang-conventions"
+        {
+            "description":"",
+            "name":"rulebox-boxlang-conventions",
+            "syncedAt":""
+        }
     ],
     "excludes":[],
     "guidelines":[
@@ -30,7 +34,7 @@
         }
     ],
     "language":"boxlang",
-    "lastSync":"2026-08-12T13:56:28-06:00",
+    "lastSync":"2026-10-06T17:12:34+02:00",
     "mcpServers":{
         "core":[
             "boxlang",
@@ -54,7 +58,7 @@
             "sha":"c9604319038f8af9fcd702fd20c436c6271e0fa7",
             "slug":"commandbox-config-settings",
             "source":"commandbox",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"commandbox"
         },
         {
@@ -66,7 +70,7 @@
             "sha":"e5609f82c8e9574f1130c92e1bf778b83c927e39",
             "slug":"commandbox-deploying",
             "source":"commandbox",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"commandbox"
         },
         {
@@ -78,7 +82,7 @@
             "sha":"91cff5d654e2a9e567d21387d2c40217a93b8da7",
             "slug":"commandbox-developing",
             "source":"commandbox",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"commandbox"
         },
         {
@@ -90,7 +94,7 @@
             "sha":"8591e67469394428a6d66fbacfc478e306182cbc",
             "slug":"commandbox-embedded-server",
             "source":"commandbox",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"commandbox"
         },
         {
@@ -102,7 +106,7 @@
             "sha":"ce49ff6fbd1accbfd0f920724a58666c121b409e",
             "slug":"commandbox-package-management",
             "source":"commandbox",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"commandbox"
         },
         {
@@ -114,7 +118,7 @@
             "sha":"92a2efa2dc972c2e28a338c0909d7cd06a6815b6",
             "slug":"commandbox-setup",
             "source":"commandbox",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"commandbox"
         },
         {
@@ -126,7 +130,7 @@
             "sha":"383953b12c7216517fe4a6c678dddf6a03d48fc5",
             "slug":"commandbox-task-runners",
             "source":"commandbox",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"commandbox"
         },
         {
@@ -138,7 +142,7 @@
             "sha":"92f15326905025f9349b863ea8c493d392dcd8bc",
             "slug":"commandbox-testing",
             "source":"commandbox",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"commandbox"
         },
         {
@@ -150,7 +154,7 @@
             "sha":"ca5296263bb1e36ab3e742b8a4c5281c49057aa4",
             "slug":"commandbox-usage",
             "source":"commandbox",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"commandbox"
         },
         {
@@ -159,10 +163,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/application-descriptor",
             "repo":"skills",
-            "sha":"dc8a1fcc47baccf4446132e147c23d8a9d22072b",
+            "sha":"4a17762e3eca1329ebf4aac3e0af6d09f2a8e187",
             "slug":"application-descriptor",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -171,10 +175,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/async-programming",
             "repo":"skills",
-            "sha":"2b648d42801beaf69cd03b1cb3dfca21e2ed9324",
+            "sha":"22c4cc8ec2157fc103eb043172365d8d5b84f14c",
             "slug":"async-programming",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -183,10 +187,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/best-practices",
             "repo":"skills",
-            "sha":"f418232d4c49539cd576c2c39847374332ec05c5",
+            "sha":"7fd829c889158f3a817bd1b1da3fa93ba2c58de0",
             "slug":"best-practices",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -195,10 +199,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/caching",
             "repo":"skills",
-            "sha":"2f4de64cca4ce55e90bf953236d7f19ed823289b",
+            "sha":"75d88ca5d3a44abb02b44d877eb97a9e6539a01e",
             "slug":"caching",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -207,10 +211,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/cfml-migration",
             "repo":"skills",
-            "sha":"886502f13d1e783db86d8805698fa79ce41eddb4",
+            "sha":"57b73eadc7c6d1dec4ad320ea5f805d7f72303c2",
             "slug":"cfml-migration",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -219,10 +223,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/classes-and-oop",
             "repo":"skills",
-            "sha":"eb11a552168881ea2a6c8fcf7e01e01a40306544",
+            "sha":"08982a0ca9a1b09ca5f25dd690f4bd501017d653",
             "slug":"classes-and-oop",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -231,10 +235,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/code-documenter",
             "repo":"skills",
-            "sha":"0b199119e9a8368530017646a8b295bea6000ba7",
+            "sha":"8052fe03b6c925865181b2085a285679afea4dcd",
             "slug":"code-documenter",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -243,10 +247,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/code-reviewer",
             "repo":"skills",
-            "sha":"85f0487bfafaf795e4f162e04fb695f31d933278",
+            "sha":"d3afab96ae8103c5e1ae11a06820815637f5dc0b",
             "slug":"code-reviewer",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -255,10 +259,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/configuration",
             "repo":"skills",
-            "sha":"3b8bcd521c1de74de59b015fb7a0380b0a623e9e",
+            "sha":"91ba2bdbcaee43744af550ce83482cb147e8d12f",
             "slug":"configuration",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -267,22 +271,22 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/database-access",
             "repo":"skills",
-            "sha":"cab36b456165f464e27d242ae487fca8b71d0da1",
+            "sha":"055506e1e234e3e688dd9ccac973fdffb2195b2c",
             "slug":"database-access",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
-            "description":"Use this skill when deploying BoxLang applications: CommandBox server setup, Docker containers, AWS Lambda, GitHub Actions CI/CD, BoxLang Version Manager (BVM), boxlang.json runtime config, environment variables, or Spring Boot integration.",
+            "description":"Use this skill when deploying BoxLang applications: CommandBox server setup, Docker containers, serverless (AWS Lambda, Google Cloud Functions, Azure Functions - see their dedicated runtime-* skills), GitHub Actions CI/CD, BoxLang Version Manager (BVM), boxlang.json runtime config, environment variables, or Spring Boot integration.",
             "name":"boxlang-deployment",
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/deployment",
             "repo":"skills",
-            "sha":"617b01e09e20ae1c55290cd364ca5d448fe07add",
+            "sha":"aa32f6e8840298473df382975b4f479486b15bc9",
             "slug":"deployment",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -291,10 +295,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/docbox",
             "repo":"skills",
-            "sha":"d282bb8d09f7d236972569e127b4086311d260af",
+            "sha":"924098b2f724741246087c444250d9f684c45a66",
             "slug":"docbox",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -303,10 +307,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/file-handling",
             "repo":"skills",
-            "sha":"0c3d7769be31288338b78be9d2960f1570c35bc1",
+            "sha":"5f8a99782750a4e6fbc581b77bad4920ebec4809",
             "slug":"file-handling",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -315,10 +319,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/file-watchers",
             "repo":"skills",
-            "sha":"7a115f4a903e60c97e685289cf32c3ea562cf19b",
+            "sha":"9ce40dac863982c5bb649de1ea6ff93af55c78a5",
             "slug":"file-watchers",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -327,10 +331,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/functional-programming",
             "repo":"skills",
-            "sha":"e22adf6acd28c94ffdc40534fc1c80287a377be9",
+            "sha":"17954279b654869458dd2d7d6e5b3f4e1f0f2839",
             "slug":"functional-programming",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -339,10 +343,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/interceptors",
             "repo":"skills",
-            "sha":"4c65657766140185294aa2f4019381ebe8f1df46",
+            "sha":"71dce88651a3e2f2272280b3991f147163f8bdf2",
             "slug":"interceptors",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -351,10 +355,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/java-integration",
             "repo":"skills",
-            "sha":"e4929fde4a3636767acc3234c4ea510782518807",
+            "sha":"a81de3ba6933f99abf604d4cae81933026a81bd8",
             "slug":"java-integration",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -363,10 +367,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/language-fundamentals",
             "repo":"skills",
-            "sha":"be26e718747ea2e449de5e4da5de181b008e2668",
+            "sha":"45db9c5ddf8312b98074bcf7be17915a891381d1",
             "slug":"language-fundamentals",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -375,22 +379,22 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/modules-and-packages",
             "repo":"skills",
-            "sha":"c803ef6efa1e4eccd4c23abe425b06003b9b715c",
+            "sha":"4b40d1d4876981d6cd38fcd6bc41840551c6a09b",
             "slug":"modules-and-packages",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
-            "description":"Use this skill when building, deploying, or debugging BoxLang applications on AWS Lambda — including Lambda.bx structure, handler conventions, environment variables, SAM CLI testing, performance optimization, connection pooling, multi-function routing, and the boxlang-starter-aws-lambda project.",
+            "description":"Use this skill when building, deploying, or debugging BoxLang applications on AWS Lambda — including the handlers/ routing convention, manifest.json, Lambda.bx/Application.bx structure, environment variables, SAM CLI local testing, performance tuning, and the boxlang-starter-aws-lambda project.",
             "name":"boxlang-runtime-aws-lambda",
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/runtime-aws-lambda",
             "repo":"skills",
-            "sha":"9a492564341cdc7eb2951af6807304ab4171a9d8",
+            "sha":"0c3789f2e846c87ec105c95507f601f4f074632f",
             "slug":"runtime-aws-lambda",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -399,10 +403,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/runtime-chromebook",
             "repo":"skills",
-            "sha":"55346268ea6ea8836b33bd1bc069b3ab99c9dc39",
+            "sha":"6724e0628230dbd12b04768e30dd06d0e43ef08e",
             "slug":"runtime-chromebook",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -411,10 +415,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/runtime-cli-scripting",
             "repo":"skills",
-            "sha":"f623b39f13218e79dd6dca1c7d5cb11454909d45",
+            "sha":"0424735016e9e5f4c2a65428b25db4f6ef58f594",
             "slug":"runtime-cli-scripting",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -423,10 +427,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/runtime-commandbox",
             "repo":"skills",
-            "sha":"0f80cd178074455bde770fd6293199cec1762253",
+            "sha":"b132e4a3093bb279bf966a5db6f2445a1109de00",
             "slug":"runtime-commandbox",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -435,10 +439,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/runtime-compiled-native-binaries",
             "repo":"skills",
-            "sha":"4e113ed2fb7c89b0f223e595f7bde69f47d61db1",
+            "sha":"ea948113a611532844cb6b88eb9ac347d678a2c2",
             "slug":"runtime-compiled-native-binaries",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -450,7 +454,7 @@
             "sha":"bf789523b17e5e6ddae4c4cb6e16b6373f7b99b6",
             "slug":"runtime-desktop",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -459,10 +463,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/runtime-desktop-electron",
             "repo":"skills",
-            "sha":"a4f0a7a2247c1c0f198c24fb3dbfdfbb9d72fc90",
+            "sha":"bcb4f528b2d62aa33421b6ad81f65916da3c80a1",
             "slug":"runtime-desktop-electron",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -471,10 +475,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/runtime-digitalocean-app",
             "repo":"skills",
-            "sha":"b498346dae91555cdcfa31cda8d592b6ecc1eae6",
+            "sha":"58af8641f65a74e24bc48102396f9b0b4b6eced9",
             "slug":"runtime-digitalocean-app",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -483,10 +487,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/runtime-docker",
             "repo":"skills",
-            "sha":"ccbd8233af3941146686ccef4dd0731e11446c39",
+            "sha":"ef00a6e46b3c3f8e36360b022e3641e56264ba65",
             "slug":"runtime-docker",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -495,10 +499,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/runtime-esp32",
             "repo":"skills",
-            "sha":"e59e983c540ee40e00dc0324749ee7b8f61e109c",
+            "sha":"8c18d5f23c013f9cfc1c9e388c827bd75b1a1b86",
             "slug":"runtime-esp32",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -507,22 +511,22 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/runtime-github-actions",
             "repo":"skills",
-            "sha":"1267db6fe25802658d892c9206b6ac2917bc9d0f",
+            "sha":"b587b0bd51c8ed58d9ca0dadb0db626e374d8d24",
             "slug":"runtime-github-actions",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
-            "description":"Use this skill when building, testing, or deploying BoxLang applications on Google Cloud Functions Gen 2, including handler structure, FunctionRunner entry point, URI routing, environment variables, local development with the GCF invoker, and debugging.",
+            "description":"Use this skill when building, testing, or deploying BoxLang applications on Google Cloud Functions Gen 2, including the handlers/ routing convention, manifest.json, FunctionRunner entry point, environment variables, local development with the GCF invoker, and the boxlang-starter-google-functions project.",
             "name":"boxlang-runtime-google-cloud-functions",
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/runtime-google-cloud-functions",
             "repo":"skills",
-            "sha":"1e20c64b9e1008b58c16e80dd398aa6ff5a5ba70",
+            "sha":"9b17cc88d56f19f84ffaf44b049857dfeace177e",
             "slug":"runtime-google-cloud-functions",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -531,10 +535,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/runtime-jsr-223",
             "repo":"skills",
-            "sha":"9cebd9c72ec48a44356efcbe8a2324310c5bd52e",
+            "sha":"0fa13cd2284c0044fc8eaef1961d60cda56bb390",
             "slug":"runtime-jsr-223",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -543,10 +547,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/runtime-matchbox",
             "repo":"skills",
-            "sha":"0614a93c3db40284764b562e8387304f7031c210",
+            "sha":"74a7d02be1090af545cbb79e980f1f79506e77fe",
             "slug":"runtime-matchbox",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -555,10 +559,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/runtime-miniserver",
             "repo":"skills",
-            "sha":"235de5cbffa7b9fbadf925551ba9d0cf4557ebbe",
+            "sha":"6cebb5af2fc274b5c05b79beceb7848599278506",
             "slug":"runtime-miniserver",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -567,10 +571,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/runtime-spring-boot",
             "repo":"skills",
-            "sha":"492f61355f3df5a0dcd381d1a468c7cd683a0db7",
+            "sha":"d3eae1167127269c792aefc9ee04ba79f4b7cfda",
             "slug":"runtime-spring-boot",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -579,10 +583,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/runtime-wasm-container",
             "repo":"skills",
-            "sha":"a715de92b33e75af42ccddb7c41ffd09440856d6",
+            "sha":"d3758dc187f804e728775d10840bf9261ff5faac",
             "slug":"runtime-wasm-container",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -591,10 +595,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/runtime-wasm-in-the-browser",
             "repo":"skills",
-            "sha":"b17046c897b77692d5a1a849e7587bade507b63e",
+            "sha":"7766b3a23e90a428fc396bdfc55e487610851eae",
             "slug":"runtime-wasm-in-the-browser",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -603,10 +607,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/scheduled-tasks",
             "repo":"skills",
-            "sha":"5f5ff2b34c2cfa58f5a7ebee3b07996aedbb93dc",
+            "sha":"f7eafab20ccbfecbfc41cccf42917ec2dc7027ed",
             "slug":"scheduled-tasks",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -615,10 +619,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/security",
             "repo":"skills",
-            "sha":"58ee951f16cc95d6da080dbc3d83b34c9532fa63",
+            "sha":"826bdebc9bb96ae25cdf36a3ea54e53beaae10a4",
             "slug":"security",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -627,22 +631,22 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/templating",
             "repo":"skills",
-            "sha":"5512163fcf67291569648a5467eeb1f6aa58702f",
+            "sha":"c4a195182ca58c011906daa1cd5cf487668674f7",
             "slug":"templating",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
-            "description":"Use this skill when writing, running, or debugging tests for BoxLang applications using TestBox: BDD-style describe/it specs, xUnit-style test classes, expectations (expect/toBe matchers), assertions ($assert), life-cycle methods (beforeAll/afterAll/beforeEach/afterEach/aroundEach), MockBox mocking (createMock/prepareMock/$()/$results()), mock data generation (mockData()), async testing, exception testing, focused/skipped specs, and running tests via the BoxLang CLI runner.",
+            "description":"Use this skill when writing, running, or debugging tests for BoxLang applications using TestBox: BDD-style describe/it specs, xUnit-style test classes, expectations (expect/toBe matchers), assertions ($assert), life-cycle methods (beforeAll/afterAll/beforeEach/afterEach/aroundEach), MockBox mocking (createMock/prepareMock/$()/$results()), mock data generation (mockData()), async testing, exception testing, focused/skipped specs, attaching files to specs (attach()), spec retries (it retries argument, retries annotation, --retries), rerunning failures with --failed, and running tests via the BoxLang CLI runner. For browser tests (BrowserSpec, BrowserTestCase) also load bx-playwright-testing.",
             "name":"boxlang-testing",
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/testing",
             "repo":"skills",
-            "sha":"bb0452c066e58e66aa1392ed9c5052aa09d59488",
+            "sha":"ef6d24ffbcb6746e2c03957f473e2b97142e279a",
             "slug":"testing",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -651,10 +655,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/web-development",
             "repo":"skills",
-            "sha":"9e9a42c6934c894d2fc1a08d7fae169f9f4a3183",
+            "sha":"27c05033c9952a2fe93782b5b9473d1c177da79d",
             "slug":"web-development",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -663,10 +667,10 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/zip",
             "repo":"skills",
-            "sha":"6e9203e22ae65e68d848580376b8ce51f3e50518",
+            "sha":"b559d5e03b38347dd97953d4d06fc1df78f8c8ed",
             "slug":"zip",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         },
         {
@@ -675,10 +679,34 @@
             "owner":"ortus-boxlang",
             "path":"boxlang-developer/ortus-coding-standards",
             "repo":"skills",
-            "sha":"8d781a7f7a9f853e57ae6b5fc8382486ed8586d6",
+            "sha":"df28fc4986eb273ff65ea684496b8388a376f334",
             "slug":"ortus-coding-standards",
             "source":"boxlang",
-            "syncedAt":"2026-08-12T13:56:28-06:00",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
+            "type":"core"
+        },
+        {
+            "description":"Use this skill when building, testing, or deploying BoxLang applications on Microsoft Azure Functions, including the handlers/ routing convention, manifest.json, AzureFunctionRunner entry point, the Function.java wrapper class, environment variables, local development with Azure Functions Core Tools, and the boxlang-starter-azure-functions project.",
+            "name":"boxlang-runtime-azure-functions",
+            "owner":"ortus-boxlang",
+            "path":"boxlang-developer/runtime-azure-functions",
+            "repo":"skills",
+            "sha":"4b98acdd8d0d7d9c942c8ec3f8ccaebb90b543ca",
+            "slug":"runtime-azure-functions",
+            "source":"boxlang",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
+            "type":"core"
+        },
+        {
+            "description":"Use this skill to validate BoxLang and CFML source files for syntax errors without executing them, using the `boxlang check` command: check files or directories after editing code, read text or JSON results, interpret exit codes, and wire syntax checks into agent loops, git hooks, and CI.",
+            "name":"boxlang-syntax-check",
+            "owner":"ortus-boxlang",
+            "path":"boxlang-developer/syntax-check",
+            "repo":"skills",
+            "sha":"31242b5e94b614efe088182298ed6e4a8f8907d5",
+            "slug":"syntax-check",
+            "source":"boxlang",
+            "syncedAt":"2026-10-06T17:12:34+02:00",
             "type":"core"
         }
     ],

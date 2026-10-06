@@ -5,7 +5,7 @@ const path = require( "path" );
 const { execSync } = require( "child_process" );
 
 const BASE = process.env.BASE_URL || "http://localhost:8190";
-const VIZ = BASE + "/rulebox-visualizer/visualizer";
+const VIZ = BASE + "/rulebox-visualizer";
 const OUT = path.join( __dirname, process.env.OUTDIR || "out" );
 const W = 1280, H = 800;
 const sleep = ( ms ) => new Promise( ( r ) => setTimeout( r, ms ) );
@@ -125,7 +125,7 @@ async function traffic( n ){
 	// Load every screen once in a throwaway tab, so the cache above is full before recording starts
 	const warm = await context.newPage();
 	for( const a of [ "index", "chain?name=fraudcheck", "dryrun", "metrics", "live" ] ){
-		await warm.goto( VIZ + "/" + a, { waitUntil: "networkidle", timeout: 90000 } ).catch( () => {} );
+		await warm.goto( a === "index" ? VIZ : VIZ + "/" + a, { waitUntil: "networkidle", timeout: 90000 } ).catch( () => {} );
 	}
 	await warm.setContent( card( "warm", "warm" ), { waitUntil: "networkidle", timeout: 90000 } ).catch( () => {} );
 	await warm.close();
@@ -143,7 +143,7 @@ async function traffic( n ){
 	mark( "titleEnd" );
 
 	// 2. Dashboard: totals, problem rules, slowest rules, every rulebook
-	await page.goto( VIZ + "/index", { waitUntil: "load", timeout: 20000 } );
+	await page.goto( VIZ, { waitUntil: "load", timeout: 20000 } );
 	await page.mouse.move( 640, 400 );
 	mark( "tour" );
 	await caption( page, "Dashboard", "Every rulebook, plus the rules that fail most and the slowest ones" );

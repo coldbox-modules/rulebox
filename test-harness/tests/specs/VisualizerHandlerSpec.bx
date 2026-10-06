@@ -58,8 +58,8 @@ class extends="tests.resources.BaseSpec"{
 			it( "builds every link under the module's entry point, not the app root", function(){
 				var content = execute( event="rulebox:visualizer.index", renderResults=true ).getRenderedContent();
 
-				expect( content ).toInclude( "rulebox-visualizer/visualizer/dryrun" );
-				expect( content ).toInclude( "rulebox-visualizer/visualizer/chain?name=testconvention" );
+				expect( content ).toInclude( "rulebox-visualizer/dryrun" );
+				expect( content ).toInclude( "rulebox-visualizer/chain?name=testconvention" );
 			} );
 
 			it( "loads every CDN script and stylesheet in the layout with Subresource Integrity", function(){
@@ -215,10 +215,11 @@ class extends="tests.resources.BaseSpec"{
 				expect( jsonDeserialize( event.getRenderedContent() ) ).toHaveKey( "error" );
 			} );
 
-			it( "chain() 404s when no rulebook name is given", function(){
-				var event = execute( event="rulebox:visualizer.chain", renderResults=true );
+			it( "chain() opens the first declared rulebook when no name is given", function(){
+				var firstName = getInstance( "RuleBookRegistry@rulebox" ).getRuleBookNames()[ 1 ]
+				var content   = execute( event="rulebox:visualizer.chain", renderResults=true ).getRenderedContent()
 
-				expect( event.getRenderData().statusCode ).toBe( 404 );
+				expect( content ).toInclude( firstName )
 			} );
 
 			it( "apiMetrics() returns recent events when no rulebook name is given", function(){
