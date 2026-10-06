@@ -50,11 +50,12 @@ class {
 			return
 		}
 		variables.settings.rulebooks[ "fraudcheck" ] = {
+			description : "Screens an order for fraud before it is approved.",
 			source : [
-				{ "name" : "velocityCheck", "priority" : 30, "when" : { "predicate" : "tooManyOrders" }, "then" : [ { "action" : "flag" } ] },
-				{ "name" : "callFraudService", "priority" : 20, "then" : [ { "action" : "scoreWithFraudService" } ] },
-				{ "name" : "addressMismatch", "priority" : 10, "when" : { "neq" : [ "billingCountry", "US" ] }, "then" : [ { "action" : "flag" } ] },
-				{ "name" : "approveOrder", "priority" : 0, "then" : [ { "action" : "flag" } ] }
+				{ "name" : "velocityCheck", "description" : "Flags a customer with too many recent orders", "priority" : 30, "when" : { "predicate" : "tooManyOrders" }, "then" : [ { "action" : "flag" } ] },
+				{ "name" : "callFraudService", "description" : "Scores the order with the external fraud service", "priority" : 20, "then" : [ { "action" : "scoreWithFraudService" } ] },
+				{ "name" : "addressMismatch", "description" : "Flags a billing country outside the US", "priority" : 10, "when" : { "neq" : [ "billingCountry", "US" ] }, "then" : [ { "action" : "flag" } ] },
+				{ "name" : "approveOrder", "description" : "Approves the order", "priority" : 0, "then" : [ { "action" : "flag" } ] }
 			],
 			predicates : {
 				// Slow on purpose, so it tops the Slowest rules panel

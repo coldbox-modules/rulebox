@@ -64,11 +64,15 @@
 		return fileRead( variables.iconDir & arguments.name & ".svg" ).replace( "<svg ", '<svg width="1em" height="1em" ', "one" )
 	}
 
-	// Feature cards: Phosphor icon, title, text, API, guide
+	// Feature cards: Phosphor icon, title, text, API, guide. A card marked next: true is a feature that is only
+	// in the Next docs so far: on a released version's home page it links there and carries a "Next" tag.
 	variables.features = [
 		{ icon: "text-aa", title: "Natural-language DSL", text: "Rules read like sentences. No nested conditionals, no scattered business logic.", code: "given / when / except / then", href: "guides/the-dsl/" },
 		{ icon: "brackets-curly", title: "Rules as data", text: "Load rules from JSON, YAML or a database table, with named actions and predicates.", code: "loadRules( source )", href: "guides/external-rules/" },
 		{ icon: "books", title: "Declared rulebooks", text: "Declare rulebooks in config or a folder, then get one anywhere by name.", code: 'ruleBook( "loan" )', href: "guides/external-rules/" },
+		{ icon: "clipboard-text", title: "Declared facts", next: true, text: "Say which facts a rulebook takes, with types, defaults, examples and descriptions.", code: 'fact( "creditScore" ).required()', href: "guides/declaring-facts/" },
+		{ icon: "shield-check", title: "Enforced facts", next: true, text: "Reject a missing or invalid fact before any rule runs, with every problem listed.", code: "enforceFacts() / strictFacts()", href: "guides/declaring-facts/" },
+		{ icon: "note-pencil", title: "Self-describing", next: true, text: "Describe rulebooks and rules, or let a class's docblock do it. The Visualizer shows them.", code: 'withDescription( "..." )', href: "guides/defining-rulebooks/" },
 		{ icon: "list-checks", title: "Full audit trail", text: "Know which rules executed, skipped or failed on every run.", code: "getRuleStatusMap()", href: "guides/auditing/" },
 		{ icon: "flask", title: "Dry runs", text: "Ask what would happen for a set of facts, without running a single action.", code: "dryRun( facts )", href: "guides/auditing/" },
 		{ icon: "ranking", title: "Priorities and stops", text: "Order rules explicitly and let one rule end the chain.", code: "withPriority( 20 ).stop()", href: "guides/the-dsl/" },
@@ -79,7 +83,7 @@
 
 	// The rule flow, left to right
 	variables.stages = [
-		{ icon: "database", title: "Facts", code: "run( facts )", text: "A struct of name and value pairs: the data you decide on." },
+		{ icon: "database", title: "Facts", code: "run( facts )", text: "A struct of name and value pairs: the data you decide on, declared and checked if you want." },
 		{ icon: "question", title: "When", code: ".when( ... )", text: "Each rule tests its condition, in priority order." },
 		{ icon: "prohibit", title: "Except", code: ".except( ... )", text: "An exception skips the rule even when the condition holds." },
 		{ icon: "lightning", title: "Then", code: ".then( ... )", text: "Actions run, set the result, and can stop the chain." },
@@ -104,8 +108,8 @@
 	variables.shots = [
 		{ src: "visualizer/dashboard.png", title: "Dashboard", text: "Every rulebook, plus the rules that fail most and the slowest ones." },
 		{ src: "visualizer/chain-fraudcheck.png", title: "Chain view", text: "Rules in run order, with durations, error rates and the last error." },
-		{ src: "visualizer/dryrun.png", title: "Dry run", text: "Type facts and see which rules would fire." },
-		{ src: "visualizer/metrics.png", title: "Metrics", text: "Completion and error rates and every rule's health." },
+		{ src: "visualizer/chain-loanapproval.png", title: "Facts and descriptions", text: "What a rulebook decides, the facts it takes, and what each rule does." },
+		{ src: "visualizer/dryrun.png", title: "Dry run", text: "Fill in a form built from the declared facts and see which rules would fire." },
 		{ src: "visualizer/metrics-errors.png", title: "Errors and stack traces", text: "Each distinct error once, with a count, its cause and where it was thrown." },
 		{ src: "visualizer/live.png", title: "Live tracker", text: "Every evaluation as it happens. Open a failure to see why." }
 	]
@@ -403,9 +407,10 @@
 				</div>
 				<div class="rb-grid3">
 					<bx:loop array="#variables.features#" item="feature">
-						<a class="rb-feature rb-card" href="#variables.basePath##feature.href#">
+						<bx:set featureIsAhead = ( feature.next ?: false ) && variables.currentVersion != "Next">
+						<a class="rb-feature rb-card" href="#variables.basePath##( featureIsAhead ? "next/" : "" )##feature.href#">
 							<span class="rb-feature-ico" aria-hidden="true">#phIcon( feature.icon )#</span>
-							<h3>#feature.title#</h3>
+							<h3>#feature.title#<bx:if featureIsAhead> <span class="rb-feature-tag">Next</span></bx:if></h3>
 							<p>#feature.text#</p>
 							<code>#encodeForHTML( feature.code )#</code>
 						</a>
@@ -426,6 +431,7 @@
 					<div class="rb-pane rb-card">
 						<div class="rb-pane-head"><b>In BoxLang</b><span>LoanApproval.bx</span></div>
 <pre class="rb-code"><span class="f">newRule</span>( <span class="s">"declineLowScores"</span> )
+  .<span class="f">withDescription</span>( <span class="s">"Declines a score under 580"</span> )
   .<span class="f">withPriority</span>( <span class="n">20</span> )
   .<span class="f">when</span>( ( facts ) =&gt; facts.creditScore &lt; <span class="n">580</span> )
   .<span class="f">then</span>( ( facts, result ) =&gt;
@@ -445,6 +451,7 @@
 							<span x-text="format === 'json' ? 'config/rules/loan.json' : 'config/rules/loan.yaml'">config/rules/loan.json</span>
 						</div>
 <pre class="rb-code" role="tabpanel" x-show="format === 'yaml'" x-cloak><span class="p">- name</span>: <span class="s">declineLowScores</span>
+  <span class="p">description</span>: <span class="s">Declines a score under 580</span>
   <span class="p">priority</span>: <span class="n">20</span>
   <span class="p">when</span>:
     <span class="p">lt</span>: [ <span class="s">creditScore</span>, <span class="n">580</span> ]
@@ -454,6 +461,7 @@
   <span class="p">stop</span>: <span class="k">true</span></pre>
 <pre class="rb-code" role="tabpanel" x-show="format === 'json'">{
   <span class="p">"name"</span>: <span class="s">"declineLowScores"</span>,
+  <span class="p">"description"</span>: <span class="s">"Declines a score under 580"</span>,
   <span class="p">"priority"</span>: <span class="n">20</span>,
   <span class="p">"when"</span>: { <span class="p">"lt"</span>: [ <span class="s">"creditScore"</span>, <span class="n">580</span> ] },
   <span class="p">"then"</span>: [ { <span class="p">"action"</span>: <span class="s">"decide"</span>,

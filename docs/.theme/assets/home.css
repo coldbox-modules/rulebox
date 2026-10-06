@@ -223,6 +223,7 @@
 }
 .rb-feature-ico svg { width: 24px; height: 24px; }
 .rb-feature h3 { margin: 0; font-size: 18px; }
+.rb-feature-tag { margin-left: 6px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; vertical-align: middle; color: var(--rb-c1); border: 1px solid var(--rb-c1); }
 .rb-feature p { margin: 0; font-size: 15px; line-height: 1.6; color: var(--rb-muted); }
 .rb-feature code { margin-top: auto; font-size: 12.5px; color: var(--rb-c2); background: none; padding: 0; }
 .rb-grid2 { align-items: stretch; }
