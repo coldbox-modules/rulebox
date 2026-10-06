@@ -119,8 +119,9 @@
 	 * versioning config; the current version's option is marked selected.
 	 * Only rendered when there is more than one version.
 	 *
-	 * The released versions come first, newest first (2.0.0, 1.0.0), then a
-	 * divider and the unreleased docs bx-sites builds at /next/ ("Next").
+	 * The unreleased docs bx-sites builds at /next/ ("Next") come first, then
+	 * a divider and the released versions, newest first, the newest marked
+	 * "(Current)": Next, 2.0.0 (Current), 1.0.0.
 	 *
 	 * @versions The bx-sites versions, as [ { label, url } ]
 	 * @currentVersion The label of the version being rendered
@@ -131,28 +132,30 @@
 		var released = arguments.versions.filter( ( v ) => v.label != "Next" )
 		var next     = arguments.versions.filter( ( v ) => v.label == "Next" )
 		var html     = sb{ '<select class="version-switcher form-select form-select-sm" onchange="location.href=this.value" aria-label="' & encodeForHTML( variables.strings.version ) & '">' }
-		html &= renderVersionOptions( released, arguments.currentVersion )
+		html &= renderVersionOptions( next, arguments.currentVersion )
 		if ( next.len() && released.len() ) {
 			html &= '<option disabled>──────</option>'
 		}
-		html &= renderVersionOptions( next, arguments.currentVersion )
+		html &= renderVersionOptions( released, arguments.currentVersion, true )
 		html &= '</select>'
 		return html
 	}
 
 	/**
-	 * The <option> tags for some versions, with the current one selected
+	 * The <option> tags for some versions, with the version being rendered selected
 	 *
 	 * @versions The versions, as [ { label, url } ]
 	 * @currentVersion The label of the version being rendered
+	 * @markLatest Label the first version "(Current)", the release the site root serves
 	 *
 	 * @return The <option> markup
 	 */
-	function renderVersionOptions( required array versions, required string currentVersion ) {
+	function renderVersionOptions( required array versions, required string currentVersion, boolean markLatest = false ) {
 		var html = ""
-		for ( var v in arguments.versions ) {
+		for ( var v, index in arguments.versions ) {
 			var selected = v.label == arguments.currentVersion ? " selected" : ""
-			html &= '<option value="' & bxsitesUrlAttr( v.url ) & '"' & selected & '>' & encodeForHTML( v.label ) & '</option>'
+			var label    = arguments.markLatest && index == 1 ? v.label & " (Current)" : v.label
+			html &= '<option value="' & bxsitesUrlAttr( v.url ) & '"' & selected & '>' & encodeForHTML( label ) & '</option>'
 		}
 		return html
 	}
