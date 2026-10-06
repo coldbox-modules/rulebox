@@ -39,12 +39,8 @@ class extends="tests.resources.BaseSpec"{
 
 			beforeEach( function(){
 				variables.storeUnavailable = "";
-				try{
-					variables.store = newStore();
-					variables.store.reset();
-				} catch( any e ){
-					variables.storeUnavailable = "bx-sqlite driver is not registered with BoxLang's DatasourceService in this environment: #e.message#"
-				}
+				variables.store = newStore();
+				variables.store.reset();
 			} );
 
 			it( "records and queries events back out", function(){
