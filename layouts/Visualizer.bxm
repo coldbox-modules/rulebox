@@ -64,7 +64,9 @@
 	<div class="d-flex rb-shell">
 		<nav class="rb-sidebar flex-shrink-0 p-3 d-flex flex-column">
 			<div class="d-flex align-items-center gap-2 mb-4 px-2">
+				<a href="#prc.vizLink( 'index' )#">
 				<span class="rb-brand-logo" role="img" aria-label="RuleBox">#brandLogo#</span>
+				</a>
 			</div>
 			<ul class="nav nav-pills flex-column gap-1 mb-auto">
 				<li class="nav-item">
@@ -104,6 +106,16 @@
 					<span class="rb-state-dot rb-state-EXECUTED"></span>
 					<span>Visualizer enabled</span>
 				</div>
+			</div>
+			<div class="small text-secondary px-2 pt-2">
+				Powered by
+				<a
+					class="link-secondary"
+					href="https://rulebox.coldbox.org"
+					target="_blank"
+					>
+					RuleBox
+				</a>
 			</div>
 		</nav>
 		<!--- min-width: 0 lets a wide table scroll inside its card instead of widening the page --->
