@@ -239,11 +239,15 @@ score.</p>
 <h2 id="create-a-rulebook"><a href="#create-a-rulebook" id="create-a-rulebook" name="create-a-rulebook" class="anchor"></a>Create a RuleBook</h2>
 <p>A RuleBook is a class that extends <code>rulebox.models.RuleBook</code> and adds its
 rules in a <code>defineRules()</code> method. Save this as <code>models/LoanApproval.bx</code>:</p>
-<pre><code class="language-js">class extends=&quot;rulebox.models.RuleBook&quot;{
+<pre><code class="language-js">/**
+ * Decides a loan application from the applicant's credit score.
+ */
+class extends=&quot;rulebox.models.RuleBook&quot;{
 
 	function defineRules(){
 		addRule(
 			newRule( &quot;declineLowScores&quot; )
+				.withDescription( &quot;Declines a score under 580&quot; )
 				.when( ( facts ) =&gt; facts.creditScore &lt; 580 )
 				.then( ( facts, result ) =&gt; result.setValue( &quot;DECLINED&quot; ) )
 		)
@@ -253,8 +257,12 @@ rules in a <code>defineRules()</code> method. Save this as <code>models/LoanAppr
 </code></pre>
 <p>Read it out loud, it says what it does:</p>
 <ul>
+<li>The comment above the class describes the whole rulebook.</li>
 <li><code>newRule( &quot;declineLowScores&quot; )</code> makes a rule and names it. Always name
 your rules. The name shows up when you look at what ran.</li>
+<li><code>withDescription(...)</code> says in plain words what the rule does.
+Descriptions do not change how anything runs; they show up in the
+Visualizer (lesson 9) and in <code>getDescription()</code>.</li>
 <li><code>when(...)</code> is the condition. It receives the <code>facts</code> and returns <code>true</code>
 or <code>false</code>.</li>
 <li><code>then(...)</code> is the action. It runs only when the condition is <code>true</code>.

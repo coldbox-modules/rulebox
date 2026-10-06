@@ -229,7 +229,7 @@
 		
 		
 		
-			<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#write-the-rules-as-data">Write the rules as data</a></li><li class="toc-level-2"><a href="#conditions-without-code">Conditions without code</a></li><li class="toc-level-2"><a href="#name-your-actions">Name your actions</a></li><li class="toc-level-2"><a href="#other-sources">Other sources</a></li><li class="toc-level-2"><a href="#try-it">Try it</a></li></ul></details>
+			<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#write-the-rules-as-data">Write the rules as data</a></li><li class="toc-level-2"><a href="#conditions-without-code">Conditions without code</a></li><li class="toc-level-2"><a href="#name-your-actions">Name your actions</a></li><li class="toc-level-2"><a href="#describe-the-file-and-its-facts">Describe the file and its facts</a></li><li class="toc-level-2"><a href="#other-sources">Other sources</a></li><li class="toc-level-2"><a href="#try-it">Try it</a></li></ul></details>
 		
 
 		
@@ -241,6 +241,7 @@ RuleBox can load the same rules from a JSON file instead.</p>
 <pre><code class="language-json">[
 	{
 		&quot;name&quot;: &quot;declineLowScores&quot;,
+		&quot;description&quot;: &quot;Declines a score under 580&quot;,
 		&quot;priority&quot;: 20,
 		&quot;when&quot;: { &quot;lt&quot;: [ &quot;creditScore&quot;, 580 ] },
 		&quot;then&quot;: [ { &quot;action&quot;: &quot;decide&quot;, &quot;params&quot;: { &quot;decision&quot;: &quot;DECLINED&quot; } } ],
@@ -248,14 +249,15 @@ RuleBox can load the same rules from a JSON file instead.</p>
 	},
 	{
 		&quot;name&quot;: &quot;autoApprove&quot;,
+		&quot;description&quot;: &quot;Approves a good score, unless the amount is very large&quot;,
 		&quot;when&quot;: { &quot;gte&quot;: [ &quot;creditScore&quot;, 680 ] },
 		&quot;except&quot;: { &quot;gt&quot;: [ &quot;requestedAmount&quot;, 500000 ] },
 		&quot;then&quot;: [ { &quot;action&quot;: &quot;decide&quot;, &quot;params&quot;: { &quot;decision&quot;: &quot;APPROVED&quot; } } ]
 	}
 ]
 </code></pre>
-<p>It is the same two rules, using the same ideas: a <code>name</code>, a <code>priority</code>, a
-<code>when</code>, an <code>except</code>, a <code>then</code>, and <code>stop</code>.</p>
+<p>It is the same two rules, using the same ideas: a <code>name</code>, a <code>description</code>,
+a <code>priority</code>, a <code>when</code>, an <code>except</code>, a <code>then</code>, and <code>stop</code>.</p>
 <h2 id="conditions-without-code"><a href="#conditions-without-code" id="conditions-without-code" name="conditions-without-code" class="anchor"></a>Conditions without code</h2>
 <p>A condition in a JSON file is a small structure, not code. That is on
 purpose: a file anyone can edit can never run code you did not write.</p>
@@ -297,6 +299,38 @@ every rule. Run it with a score of <code>540</code> and you get <code>DECLINED</
 you get the default, <code>MANUAL_REVIEW</code>.</p>
 <p>Everything from lesson 5 still works on a rulebook loaded from a file:
 the audit trail, <code>dryRun()</code> and metrics.</p>
+<h2 id="describe-the-file-and-its-facts"><a href="#describe-the-file-and-its-facts" id="describe-the-file-and-its-facts" name="describe-the-file-and-its-facts" class="anchor"></a>Describe the file and its facts</h2>
+<p>A rule file can also describe the rulebook and declare its facts, like
+<code>defineFacts()</code> in lesson 3. Wrap the rules in an object:</p>
+<pre><code class="language-json">{
+	&quot;description&quot;: &quot;Decides a loan application from the credit score&quot;,
+	&quot;facts&quot;: {
+		&quot;creditScore&quot;: { &quot;type&quot;: &quot;numeric&quot;, &quot;required&quot;: true, &quot;description&quot;: &quot;300 to 850&quot; },
+		&quot;requestedAmount&quot;: { &quot;type&quot;: &quot;numeric&quot;, &quot;default&quot;: 0 }
+	},
+	&quot;enforceFacts&quot;: true,
+	&quot;rules&quot;: [
+		{
+			&quot;name&quot;: &quot;declineLowScores&quot;,
+			&quot;description&quot;: &quot;Declines a score under 580&quot;,
+			&quot;priority&quot;: 20,
+			&quot;when&quot;: { &quot;lt&quot;: [ &quot;creditScore&quot;, 580 ] },
+			&quot;then&quot;: [ { &quot;action&quot;: &quot;decide&quot;, &quot;params&quot;: { &quot;decision&quot;: &quot;DECLINED&quot; } } ],
+			&quot;stop&quot;: true
+		},
+		{
+			&quot;name&quot;: &quot;autoApprove&quot;,
+			&quot;description&quot;: &quot;Approves a good score, unless the amount is very large&quot;,
+			&quot;when&quot;: { &quot;gte&quot;: [ &quot;creditScore&quot;, 680 ] },
+			&quot;except&quot;: { &quot;gt&quot;: [ &quot;requestedAmount&quot;, 500000 ] },
+			&quot;then&quot;: [ { &quot;action&quot;: &quot;decide&quot;, &quot;params&quot;: { &quot;decision&quot;: &quot;APPROVED&quot; } } ]
+		}
+	]
+}
+</code></pre>
+<p><code>rules</code> holds the same array as before. <code>enforceFacts</code> checks the facts on
+every run, and <code>strictFacts</code> would also reject undeclared ones. A bare
+array still works, so add this only when you want it.</p>
 <h2 id="other-sources"><a href="#other-sources" id="other-sources" name="other-sources" class="anchor"></a>Other sources</h2>
 <p><code>JSONRuleSource</code> is one of three. <code>YAMLRuleSource</code> reads a YAML file and
 <code>DBRuleSource</code> reads a database table. The
@@ -368,7 +402,7 @@ without touching any BoxLang.</p>
 			
 			
 				<aside class="col-xl-2 toc-sidebar d-none d-xl-block">
-					<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#write-the-rules-as-data">Write the rules as data</a></li><li class="toc-level-2"><a href="#conditions-without-code">Conditions without code</a></li><li class="toc-level-2"><a href="#name-your-actions">Name your actions</a></li><li class="toc-level-2"><a href="#other-sources">Other sources</a></li><li class="toc-level-2"><a href="#try-it">Try it</a></li></ul></nav>
+					<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#write-the-rules-as-data">Write the rules as data</a></li><li class="toc-level-2"><a href="#conditions-without-code">Conditions without code</a></li><li class="toc-level-2"><a href="#name-your-actions">Name your actions</a></li><li class="toc-level-2"><a href="#describe-the-file-and-its-facts">Describe the file and its facts</a></li><li class="toc-level-2"><a href="#other-sources">Other sources</a></li><li class="toc-level-2"><a href="#try-it">Try it</a></li></ul></nav>
 				</aside>
 			
 		</div>

@@ -66,6 +66,22 @@ RuleBox.UnregisteredActionException: No action registered under the name 'decide
 You find out on startup, not the first time a customer hits that rule. A
 predicate that is missing gives `RuleBox.UnregisteredPredicateException`.
 
+## Missing or bad facts
+
+If a rulebook enforces its facts (lesson 3), a run with a missing required
+fact, a value of the wrong type, or a value outside a fact's allowed list
+fails before any rule runs:
+
+```
+RuleBox.InvalidFactsException: RuleBook [loan] was given invalid facts: Missing required fact [creditScore].
+```
+
+The message lists every problem at once, and its `extendedInfo` holds them
+as JSON (`{ fact, problem, message }`), handy for showing them on a form.
+The messages name the fact but never repeat its value, since facts can be
+personal data. To check facts without running anything, call
+`validateFacts( facts )`: it returns the same problems as an array.
+
 ## A rule that was never added to a book
 
 A `Rule` only works inside a RuleBook. Running one that is on its own gives

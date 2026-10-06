@@ -229,7 +229,7 @@
 		
 		
 		
-			<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#a-rule-that-throws">A rule that throws</a></li><li class="toc-level-2"><a href="#a-name-that-was-never-registered">A name that was never registered</a></li><li class="toc-level-2"><a href="#a-rule-that-was-never-added-to-a-book">A rule that was never added to a book</a></li><li class="toc-level-2"><a href="#try-it">Try it</a></li></ul></details>
+			<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#a-rule-that-throws">A rule that throws</a></li><li class="toc-level-2"><a href="#a-name-that-was-never-registered">A name that was never registered</a></li><li class="toc-level-2"><a href="#missing-or-bad-facts">Missing or bad facts</a></li><li class="toc-level-2"><a href="#a-rule-that-was-never-added-to-a-book">A rule that was never added to a book</a></li><li class="toc-level-2"><a href="#try-it">Try it</a></li></ul></details>
 		
 
 		
@@ -277,6 +277,17 @@ file and forget to register it:</p>
 </code></pre>
 <p>You find out on startup, not the first time a customer hits that rule. A
 predicate that is missing gives <code>RuleBox.UnregisteredPredicateException</code>.</p>
+<h2 id="missing-or-bad-facts"><a href="#missing-or-bad-facts" id="missing-or-bad-facts" name="missing-or-bad-facts" class="anchor"></a>Missing or bad facts</h2>
+<p>If a rulebook enforces its facts (lesson 3), a run with a missing required
+fact, a value of the wrong type, or a value outside a fact's allowed list
+fails before any rule runs:</p>
+<pre><code>RuleBox.InvalidFactsException: RuleBook [loan] was given invalid facts: Missing required fact [creditScore].
+</code></pre>
+<p>The message lists every problem at once, and its <code>extendedInfo</code> holds them
+as JSON (<code>{ fact, problem, message }</code>), handy for showing them on a form.
+The messages name the fact but never repeat its value, since facts can be
+personal data. To check facts without running anything, call
+<code>validateFacts( facts )</code>: it returns the same problems as an array.</p>
 <h2 id="a-rule-that-was-never-added-to-a-book"><a href="#a-rule-that-was-never-added-to-a-book" id="a-rule-that-was-never-added-to-a-book" name="a-rule-that-was-never-added-to-a-book" class="anchor"></a>A rule that was never added to a book</h2>
 <p>A <code>Rule</code> only works inside a RuleBook. Running one that is on its own gives
 a clear error instead of a confusing one:</p>
@@ -351,7 +362,7 @@ are still <code>REGISTERED</code>: the chain stopped where the error happened.</
 			
 			
 				<aside class="col-xl-2 toc-sidebar d-none d-xl-block">
-					<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#a-rule-that-throws">A rule that throws</a></li><li class="toc-level-2"><a href="#a-name-that-was-never-registered">A name that was never registered</a></li><li class="toc-level-2"><a href="#a-rule-that-was-never-added-to-a-book">A rule that was never added to a book</a></li><li class="toc-level-2"><a href="#try-it">Try it</a></li></ul></nav>
+					<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#a-rule-that-throws">A rule that throws</a></li><li class="toc-level-2"><a href="#a-name-that-was-never-registered">A name that was never registered</a></li><li class="toc-level-2"><a href="#missing-or-bad-facts">Missing or bad facts</a></li><li class="toc-level-2"><a href="#a-rule-that-was-never-added-to-a-book">A rule that was never added to a book</a></li><li class="toc-level-2"><a href="#try-it">Try it</a></li></ul></nav>
 				</aside>
 			
 		</div>

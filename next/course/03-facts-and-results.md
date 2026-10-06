@@ -33,20 +33,48 @@ Inside a rule, facts are just a struct: `facts.creditScore`.
 
 ## Say which facts a rulebook takes
 
-A rulebook can list the facts it expects. Add a `defineFacts()` method next
-to `defineRules()`:
+A rulebook can list the facts it expects: their names, types, whether they
+are required, defaults and descriptions. Add a `defineFacts()` method next
+to `defineRules()` in `LoanApproval.bx`:
 
 ```js
 function defineFacts(){
-	fact( "creditScore" ).type( "numeric" ).required().description( "Credit score, 300 to 850" )
+	fact( "creditScore" )
+		.type( "numeric" )
+		.required()
+		.description( "The applicant's credit score, 300 to 850" )
+		.example( 680 )
 	fact( "income" ).type( "numeric" ).defaultValue( 0 )
 }
 ```
 
-This documents the rulebook, and the Visualizer (lesson 9) turns it into a
-form. To reject a run with a missing or invalid fact, add `enforceFacts()`
-to `defineFacts()`. The [Declaring Facts guide](../guides/declaring-facts.md)
-has the details.
+On its own this only describes the rulebook: anyone reading the class, and
+the Visualizer (lesson 9), can see which facts it takes. A run with a
+missing fact still runs.
+
+To check the facts on every run, add `enforceFacts()`:
+
+```js
+function defineFacts(){
+	enforceFacts()
+	fact( "creditScore" ).type( "numeric" ).required()
+	fact( "income" ).type( "numeric" ).defaultValue( 0 )
+}
+```
+
+Now a missing `income` gets its default of `0`, and a run without a
+`creditScore`, or with one that is not a number, throws
+`RuleBox.InvalidFactsException` before any rule runs:
+
+```js
+getInstance( "LoanApproval" ).run( { creditScore: "abc" } )
+// throws RuleBox.InvalidFactsException, whose message ends with:
+// Fact [creditScore] must be a numeric value.
+```
+
+Use `strictFacts()` instead to also reject facts the rulebook did not
+declare, such as a typo like `creditScroe`. The
+[Declaring Facts guide](../guides/declaring-facts.md) has every option.
 
 ## Reading the Result
 
@@ -104,5 +132,8 @@ also gives every run a clean starting point.
 
 Change the default to `"NEEDS_MORE_INFO"` and run it again. Then try a
 score of `500` and check that the rule still wins over the default.
+
+Last, add `enforceFacts()` and run with no facts at all. Read the message:
+it names the missing fact, so the caller knows exactly what to send.
 
 **Next:** add more rules and control how they run.

@@ -245,18 +245,20 @@ journey in one place.</p>
 <tbody>
 <tr><td>1</td><td>Think in facts, rules, rulebooks and results.</td></tr>
 <tr><td>2</td><td>Write a RuleBook with <code>newRule().when().then()</code> and run it.</td></tr>
-<tr><td>3</td><td>Pass facts in, and read the Result with <code>getValue()</code> and <code>orElse()</code>.</td></tr>
+<tr><td>3</td><td>Pass facts in, declare and enforce them, and read the Result with <code>getValue()</code> and <code>orElse()</code>.</td></tr>
 <tr><td>4</td><td>Order and shape rules with <code>withPriority()</code>, <code>stop()</code> and <code>except()</code>.</td></tr>
 <tr><td>5</td><td>See what ran with the audit trail, <code>dryRun()</code> and metrics.</td></tr>
 <tr><td>6</td><td>Move rules into JSON, with named actions.</td></tr>
 <tr><td>7</td><td>Declare rulebooks in config and use <code>ruleBook( &quot;name&quot; )</code>.</td></tr>
-<tr><td>8</td><td>Handle <code>FAILED</code> rules and the errors RuleBox catches early.</td></tr>
+<tr><td>8</td><td>Handle <code>FAILED</code> rules, invalid facts and the errors RuleBox catches early.</td></tr>
 <tr><td>9</td><td>Browse and test rules in the Visualizer.</td></tr>
 </tbody>
 </table></div>
 <h2 id="habits-worth-keeping"><a href="#habits-worth-keeping" id="habits-worth-keeping" name="habits-worth-keeping" class="anchor"></a>Habits worth keeping</h2>
 <ul>
 <li><strong>Name every rule.</strong> Names are how you read the audit trail.</li>
+<li><strong>Describe your rulebooks and declare their facts.</strong> It documents them
+for the next developer, and the Visualizer turns it into a form.</li>
 <li><strong>Get a fresh RuleBook for each decision.</strong> Use <code>getInstance()</code>,
 <code>ruleBook( &quot;name&quot; )</code> or an injected provider, and never keep one in a
 shared variable.</li>
@@ -270,6 +272,8 @@ rarely changes in BoxLang.</li>
 <ul>
 <li><a href="/next/guides/the-dsl/index.html">The RuleBook DSL</a> covers <code>using()</code>, time windows
 with <code>active()</code> and everything else a rule can do.</li>
+<li><a href="/next/guides/declaring-facts/index.html">Declaring Facts</a> covers every fact type,
+<code>withFacts()</code>, strict mode and <code>validateFacts()</code>.</li>
 <li><a href="/next/guides/the-builder/index.html">The Builder</a> builds rules and rulebooks on the
 fly, with no class.</li>
 <li><a href="/next/guides/external-rules/index.html">Externalized Rule Definitions</a> has YAML and

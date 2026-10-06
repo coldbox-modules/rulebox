@@ -253,17 +253,38 @@ getInstance( &quot;LoanApproval&quot; )
 </code></pre>
 <p>Inside a rule, facts are just a struct: <code>facts.creditScore</code>.</p>
 <h2 id="say-which-facts-a-rulebook-takes"><a href="#say-which-facts-a-rulebook-takes" id="say-which-facts-a-rulebook-takes" name="say-which-facts-a-rulebook-takes" class="anchor"></a>Say which facts a rulebook takes</h2>
-<p>A rulebook can list the facts it expects. Add a <code>defineFacts()</code> method next
-to <code>defineRules()</code>:</p>
+<p>A rulebook can list the facts it expects: their names, types, whether they
+are required, defaults and descriptions. Add a <code>defineFacts()</code> method next
+to <code>defineRules()</code> in <code>LoanApproval.bx</code>:</p>
 <pre><code class="language-js">function defineFacts(){
-	fact( &quot;creditScore&quot; ).type( &quot;numeric&quot; ).required().description( &quot;Credit score, 300 to 850&quot; )
+	fact( &quot;creditScore&quot; )
+		.type( &quot;numeric&quot; )
+		.required()
+		.description( &quot;The applicant's credit score, 300 to 850&quot; )
+		.example( 680 )
 	fact( &quot;income&quot; ).type( &quot;numeric&quot; ).defaultValue( 0 )
 }
 </code></pre>
-<p>This documents the rulebook, and the Visualizer (lesson 9) turns it into a
-form. To reject a run with a missing or invalid fact, add <code>enforceFacts()</code>
-to <code>defineFacts()</code>. The <a href="/next/guides/declaring-facts/index.html">Declaring Facts guide</a>
-has the details.</p>
+<p>On its own this only describes the rulebook: anyone reading the class, and
+the Visualizer (lesson 9), can see which facts it takes. A run with a
+missing fact still runs.</p>
+<p>To check the facts on every run, add <code>enforceFacts()</code>:</p>
+<pre><code class="language-js">function defineFacts(){
+	enforceFacts()
+	fact( &quot;creditScore&quot; ).type( &quot;numeric&quot; ).required()
+	fact( &quot;income&quot; ).type( &quot;numeric&quot; ).defaultValue( 0 )
+}
+</code></pre>
+<p>Now a missing <code>income</code> gets its default of <code>0</code>, and a run without a
+<code>creditScore</code>, or with one that is not a number, throws
+<code>RuleBox.InvalidFactsException</code> before any rule runs:</p>
+<pre><code class="language-js">getInstance( &quot;LoanApproval&quot; ).run( { creditScore: &quot;abc&quot; } )
+// throws RuleBox.InvalidFactsException, whose message ends with:
+// Fact [creditScore] must be a numeric value.
+</code></pre>
+<p>Use <code>strictFacts()</code> instead to also reject facts the rulebook did not
+declare, such as a typo like <code>creditScroe</code>. The
+<a href="/next/guides/declaring-facts/index.html">Declaring Facts guide</a> has every option.</p>
 <h2 id="reading-the-result"><a href="#reading-the-result" id="reading-the-result" name="reading-the-result" class="anchor"></a>Reading the Result</h2>
 <p><code>getResult()</code> returns a <strong>Result</strong> object. These are the methods you will
 use most:</p>
@@ -310,6 +331,8 @@ also gives every run a clean starting point.</p>
 <h2 id="try-it"><a href="#try-it" id="try-it" name="try-it" class="anchor"></a>Try it</h2>
 <p>Change the default to <code>&quot;NEEDS_MORE_INFO&quot;</code> and run it again. Then try a
 score of <code>500</code> and check that the rule still wins over the default.</p>
+<p>Last, add <code>enforceFacts()</code> and run with no facts at all. Read the message:
+it names the missing fact, so the caller knows exactly what to send.</p>
 <p><strong>Next:</strong> add more rules and control how they run.</p>
 
 	

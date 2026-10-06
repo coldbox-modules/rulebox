@@ -256,6 +256,9 @@ mistake in a BoxLang config, and ColdBox then ignores the setting without
 any error.</p>
 </blockquote>
 <p><code>source</code> is the JSON file from lesson 6, found relative to your app root.
+If the file describes the rulebook and declares its facts, they come along.
+The same struct also takes <code>description</code>, <code>facts</code>, <code>enforceFacts</code> and
+<code>strictFacts</code> keys, for when you would rather keep them in config.
 <code>actions</code> maps the action name to a <strong>WireBox ID</strong>, so the code lives in a
 normal class. Save this as <code>models/DecisionAction.bx</code>:</p>
 <pre><code class="language-js">class {
