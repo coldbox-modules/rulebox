@@ -8,7 +8,7 @@ Tooling for `docs/assets/video/rulebox-visualizer-intro.mp4`, the one-minute tou
 | `Demo.bx` | Temporary handler that runs the harness JSON rulebooks with random facts, plus a `fraudcheck` rulebook it declares on the first run, with a slow rule and a rule that sometimes fails (a timeout caused by a socket error, or a bad response). The screens get rule health to show and the Live Tracker gets traffic. |
 | `edit.sh` | ffmpeg cut: trims, speeds the tour up 1.1x (`TOUR_SPEED`), crossfades, fades in and out, adds the music, encodes H.264 + AAC. |
 | `music.py` | Original background track, synthesized with numpy (no samples, no third-party audio). `edit.sh` passes the length and the outro's start, so the breakdown lands on the outro card. |
-| `*-icon-full.svg` | ColdBox and BoxLang marks for the end screen. The RuleBox mark on the cards comes from `docs/assets/brand/rulebox-mark.svg`. |
+| `*-icon-full.svg` | ColdBox and BoxLang marks for the end screen. The RuleBox icon on the cards comes from `docs/assets/brand/rulebox-icon-full.svg`. |
 
 ## Steps
 

@@ -35,8 +35,8 @@ p{margin:0;font-size:24px;color:#9fb0cc}
 const fs = require( "fs" );
 const svgData = ( f ) => "data:image/svg+xml;base64," + fs.readFileSync( path.join( __dirname, f ) ).toString( "base64" );
 
-// The RuleBox mark from the docs brand assets, on the title, outro and end cards
-const MARK = `<img src="${ svgData( "../../docs/assets/brand/rulebox-mark.svg" ) }" height="96" alt="">`;
+// The RuleBox icon from the docs brand assets, on the title, outro and end cards
+const MARK = `<img src="${ svgData( "../../docs/assets/brand/rulebox-icon-full.svg" ) }" height="120" style="margin:-16px 0" alt="">`;
 
 function endScreen(){
 	const cb = svgData( "coldbox-icon-full.svg" ), bl = svgData( "boxlang-icon-full.svg" );

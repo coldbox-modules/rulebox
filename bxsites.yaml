@@ -5,8 +5,8 @@ theme:
     # The custom RuleBox theme lives in docs/.theme (an ejected bootstrap theme
     # with its own home page); `name` stays bootstrap for its options.
     name: bootstrap
-    logo: "assets/brand/rulebox-mark.svg"
-    favicon: "assets/brand/rulebox-mark.svg"
+    logo: "assets/brand/rulebox-icon-mono-dark.svg"
+    favicon: "assets/brand/rulebox-icon-full.svg"
     options:
         {
             navCollapsible: true,

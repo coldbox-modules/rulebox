@@ -262,8 +262,8 @@
 	<header class="rb-nav">
 		<div class="rb-wrap rb-navrow">
 			<a class="rb-brand" href="#variables.basePath#">
-				<img src="#variables.assetUrl#brand/rulebox-mark.svg" alt="">
-				<span class="rb-brand-name">#encodeForHTML( variables.siteConfig.name )#</span>
+				<img class="rb-logo-light" src="#variables.assetUrl#brand/rulebox-logo-full-light.svg" alt="#encodeForHTML( variables.siteConfig.name )#">
+				<img class="rb-logo-dark" src="#variables.assetUrl#brand/rulebox-logo-full-dark.svg" alt="#encodeForHTML( variables.siteConfig.name )#">
 			</a>
 			<nav class="rb-navlinks" id="rb-navlinks" :class="menu && 'rb-navlinks-open'" @click.outside="menu = false" aria-label="Main">
 				<a href="#variables.basePath#getting-started/">Getting Started</a>
@@ -573,8 +573,8 @@
 		<div class="rb-wrap rb-foot">
 			<div class="rb-foot-brand">
 				<a class="rb-brand" href="#variables.basePath#">
-					<img src="#variables.assetUrl#brand/rulebox-mark.svg" alt="">
-					<span class="rb-brand-name">#encodeForHTML( variables.siteConfig.name )#</span>
+					<img class="rb-logo-light" src="#variables.assetUrl#brand/rulebox-logo-full-light.svg" alt="#encodeForHTML( variables.siteConfig.name )#">
+					<img class="rb-logo-dark" src="#variables.assetUrl#brand/rulebox-logo-full-dark.svg" alt="#encodeForHTML( variables.siteConfig.name )#">
 				</a>
 				<p>A natural-language rules engine for BoxLang and ColdBox, based on RuleBook.</p>
 				<bx:if variables.socialLinks.len() gt 0>

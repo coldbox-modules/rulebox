@@ -62,16 +62,16 @@ code, pre, kbd, samp {
     font-family: var(--rb-mono);
 }
 
-/* The RuleBox mark in the docs navbar: wider than tall, and white, since its own cyan gradient
-   disappears on the navbar's gradient (like the mark on the gradient app icon) */
+/* The RuleBox icon in the docs navbar: the white (mono dark) version, which reads on the navbar's gradient */
 .brand-logo {
     width: auto;
-    height: 28px;
+    height: 34px;
+    /* The icon's square box has room above and below the art; don't let it grow the navbar */
+    margin: -3px 0;
     padding: 0;
     border-radius: 0;
     background: none;
     box-shadow: none;
-    filter: brightness(0) invert(1) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
 }
 
 /* A self-hosted video (the Visualizer tour) in a docs page */
