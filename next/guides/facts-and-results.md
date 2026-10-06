@@ -41,6 +41,10 @@ domain:
 .when( ( facts ) => facts[ "creditScore" ] < 600 )
 ```
 
+A `RuleBook` can also declare which facts it takes, with their types,
+defaults and descriptions, and optionally reject a run with a missing or
+invalid fact. See [Declaring Facts](declaring-facts.md).
+
 ## The `Result` object
 
 `RuleBooks` produce results, and `Result` is the object that models them.

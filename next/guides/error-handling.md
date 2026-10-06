@@ -33,6 +33,18 @@ try {
 }
 ```
 
+## Invalid facts
+
+A rulebook that [enforces its facts](declaring-facts.md#enforcing-facts)
+checks them before any rule runs. A missing required fact, a value of the
+wrong type, a value outside a fact's `values`, or (in strict mode) an
+undeclared fact throws `RuleBox.InvalidFactsException`. Its `message`
+lists every problem, and its `extendedInfo` holds them as a JSON array of
+`{ fact, problem, message }`. Messages never include fact values.
+
+An invalid fact declaration, such as an unknown type or an unknown key
+passed to `withFacts()`, throws `RuleBox.InvalidFactDefinitionException`.
+
 ## Running a detached `Rule`
 
 Calling `run()` directly on a `Rule` that was never added to a
