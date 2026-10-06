@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /next/
 
 Sitemap: https://rulebox.coldbox.org/sitemap.xml

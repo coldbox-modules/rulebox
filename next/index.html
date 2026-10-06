@@ -1,0 +1,646 @@
+
+
+
+
+
+
+
+
+
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Home - RuleBox</title>
+	<meta property="og:type" content="website">
+	<meta property="og:site_name" content="RuleBox">
+	<meta property="og:title" content="Home">
+
+	
+	
+
+	
+	
+		<link rel="canonical" href="https&#x3a;&#x2f;&#x2f;rulebox.coldbox.org&#x2f;next&#x2f;index.html">
+	
+
+	
+	
+		<meta name="description" content="RuleBox is a modern, intuitive, natural-language rules engine for BoxLang and ColdBox applications.">
+		<meta property="og:description" content="RuleBox is a modern, intuitive, natural-language rules engine for BoxLang and ColdBox applications.">
+	
+
+	
+	
+		<meta property="og:image" content="https://rulebox.coldbox.org/assets/brand/og-image.png">
+		<meta name="twitter:card" content="summary_large_image">
+	
+
+	
+	
+	<link rel="icon" type="image/png" sizes="32x32" href="/next/assets/brand/favicon-32.png">
+	
+		<link rel="icon" href="/next/assets/brand/rulebox-icon-full.svg">
+	
+	<link rel="apple-touch-icon" href="/next/assets/brand/apple-touch-icon.png">
+
+	
+	<script>
+		( function () {
+			var configuredMode = "auto";
+			var stored = localStorage.getItem( "bxsites-theme" );
+			var prefersDark = window.matchMedia( "(prefers-color-scheme: dark)" ).matches;
+			var wantsDark = stored ? stored === "dark" : ( configuredMode === "dark" || ( configuredMode === "auto" && prefersDark ) );
+			if ( wantsDark ) {
+				document.documentElement.setAttribute( "data-theme", "dark" );
+			}
+		} )();
+	</script>
+
+	
+	<link rel="stylesheet" href="/next/assets/vendor/bootstrap/bootstrap.min.css">
+	<link rel="stylesheet" href="/next/assets/vendor/highlight/github.min.css">
+	<link rel="stylesheet" href="/next/assets/theme/style.de0a3c16.css">
+	<link rel="stylesheet" href="/next/assets/theme/home.css?v=edca4bf19e">
+
+	
+	<link rel="stylesheet" href="/next/assets/bundle.ffb388e3.css">
+
+	
+	
+
+	
+	
+
+	
+	
+
+	
+	
+
+	
+	
+		<script>window.__BXSITES_BASE_PATH__ = "/next/";</script>
+		<script>window.__BXSITES_SEARCH_NO_RESULTS__ = "No\x20results\x20found.";</script>
+		<script src="/next/assets/vendor/minisearch/minisearch.js"></script>
+		<script src="/next/assets/search.js" defer></script>
+	
+
+	
+	
+
+	
+	
+
+	
+	<script src="/next/assets/vendor/alpine/cdn.min.js" defer></script>
+</head>
+<body
+	class="rb-home"
+	x-data="{ dark: document.documentElement.getAttribute( 'data-theme' ) === 'dark', copied: false, menu: false }"
+	x-init="$watch( 'dark', v => { document.documentElement.setAttribute( 'data-theme', v ? 'dark' : 'light' ); localStorage.setItem( 'bxsites-theme', v ? 'dark' : 'light' ) } )">
+
+	<div class="rb-glows" aria-hidden="true"><div class="rb-glow rb-glow-1"></div><div class="rb-glow rb-glow-2"></div></div>
+
+	
+	<header class="rb-nav">
+		<div class="rb-wrap rb-navrow">
+			<a class="rb-brand" href="/next/">
+				<img class="rb-logo-light" src="/next/assets/brand/rulebox-logo-full-light.svg" alt="RuleBox">
+				<img class="rb-logo-dark" src="/next/assets/brand/rulebox-logo-full-dark.svg" alt="RuleBox">
+			</a>
+			<nav class="rb-navlinks" id="rb-navlinks" :class="menu && 'rb-navlinks-open'" @click.outside="menu = false" aria-label="Main">
+				<a href="/next/getting-started/">Getting Started</a>
+				<a href="/next/course/">Tutorial Course</a>
+				<a href="/next/guides/">Guides</a>
+				<a href="/next/guides/visualizer/">Visualizer</a>
+			</nav>
+			<div class="rb-navcta">
+				
+					<div class="rb-search">
+
+	<div class="bxsites-search position-relative">
+		<input
+			type="search"
+			id="bxsites-search-input"
+			class="form-control"
+			placeholder="Search..."
+			aria-label="Search">
+		<kbd class="bxsites-search-kbd" aria-hidden="true">Ctrl K</kbd>
+		<ul id="bxsites-search-results" class="bxsites-search-results list-unstyled"></ul>
+	</div>
+
+
+</div>
+				
+				
+					<select class="version-switcher form-select form-select-sm" onchange="location.href=this.value" aria-label="Version"><option value="/">2.0.0</option><option value="/next/" selected>Next</option><option value="/versions/1.0.0/">1.0.0</option></select>
+				
+				<button type="button" class="rb-icon-btn" @click="dark = !dark" aria-label="Toggle dark mode">
+					<span x-show="!dark"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg></span>
+					<span x-show="dark" x-cloak><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg></span>
+				</button>
+				
+					<a class="rb-btn rb-btn-ghost rb-btn-sm" href="https://github.com/coldbox-modules/rulebox" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.333-1.754-1.333-1.754-1.089-.744.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.303-5.467-1.332-5.467-5.93 0-1.31.468-2.38 1.235-3.22-.123-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23A11.5 11.5 0 0 1 12 5.803c1.02.005 2.045.138 3.003.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.118 3.176.77.84 1.235 1.91 1.235 3.22 0 4.61-2.807 5.625-5.48 5.92.43.372.823 1.102.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .322.216.694.825.576C20.565 21.795 24 17.298 24 12c0-6.63-5.37-12-12-12"/></svg> Star</a>
+				
+				
+				<button type="button" class="rb-icon-btn rb-menu-btn" @click.stop="menu = !menu" :aria-expanded="menu" aria-controls="rb-navlinks" aria-label="Menu">
+					<svg x-show="!menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+					<svg x-show="menu" x-cloak viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+				</button>
+			</div>
+		</div>
+	</header>
+
+	<main>
+		
+		<section class="rb-hero">
+			<div class="rb-wrap rb-hero-grid">
+				<div class="rb-hero-copy">
+					<div class="rb-pill">
+						<span class="rb-pill-logos">
+							<img src="/next/assets/coldbox-icon.svg" alt="ColdBox">
+							<img src="/next/assets/boxlang-icon.svg" alt="BoxLang">
+						</span>
+						The rules engine for ColdBox and BoxLang
+					</div>
+					<h1>Write rules like you speak.<br><span class="rb-grad">Run them like code.</span></h1>
+					<p class="rb-lead">RuleBox turns tangled <code>if</code>/<code>else</code> blocks into named rules you can read, test and audit. Given some facts, when a condition holds, then act. In BoxLang, or as JSON your team can change without a deploy.</p>
+					<div class="rb-actions">
+						<a class="rb-btn rb-btn-primary" href="/next/course/">Start the Tutorial Course
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+						</a>
+						<a class="rb-btn rb-btn-ghost" href="/next/guides/">Read the Guides</a>
+					</div>
+					<div class="rb-install-row">
+						<div class="rb-install">
+							<span><span class="rb-prompt">$</span> box install rulebox</span>
+							<button type="button" @click="navigator.clipboard.writeText( 'box install rulebox' ); copied = true; setTimeout( () => copied = false, 1500 )" :aria-label="copied ? 'Copied' : 'Copy install command'" aria-label="Copy install command">
+								<svg x-show="!copied" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+								<svg x-show="copied" x-cloak viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+							</button>
+						</div>
+						<div class="rb-badges"><span>BoxLang 1.14+</span><span>ColdBox 8+</span><span>Apache 2.0</span></div>
+					</div>
+				</div>
+
+				<div class="rb-window">
+					<div class="rb-window-frame">
+						<div class="rb-window-bar">
+							<span class="rb-dot rb-dot-r"></span><span class="rb-dot rb-dot-y"></span><span class="rb-dot rb-dot-g"></span>
+							<span class="rb-tab rb-tab-on">LoanApproval.bx</span>
+						</div>
+<pre class="rb-code"><span class="k">class</span> extends=<span class="s">"rulebox.models.RuleBook"</span> {
+
+  <span class="k">function</span> <span class="f">defineRules</span>(){
+    <span class="f">addRule</span>(
+      <span class="f">newRule</span>( <span class="s">"declineLowScores"</span> )
+        .<span class="f">withPriority</span>( <span class="n">20</span> )
+        .<span class="f">when</span>( ( facts ) =&gt; facts.creditScore &lt; <span class="n">580</span> )
+        .<span class="f">then</span>( ( facts, result ) =&gt; result.<span class="f">setValue</span>( <span class="s">"DECLINED"</span> ) )
+        .<span class="f">stop</span>()
+    )
+    <span class="f">addRule</span>(
+      <span class="f">newRule</span>( <span class="s">"autoApprove"</span> )
+        .<span class="f">when</span>( ( facts ) =&gt; facts.creditScore &gt;= <span class="n">680</span> )
+        .<span class="f">except</span>( ( facts ) =&gt; facts.requestedAmount &gt; <span class="n">500000</span> )
+        .<span class="f">then</span>( ( facts, result ) =&gt; result.<span class="f">setValue</span>( <span class="s">"APPROVED"</span> ) )
+    )
+  }
+}</pre>
+<pre class="rb-code rb-code-foot"><span class="c">// in any handler</span>
+<span class="f">ruleBook</span>( <span class="s">"loan"</span> )
+  .<span class="f">run</span>( { creditScore: <span class="n">720</span>, requestedAmount: <span class="n">250000</span> } )
+  .<span class="f">getResult</span>().<span class="f">getValue</span>() <span class="c">// "APPROVED"</span><span class="rb-cursor" aria-hidden="true"></span></pre>
+					</div>
+					<div class="rb-float rb-float-1 rb-card" aria-hidden="true">
+						<span class="rb-float-ico rb-float-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+						<span class="rb-mono">autoApprove</span><span class="rb-ok">EXECUTED</span>
+					</div>
+					<div class="rb-float rb-float-2 rb-card" aria-hidden="true">
+						<span class="rb-float-ico rb-float-skip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 12h12"/></svg></span>
+						<span class="rb-mono">declineLowScores</span><span class="rb-skip">SKIPPED</span>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		
+		<section class="rb-section" id="tour">
+			<div class="rb-wrap">
+				<div class="rb-section-head rb-center">
+					<span class="rb-eyebrow"><span class="rb-eyebrow-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm48.24-94.78-64-40A8,8,0,0,0,100,88v80a8,8,0,0,0,12.24,6.78l64-40a8,8,0,0,0,0-13.56ZM116,153.57V102.43L156.91,128Z"/></svg></span>One-minute tour</span>
+					<h2>See the <span class="rb-grad">Rule Visualizer</span> in action</h2>
+				</div>
+				<div class="rb-video">
+					<video controls preload="metadata" playsinline poster="/next/assets/video/rulebox-visualizer-intro-poster.png" aria-label="A one-minute tour of the RuleBox Visualizer">
+						<source src="/next/assets/video/rulebox-visualizer-intro.mp4" type="video/mp4">
+					</video>
+				</div>
+				<p class="rb-video-note">Dashboard, chain view, dry runs, rule health, errors with stack traces and the live tracker, recorded against the RuleBox test app.</p>
+			</div>
+		</section>
+
+		
+		<section class="rb-section">
+			<div class="rb-wrap">
+				<div class="rb-section-head rb-center">
+					<span class="rb-eyebrow"><span class="rb-eyebrow-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M245.66,74.34l-32-32a8,8,0,0,0-11.32,11.32L220.69,72H208c-49.33,0-61.05,28.12-71.38,52.92-9.38,22.51-16.92,40.59-49.48,42.84a40,40,0,1,0,.1,16c43.26-2.65,54.34-29.15,64.14-52.69C161.41,107,169.33,88,208,88h12.69l-18.35,18.34a8,8,0,0,0,11.32,11.32l32-32A8,8,0,0,0,245.66,74.34ZM48,200a24,24,0,1,1,24-24A24,24,0,0,1,48,200Z"/></svg></span>How a rule runs</span>
+					<h2>Facts in. A decision out. <span class="rb-grad">Every step recorded.</span></h2>
+					<p>Rules run in priority order. Each one checks its condition, acts or skips, and can stop the chain. The audit trail shows exactly what happened.</p>
+				</div>
+				<div class="rb-flow rb-card">
+					
+						<div class="rb-stage">
+							
+								<div class="rb-link" aria-hidden="true"><span class="rb-pulse" style="animation-delay: 0s"></span></div>
+							
+							<div class="rb-stage-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24C74.17,24,32,48.6,32,80v96c0,31.4,42.17,56,96,56s96-24.6,96-56V80C224,48.6,181.83,24,128,24Zm80,104c0,9.62-7.88,19.43-21.61,26.92C170.93,163.35,150.19,168,128,168s-42.93-4.65-58.39-13.08C55.88,147.43,48,137.62,48,128V111.36c17.06,15,46.23,24.64,80,24.64s62.94-9.68,80-24.64ZM69.61,53.08C85.07,44.65,105.81,40,128,40s42.93,4.65,58.39,13.08C200.12,60.57,208,70.38,208,80s-7.88,19.43-21.61,26.92C170.93,115.35,150.19,120,128,120s-42.93-4.65-58.39-13.08C55.88,99.43,48,89.62,48,80S55.88,60.57,69.61,53.08ZM186.39,202.92C170.93,211.35,150.19,216,128,216s-42.93-4.65-58.39-13.08C55.88,195.43,48,185.62,48,176V159.36c17.06,15,46.23,24.64,80,24.64s62.94-9.68,80-24.64V176C208,185.62,200.12,195.43,186.39,202.92Z"/></svg></div>
+							<h3>Facts</h3>
+							<code>run&#x28; facts &#x29;</code>
+							<p>A struct of name and value pairs: the data you decide on.</p>
+						</div>
+					
+						<div class="rb-stage">
+							
+								<div class="rb-link" aria-hidden="true"><span class="rb-pulse" style="animation-delay: 0.5s"></span></div>
+							
+							<div class="rb-stage-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M140,180a12,12,0,1,1-12-12A12,12,0,0,1,140,180ZM128,72c-22.06,0-40,16.15-40,36v4a8,8,0,0,0,16,0v-4c0-11,10.77-20,24-20s24,9,24,20-10.77,20-24,20a8,8,0,0,0-8,8v8a8,8,0,0,0,16,0v-.72c18.24-3.35,32-17.9,32-35.28C168,88.15,150.06,72,128,72Zm104,56A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z"/></svg></div>
+							<h3>When</h3>
+							<code>.when&#x28; ... &#x29;</code>
+							<p>Each rule tests its condition, in priority order.</p>
+						</div>
+					
+						<div class="rb-stage">
+							
+								<div class="rb-link" aria-hidden="true"><span class="rb-pulse" style="animation-delay: 1s"></span></div>
+							
+							<div class="rb-stage-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm88,104a87.56,87.56,0,0,1-20.41,56.28L71.72,60.4A88,88,0,0,1,216,128ZM40,128A87.56,87.56,0,0,1,60.41,71.72L184.28,195.6A88,88,0,0,1,40,128Z"/></svg></div>
+							<h3>Except</h3>
+							<code>.except&#x28; ... &#x29;</code>
+							<p>An exception skips the rule even when the condition holds.</p>
+						</div>
+					
+						<div class="rb-stage">
+							
+								<div class="rb-link" aria-hidden="true"><span class="rb-pulse" style="animation-delay: 1.5s"></span></div>
+							
+							<div class="rb-stage-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M215.79,118.17a8,8,0,0,0-5-5.66L153.18,90.9l14.66-73.33a8,8,0,0,0-13.69-7l-112,120a8,8,0,0,0,3,13l57.63,21.61L88.16,238.43a8,8,0,0,0,13.69,7l112-120A8,8,0,0,0,215.79,118.17ZM109.37,214l10.47-52.38a8,8,0,0,0-5-9.06L62,132.71l84.62-90.66L136.16,94.43a8,8,0,0,0,5,9.06l52.8,19.8Z"/></svg></div>
+							<h3>Then</h3>
+							<code>.then&#x28; ... &#x29;</code>
+							<p>Actions run, set the result, and can stop the chain.</p>
+						</div>
+					
+						<div class="rb-stage">
+							
+							<div class="rb-stage-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z"/></svg></div>
+							<h3>Result</h3>
+							<code>.getResult&#x28;&#x29;</code>
+							<p>One answer, plus an audit trail of every rule.</p>
+						</div>
+					
+				</div>
+			</div>
+		</section>
+
+		
+		<section class="rb-section" id="features">
+			<div class="rb-wrap">
+				<div class="rb-head-row">
+					<div class="rb-section-head">
+						<span class="rb-eyebrow"><span class="rb-eyebrow-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M220.27,158.54a8,8,0,0,0-7.7-.46,20,20,0,1,1,0-36.16A8,8,0,0,0,224,114.69V72a16,16,0,0,0-16-16H171.78a35.36,35.36,0,0,0,.22-4,36.11,36.11,0,0,0-11.36-26.24,36,36,0,0,0-60.55,23.62,36.56,36.56,0,0,0,.14,6.62H64A16,16,0,0,0,48,72v32.22a35.36,35.36,0,0,0-4-.22,36.12,36.12,0,0,0-26.24,11.36,35.7,35.7,0,0,0-9.69,27,36.08,36.08,0,0,0,33.31,33.6,35.68,35.68,0,0,0,6.62-.14V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V165.31A8,8,0,0,0,220.27,158.54ZM208,208H64V165.31a8,8,0,0,0-11.43-7.23,20,20,0,1,1,0-36.16A8,8,0,0,0,64,114.69V72h46.69a8,8,0,0,0,7.23-11.43,20,20,0,1,1,36.16,0A8,8,0,0,0,161.31,72H208v32.23a35.68,35.68,0,0,0-6.62-.14A36,36,0,0,0,204,176a35.36,35.36,0,0,0,4-.22Z"/></svg></span>Everything a rule needs</span>
+						<h2>Small API. <span class="rb-grad">Serious engine.</span></h2>
+					</div>
+					<a href="/next/guides/">Browse all guides</a>
+				</div>
+				<div class="rb-grid3">
+					
+						<a class="rb-feature rb-card" href="/next/guides/the-dsl/">
+							<span class="rb-feature-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M87.24,52.59a8,8,0,0,0-14.48,0l-64,136a8,8,0,1,0,14.48,6.81L39.9,160h80.2l16.66,35.4a8,8,0,1,0,14.48-6.81ZM47.43,144,80,74.79,112.57,144ZM200,96c-12.76,0-22.73,3.47-29.63,10.32a8,8,0,0,0,11.26,11.36c3.8-3.77,10-5.68,18.37-5.68,13.23,0,24,9,24,20v3.22A42.76,42.76,0,0,0,200,128c-22.06,0-40,16.15-40,36s17.94,36,40,36a42.73,42.73,0,0,0,24-7.25,8,8,0,0,0,16-.75V132C240,112.15,222.06,96,200,96Zm0,88c-13.23,0-24-9-24-20s10.77-20,24-20,24,9,24,20S213.23,184,200,184Z"/></svg></span>
+							<h3>Natural-language DSL</h3>
+							<p>Rules read like sentences. No nested conditionals, no scattered business logic.</p>
+							<code>given &#x2f; when &#x2f; except &#x2f; then</code>
+						</a>
+					
+						<a class="rb-feature rb-card" href="/next/guides/external-rules/">
+							<span class="rb-feature-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M43.18,128a29.78,29.78,0,0,1,8,10.26c4.8,9.9,4.8,22,4.8,33.74,0,24.31,1,36,24,36a8,8,0,0,1,0,16c-17.48,0-29.32-6.14-35.2-18.26-4.8-9.9-4.8-22-4.8-33.74,0-24.31-1-36-24-36a8,8,0,0,1,0-16c23,0,24-11.69,24-36,0-11.72,0-23.84,4.8-33.74C50.68,38.14,62.52,32,80,32a8,8,0,0,1,0,16C57,48,56,59.69,56,84c0,11.72,0,23.84-4.8,33.74A29.78,29.78,0,0,1,43.18,128ZM240,120c-23,0-24-11.69-24-36,0-11.72,0-23.84-4.8-33.74C205.32,38.14,193.48,32,176,32a8,8,0,0,0,0,16c23,0,24,11.69,24,36,0,11.72,0,23.84,4.8,33.74a29.78,29.78,0,0,0,8,10.26,29.78,29.78,0,0,0-8,10.26c-4.8,9.9-4.8,22-4.8,33.74,0,24.31-1,36-24,36a8,8,0,0,0,0,16c17.48,0,29.32-6.14,35.2-18.26,4.8-9.9,4.8-22,4.8-33.74,0-24.31,1-36,24-36a8,8,0,0,0,0-16Z"/></svg></span>
+							<h3>Rules as data</h3>
+							<p>Load rules from JSON, YAML or a database table, with named actions and predicates.</p>
+							<code>loadRules&#x28; source &#x29;</code>
+						</a>
+					
+						<a class="rb-feature rb-card" href="/next/guides/external-rules/">
+							<span class="rb-feature-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M231.65,194.55,198.46,36.75a16,16,0,0,0-19-12.39L132.65,34.42a16.08,16.08,0,0,0-12.3,19l33.19,157.8A16,16,0,0,0,169.16,224a16.25,16.25,0,0,0,3.38-.36l46.81-10.06A16.09,16.09,0,0,0,231.65,194.55ZM136,50.15c0-.06,0-.09,0-.09l46.8-10,3.33,15.87L139.33,66Zm6.62,31.47,46.82-10.05,3.34,15.9L146,97.53Zm6.64,31.57,46.82-10.06,13.3,63.24-46.82,10.06ZM216,197.94l-46.8,10-3.33-15.87L212.67,182,216,197.85C216,197.91,216,197.94,216,197.94ZM104,32H56A16,16,0,0,0,40,48V208a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V48A16,16,0,0,0,104,32ZM56,48h48V64H56Zm0,32h48v96H56Zm48,128H56V192h48v16Z"/></svg></span>
+							<h3>Declared rulebooks</h3>
+							<p>Declare rulebooks in config or a folder, then get one anywhere by name.</p>
+							<code>ruleBook&#x28; &quot;loan&quot; &#x29;</code>
+						</a>
+					
+						<a class="rb-feature rb-card" href="/next/guides/auditing/">
+							<span class="rb-feature-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M224,128a8,8,0,0,1-8,8H128a8,8,0,0,1,0-16h88A8,8,0,0,1,224,128ZM128,72h88a8,8,0,0,0,0-16H128a8,8,0,0,0,0,16Zm88,112H128a8,8,0,0,0,0,16h88a8,8,0,0,0,0-16ZM82.34,42.34,56,68.69,45.66,58.34A8,8,0,0,0,34.34,69.66l16,16a8,8,0,0,0,11.32,0l32-32A8,8,0,0,0,82.34,42.34Zm0,64L56,132.69,45.66,122.34a8,8,0,0,0-11.32,11.32l16,16a8,8,0,0,0,11.32,0l32-32a8,8,0,0,0-11.32-11.32Zm0,64L56,196.69,45.66,186.34a8,8,0,0,0-11.32,11.32l16,16a8,8,0,0,0,11.32,0l32-32a8,8,0,0,0-11.32-11.32Z"/></svg></span>
+							<h3>Full audit trail</h3>
+							<p>Know which rules executed, skipped or failed on every run.</p>
+							<code>getRuleStatusMap&#x28;&#x29;</code>
+						</a>
+					
+						<a class="rb-feature rb-card" href="/next/guides/auditing/">
+							<span class="rb-feature-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M221.69,199.77,160,96.92V40h8a8,8,0,0,0,0-16H88a8,8,0,0,0,0,16h8V96.92L34.31,199.77A16,16,0,0,0,48,224H208a16,16,0,0,0,13.72-24.23ZM110.86,103.25A7.93,7.93,0,0,0,112,99.14V40h32V99.14a7.93,7.93,0,0,0,1.14,4.11L183.36,167c-12,2.37-29.07,1.37-51.75-10.11-15.91-8.05-31.05-12.32-45.22-12.81ZM48,208l28.54-47.58c14.25-1.74,30.31,1.85,47.82,10.72,19,9.61,35,12.88,48,12.88a69.89,69.89,0,0,0,19.55-2.7L208,208Z"/></svg></span>
+							<h3>Dry runs</h3>
+							<p>Ask what would happen for a set of facts, without running a single action.</p>
+							<code>dryRun&#x28; facts &#x29;</code>
+						</a>
+					
+						<a class="rb-feature rb-card" href="/next/guides/the-dsl/">
+							<span class="rb-feature-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M112.41,102.53a8,8,0,0,1,5.06-10.12l12-4A8,8,0,0,1,140,96v40a8,8,0,0,1-16,0V107.1l-1.47.49A8,8,0,0,1,112.41,102.53ZM248,208a8,8,0,0,1-8,8H16a8,8,0,0,1,0-16h8V104A16,16,0,0,1,40,88H80V56A16,16,0,0,1,96,40h64a16,16,0,0,1,16,16v72h40a16,16,0,0,1,16,16v56h8A8,8,0,0,1,248,208Zm-72-64v56h40V144ZM96,200h64V56H96Zm-56,0H80V104H40Z"/></svg></span>
+							<h3>Priorities and stops</h3>
+							<p>Order rules explicitly and let one rule end the chain.</p>
+							<code>withPriority&#x28; 20 &#x29;.stop&#x28;&#x29;</code>
+						</a>
+					
+						<a class="rb-feature rb-card" href="/next/guides/the-dsl/">
+							<span class="rb-feature-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M232,136.66A104.12,104.12,0,1,1,119.34,24,8,8,0,0,1,120.66,40,88.12,88.12,0,1,0,216,135.34,8,8,0,0,1,232,136.66ZM120,72v56a8,8,0,0,0,8,8h56a8,8,0,0,0,0-16H136V72a8,8,0,0,0-16,0Zm40-24a12,12,0,1,0-12-12A12,12,0,0,0,160,48Zm36,24a12,12,0,1,0-12-12A12,12,0,0,0,196,72Zm24,36a12,12,0,1,0-12-12A12,12,0,0,0,220,108Z"/></svg></span>
+							<h3>Time windows</h3>
+							<p>Turn a rule on for a season or a campaign, then let it expire.</p>
+							<code>active&#x28; from, until &#x29;</code>
+						</a>
+					
+						<a class="rb-feature rb-card" href="/next/guides/visualizer/">
+							<span class="rb-feature-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M216,40H136V24a8,8,0,0,0-16,0V40H40A16,16,0,0,0,24,56V176a16,16,0,0,0,16,16H79.36L57.75,219a8,8,0,0,0,12.5,10l29.59-37h56.32l29.59,37a8,8,0,1,0,12.5-10l-21.61-27H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,136H40V56H216V176ZM104,120v24a8,8,0,0,1-16,0V120a8,8,0,0,1,16,0Zm32-16v40a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm32-16v56a8,8,0,0,1-16,0V88a8,8,0,0,1,16,0Z"/></svg></span>
+							<h3>Rule Visualizer</h3>
+							<p>Dashboard, chain view, dry run, rule health, errors with stack traces and a live tracker.</p>
+							<code>visualizer.enabled &#x3d; true</code>
+						</a>
+					
+						<a class="rb-feature rb-card" href="/next/guides/thread-safety/">
+							<span class="rb-feature-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M237.66,18.34a8,8,0,0,0-11.32,0l-52.4,52.41-5.37-5.38a32.05,32.05,0,0,0-45.26,0L100,88.69l-6.34-6.35A8,8,0,0,0,82.34,93.66L88.69,100,65.37,123.31a32,32,0,0,0,0,45.26l5.38,5.37-52.41,52.4a8,8,0,0,0,11.32,11.32l52.4-52.41,5.37,5.38a32,32,0,0,0,45.26,0L156,167.31l6.34,6.35a8,8,0,0,0,11.32-11.32L167.31,156l23.32-23.31a32,32,0,0,0,0-45.26l-5.38-5.37,52.41-52.4A8,8,0,0,0,237.66,18.34Zm-116.29,161a16,16,0,0,1-22.62,0L76.69,157.25a16,16,0,0,1,0-22.62L100,111.31,144.69,156Zm57.94-57.94L156,144.69,111.31,100l23.32-23.31a16,16,0,0,1,22.62,0l22.06,22A16,16,0,0,1,179.31,121.37ZM88.57,35A8,8,0,0,1,103.43,29l8,20A8,8,0,0,1,96.57,55ZM24.57,93A8,8,0,0,1,35,88.57l20,8A8,8,0,0,1,49,111.43l-20-8A8,8,0,0,1,24.57,93ZM231.43,163a8,8,0,0,1-10.4,4.46l-20-8A8,8,0,1,1,207,144.57l20,8A8,8,0,0,1,231.43,163Zm-64,58.06A8,8,0,0,1,152.57,227l-8-20A8,8,0,0,1,159.43,201Z"/></svg></span>
+							<h3>WireBox native</h3>
+							<p>Inject rulebooks and the Builder. A fresh RuleBook per decision keeps it thread safe.</p>
+							<code>inject&#x3d;&quot;rulebook&#x3a;loan&quot;</code>
+						</a>
+					
+				</div>
+			</div>
+		</section>
+
+		
+		<section class="rb-section">
+			<div class="rb-wrap">
+				<div class="rb-section-head rb-center">
+					<span class="rb-eyebrow"><span class="rb-eyebrow-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M69.12,94.15,28.5,128l40.62,33.85a8,8,0,1,1-10.24,12.29l-48-40a8,8,0,0,1,0-12.29l48-40a8,8,0,0,1,10.24,12.3Zm176,27.7-48-40a8,8,0,1,0-10.24,12.3L227.5,128l-40.62,33.85a8,8,0,1,0,10.24,12.29l48-40a8,8,0,0,0,0-12.29ZM162.73,32.48a8,8,0,0,0-10.25,4.79l-64,176a8,8,0,0,0,4.79,10.26A8.14,8.14,0,0,0,96,224a8,8,0,0,0,7.52-5.27l64-176A8,8,0,0,0,162.73,32.48Z"/></svg></span>Code or data</span>
+					<h2>The same rule, <span class="rb-grad">two ways.</span></h2>
+					<p>Keep logic that rarely changes in BoxLang. Move thresholds that change often into JSON, YAML or a database table, and load them at runtime.</p>
+				</div>
+				<div class="rb-grid2">
+					<div class="rb-pane rb-card">
+						<div class="rb-pane-head"><b>In BoxLang</b><span>LoanApproval.bx</span></div>
+<pre class="rb-code"><span class="f">newRule</span>( <span class="s">"declineLowScores"</span> )
+  .<span class="f">withPriority</span>( <span class="n">20</span> )
+  .<span class="f">when</span>( ( facts ) =&gt; facts.creditScore &lt; <span class="n">580</span> )
+  .<span class="f">then</span>( ( facts, result ) =&gt;
+    result.<span class="f">setValue</span>( <span class="s">"DECLINED"</span> )
+  )
+  .<span class="f">stop</span>()</pre>
+					</div>
+					<div class="rb-pane rb-card" x-data="{ format: 'json' }">
+						<div class="rb-pane-head">
+							<div class="rb-pane-title">
+								<b>As data</b>
+								<div class="rb-tabs" role="tablist" aria-label="Rule file format">
+									<button type="button" role="tab" :class="{ 'rb-tab-active': format === 'json' }" :aria-selected="format === 'json'" @click="format = 'json'">JSON</button>
+									<button type="button" role="tab" :class="{ 'rb-tab-active': format === 'yaml' }" :aria-selected="format === 'yaml'" @click="format = 'yaml'">YAML</button>
+								</div>
+							</div>
+							<span x-text="format === 'json' ? 'config/rules/loan.json' : 'config/rules/loan.yaml'">config/rules/loan.json</span>
+						</div>
+<pre class="rb-code" role="tabpanel" x-show="format === 'yaml'" x-cloak><span class="p">- name</span>: <span class="s">declineLowScores</span>
+  <span class="p">priority</span>: <span class="n">20</span>
+  <span class="p">when</span>:
+    <span class="p">lt</span>: [ <span class="s">creditScore</span>, <span class="n">580</span> ]
+  <span class="p">then</span>:
+    - <span class="p">action</span>: <span class="s">decide</span>
+      <span class="p">params</span>: { <span class="p">decision</span>: <span class="s">DECLINED</span> }
+  <span class="p">stop</span>: <span class="k">true</span></pre>
+<pre class="rb-code" role="tabpanel" x-show="format === 'json'">{
+  <span class="p">"name"</span>: <span class="s">"declineLowScores"</span>,
+  <span class="p">"priority"</span>: <span class="n">20</span>,
+  <span class="p">"when"</span>: { <span class="p">"lt"</span>: [ <span class="s">"creditScore"</span>, <span class="n">580</span> ] },
+  <span class="p">"then"</span>: [ { <span class="p">"action"</span>: <span class="s">"decide"</span>,
+    <span class="p">"params"</span>: { <span class="p">"decision"</span>: <span class="s">"DECLINED"</span> } } ],
+  <span class="p">"stop"</span>: <span class="k">true</span>
+}</pre>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		
+		<section class="rb-section" id="visualizer">
+			<div class="rb-wrap">
+				<div class="rb-head-row">
+					<div class="rb-section-head">
+						<span class="rb-eyebrow"><span class="rb-eyebrow-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M208,40H48A24,24,0,0,0,24,64V176a24,24,0,0,0,24,24H208a24,24,0,0,0,24-24V64A24,24,0,0,0,208,40Zm8,136a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V64a8,8,0,0,1,8-8H208a8,8,0,0,1,8,8Zm-48,48a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,224Z"/></svg></span>Rule Visualizer</span>
+						<h2>See your rules. <span class="rb-grad">Watch them fire.</span></h2>
+						<p>A built-in admin UI: browse every rulebook, view its chain in run order, dry-run any facts, find the rules that fail or run slow, read each error with its stack trace, and stream evaluations live.</p>
+					</div>
+					<a href="/next/guides/visualizer/">Turn it on in one setting</a>
+				</div>
+				<div class="bxsites-image-gallery bxsites-image-gallery--cols-3">
+					
+						<figure class="bxsites-image-gallery__item">
+							<img class="bxsites-image-gallery__image" src="/next/assets/visualizer/dashboard.png" alt="Dashboard&#x3a;&#x20;Every&#x20;rulebook,&#x20;plus&#x20;the&#x20;rules&#x20;that&#x20;fail&#x20;most&#x20;and&#x20;the&#x20;slowest&#x20;ones." data-bxsites-lightbox loading="lazy">
+							<figcaption class="bxsites-image-gallery__caption"><b>Dashboard.</b> Every rulebook, plus the rules that fail most and the slowest ones.</figcaption>
+						</figure>
+					
+						<figure class="bxsites-image-gallery__item">
+							<img class="bxsites-image-gallery__image" src="/next/assets/visualizer/chain-fraudcheck.png" alt="Chain&#x20;view&#x3a;&#x20;Rules&#x20;in&#x20;run&#x20;order,&#x20;with&#x20;durations,&#x20;error&#x20;rates&#x20;and&#x20;the&#x20;last&#x20;error." data-bxsites-lightbox loading="lazy">
+							<figcaption class="bxsites-image-gallery__caption"><b>Chain view.</b> Rules in run order, with durations, error rates and the last error.</figcaption>
+						</figure>
+					
+						<figure class="bxsites-image-gallery__item">
+							<img class="bxsites-image-gallery__image" src="/next/assets/visualizer/dryrun.png" alt="Dry&#x20;run&#x3a;&#x20;Type&#x20;facts&#x20;and&#x20;see&#x20;which&#x20;rules&#x20;would&#x20;fire." data-bxsites-lightbox loading="lazy">
+							<figcaption class="bxsites-image-gallery__caption"><b>Dry run.</b> Type facts and see which rules would fire.</figcaption>
+						</figure>
+					
+						<figure class="bxsites-image-gallery__item">
+							<img class="bxsites-image-gallery__image" src="/next/assets/visualizer/metrics.png" alt="Metrics&#x3a;&#x20;Completion&#x20;and&#x20;error&#x20;rates&#x20;and&#x20;every&#x20;rule&#x27;s&#x20;health." data-bxsites-lightbox loading="lazy">
+							<figcaption class="bxsites-image-gallery__caption"><b>Metrics.</b> Completion and error rates and every rule&#x27;s health.</figcaption>
+						</figure>
+					
+						<figure class="bxsites-image-gallery__item">
+							<img class="bxsites-image-gallery__image" src="/next/assets/visualizer/metrics-errors.png" alt="Errors&#x20;and&#x20;stack&#x20;traces&#x3a;&#x20;Each&#x20;distinct&#x20;error&#x20;once,&#x20;with&#x20;a&#x20;count,&#x20;its&#x20;cause&#x20;and&#x20;where&#x20;it&#x20;was&#x20;thrown." data-bxsites-lightbox loading="lazy">
+							<figcaption class="bxsites-image-gallery__caption"><b>Errors and stack traces.</b> Each distinct error once, with a count, its cause and where it was thrown.</figcaption>
+						</figure>
+					
+						<figure class="bxsites-image-gallery__item">
+							<img class="bxsites-image-gallery__image" src="/next/assets/visualizer/live.png" alt="Live&#x20;tracker&#x3a;&#x20;Every&#x20;evaluation&#x20;as&#x20;it&#x20;happens.&#x20;Open&#x20;a&#x20;failure&#x20;to&#x20;see&#x20;why." data-bxsites-lightbox loading="lazy">
+							<figcaption class="bxsites-image-gallery__caption"><b>Live tracker.</b> Every evaluation as it happens. Open a failure to see why.</figcaption>
+						</figure>
+					
+				</div>
+			</div>
+		</section>
+
+		
+		<section class="rb-section" id="course">
+			<div class="rb-wrap">
+				<div class="rb-course rb-card">
+					<div class="rb-head-row" style="margin-bottom: 0">
+						<div class="rb-section-head">
+							<span class="rb-eyebrow"><span class="rb-eyebrow-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M251.76,88.94l-120-64a8,8,0,0,0-7.52,0l-120,64a8,8,0,0,0,0,14.12L32,117.87v48.42a15.91,15.91,0,0,0,4.06,10.65C49.16,191.53,78.51,216,128,216a130,130,0,0,0,48-8.76V240a8,8,0,0,0,16,0V199.51a115.63,115.63,0,0,0,27.94-22.57A15.91,15.91,0,0,0,224,166.29V117.87l27.76-14.81a8,8,0,0,0,0-14.12ZM128,200c-43.27,0-68.72-21.14-80-33.71V126.4l76.24,40.66a8,8,0,0,0,7.52,0L176,143.47v46.34C163.4,195.69,147.52,200,128,200Zm80-33.75a97.83,97.83,0,0,1-16,14.25V134.93l16-8.53ZM188,118.94l-.22-.13-56-29.87a8,8,0,0,0-7.52,14.12L171,128l-43,22.93L25,96,128,41.07,231,96Z"/></svg></span>Tutorial Course</span>
+							<h2>Learn RuleBox in <span class="rb-grad">ten short lessons.</span></h2>
+							<p>Build a loan decision from a single <code>if</code> statement to rules in a file, running inside ColdBox and showing up in the Visualizer.</p>
+						</div>
+						<a class="rb-btn rb-btn-primary" href="/next/course/01-what-is-rulebox/">Start lesson 1</a>
+					</div>
+					<ol class="rb-lessons">
+						
+							<li>
+								<span class="rb-num">01</span>
+								<a href="/next/course/01-what-is-rulebox/">What is RuleBox&#x3f;</a>
+							</li>
+						
+							<li>
+								<span class="rb-num">02</span>
+								<a href="/next/course/02-your-first-rule/">Your First Rule</a>
+							</li>
+						
+							<li>
+								<span class="rb-num">03</span>
+								<a href="/next/course/03-facts-and-results/">Facts and Results</a>
+							</li>
+						
+							<li>
+								<span class="rb-num">04</span>
+								<a href="/next/course/04-more-rules/">More Rules</a>
+							</li>
+						
+							<li>
+								<span class="rb-num">05</span>
+								<a href="/next/course/05-see-what-happened/">See What Happened</a>
+							</li>
+						
+							<li>
+								<span class="rb-num">06</span>
+								<a href="/next/course/06-rules-from-json/">Rules from JSON</a>
+							</li>
+						
+							<li>
+								<span class="rb-num">07</span>
+								<a href="/next/course/07-rulebooks-in-coldbox/">RuleBooks in ColdBox</a>
+							</li>
+						
+							<li>
+								<span class="rb-num">08</span>
+								<a href="/next/course/08-when-things-go-wrong/">When Things Go Wrong</a>
+							</li>
+						
+							<li>
+								<span class="rb-num">09</span>
+								<a href="/next/course/09-the-visualizer/">The Visualizer</a>
+							</li>
+						
+							<li>
+								<span class="rb-num">10</span>
+								<a href="/next/course/10-where-to-go-next/">Where to Go Next</a>
+							</li>
+						
+					</ol>
+				</div>
+			</div>
+		</section>
+
+		
+		<section class="rb-section" style="padding-top: 16px; padding-bottom: 64px">
+			<div class="rb-wrap rb-stack">
+				<span class="rb-eyebrow"><span class="rb-eyebrow-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M230.91,172A8,8,0,0,1,228,182.91l-96,56a8,8,0,0,1-8.06,0l-96-56A8,8,0,0,1,36,169.09l92,53.65,92-53.65A8,8,0,0,1,230.91,172ZM220,121.09l-92,53.65L36,121.09A8,8,0,0,0,28,134.91l96,56a8,8,0,0,0,8.06,0l96-56A8,8,0,1,0,220,121.09ZM24,80a8,8,0,0,1,4-6.91l96-56a8,8,0,0,1,8.06,0l96,56a8,8,0,0,1,0,13.82l-96,56a8,8,0,0,1-8.06,0l-96-56A8,8,0,0,1,24,80Zm23.88,0L128,126.74,208.12,80,128,33.26Z"/></svg></span>Built on the Ortus stack</span>
+				<a class="rb-stack-mark" href="https://www.coldbox.org" target="_blank" rel="noopener noreferrer" aria-label="ColdBox"><img src="/next/assets/coldbox-icon.svg" alt=""></a>
+				<div class="rb-stack-row">
+					<a class="rb-chip-logo rb-card" href="https://boxlang.io" target="_blank" rel="noopener noreferrer"><img src="/next/assets/boxlang-icon.svg" alt="">BoxLang</a>
+					<a class="rb-chip-logo rb-card" href="https://www.coldbox.org" target="_blank" rel="noopener noreferrer"><img src="/next/assets/coldbox-icon.svg" alt="">ColdBox</a>
+					<a class="rb-chip-logo rb-card" href="https://www.testbox.run" target="_blank" rel="noopener noreferrer"><img src="/next/assets/testbox-icon.svg" alt="">TestBox</a>
+					<a class="rb-chip-logo rb-card" href="https://www.ortussolutions.com/products/commandbox" target="_blank" rel="noopener noreferrer"><img src="/next/assets/commandbox-icon.svg" alt="">CommandBox</a>
+				</div>
+			</div>
+		</section>
+
+		
+		<section class="rb-section" style="padding-top: 0">
+			<div class="rb-wrap rb-grid3">
+				<a class="rb-cta rb-card" href="/next/getting-started/">
+					<span class="rb-cta-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M223.85,47.12a16,16,0,0,0-15-15c-12.58-.75-44.73.4-71.41,27.07L132.69,64H74.36A15.91,15.91,0,0,0,63,68.68L28.7,103a16,16,0,0,0,9.07,27.16l38.47,5.37,44.21,44.21,5.37,38.49a15.94,15.94,0,0,0,10.78,12.92,16.11,16.11,0,0,0,5.1.83A15.91,15.91,0,0,0,153,227.3L187.32,193A15.91,15.91,0,0,0,192,181.64V123.31l4.77-4.77C223.45,91.86,224.6,59.71,223.85,47.12ZM74.36,80h42.33L77.16,119.52,40,114.34Zm74.41-9.45a76.65,76.65,0,0,1,59.11-22.47,76.46,76.46,0,0,1-22.42,59.16L128,164.68,91.32,128ZM176,181.64,141.67,216l-5.19-37.17L176,139.31Zm-74.16,9.5C97.34,201,82.29,224,40,224a8,8,0,0,1-8-8c0-42.29,23-57.34,32.86-61.85a8,8,0,0,1,6.64,14.56c-6.43,2.93-20.62,12.36-23.12,38.91,26.55-2.5,36-16.69,38.91-23.12a8,8,0,1,1,14.56,6.64Z"/></svg></span>
+					<h3>Get started</h3>
+					<p>Install the module and run your first rule in five minutes.</p>
+					<span>Getting Started</span>
+				</a>
+				<a class="rb-cta rb-card" href="https://www.ortussolutions.com/services" target="_blank" rel="noopener noreferrer">
+					<span class="rb-cta-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm39.1,131.79a47.84,47.84,0,0,0,0-55.58l28.5-28.49a87.83,87.83,0,0,1,0,112.56ZM96,128a32,32,0,1,1,32,32A32,32,0,0,1,96,128Zm88.28-67.6L155.79,88.9a47.84,47.84,0,0,0-55.58,0L71.72,60.4a87.83,87.83,0,0,1,112.56,0ZM60.4,71.72l28.5,28.49a47.84,47.84,0,0,0,0,55.58L60.4,184.28a87.83,87.83,0,0,1,0-112.56ZM71.72,195.6l28.49-28.5a47.84,47.84,0,0,0,55.58,0l28.49,28.5a87.83,87.83,0,0,1-112.56,0Z"/></svg></span>
+					<h3>Professional support</h3>
+					<p>Ortus Solutions, the team behind ColdBox and BoxLang, offers support and consulting.</p>
+					<span>Talk to Ortus</span>
+				</a>
+				
+					<a class="rb-cta rb-card" href="https://github.com/coldbox-modules/rulebox" target="_blank" rel="noopener noreferrer">
+						<span class="rb-cta-ico" aria-hidden="true"><svg width="1em" height="1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M208.31,75.68A59.78,59.78,0,0,0,202.93,28,8,8,0,0,0,196,24a59.75,59.75,0,0,0-48,24H124A59.75,59.75,0,0,0,76,24a8,8,0,0,0-6.93,4,59.78,59.78,0,0,0-5.38,47.68A58.14,58.14,0,0,0,56,104v8a56.06,56.06,0,0,0,48.44,55.47A39.8,39.8,0,0,0,96,192v8H72a24,24,0,0,1-24-24A40,40,0,0,0,8,136a8,8,0,0,0,0,16,24,24,0,0,1,24,24,40,40,0,0,0,40,40H96v16a8,8,0,0,0,16,0V192a24,24,0,0,1,48,0v40a8,8,0,0,0,16,0V192a39.8,39.8,0,0,0-8.44-24.53A56.06,56.06,0,0,0,216,112v-8A58.14,58.14,0,0,0,208.31,75.68ZM200,112a40,40,0,0,1-40,40H112a40,40,0,0,1-40-40v-8a41.74,41.74,0,0,1,6.9-22.48A8,8,0,0,0,80,73.83a43.81,43.81,0,0,1,.79-33.58,43.88,43.88,0,0,1,32.32,20.06A8,8,0,0,0,119.82,64h32.35a8,8,0,0,0,6.74-3.69,43.87,43.87,0,0,1,32.32-20.06A43.81,43.81,0,0,1,192,73.83a8.09,8.09,0,0,0,1,7.65A41.72,41.72,0,0,1,200,104Z"/></svg></span>
+						<h3>Open source</h3>
+						<p>Apache 2.0 licensed. Issues, ideas and pull requests welcome on GitHub.</p>
+						<span>coldbox-modules/rulebox</span>
+					</a>
+				
+			</div>
+		</section>
+	</main>
+
+	
+	<footer class="rb-footer">
+		<div class="rb-wrap rb-foot">
+			<div class="rb-foot-brand">
+				<a class="rb-brand" href="/next/">
+					<img class="rb-logo-light" src="/next/assets/brand/rulebox-logo-full-light.svg" alt="RuleBox">
+					<img class="rb-logo-dark" src="/next/assets/brand/rulebox-logo-full-dark.svg" alt="RuleBox">
+				</a>
+				<p>A natural-language rules engine for BoxLang and ColdBox, based on RuleBook.</p>
+				
+					<div class="rb-social"><a class="social-link" href="https://github.com/coldbox-modules/rulebox" target="_blank" rel="noopener noreferrer" aria-label="RuleBox on GitHub" title="RuleBox on GitHub"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.333-1.754-1.333-1.754-1.089-.744.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.303-5.467-1.332-5.467-5.93 0-1.31.468-2.38 1.235-3.22-.123-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23A11.5 11.5 0 0 1 12 5.803c1.02.005 2.045.138 3.003.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.118 3.176.77.84 1.235 1.91 1.235 3.22 0 4.61-2.807 5.625-5.48 5.92.43.372.823 1.102.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .322.216.694.825.576C20.565 21.795 24 17.298 24 12c0-6.63-5.37-12-12-12"/></svg></a><a class="social-link" href="https://www.ortussolutions.com/community/slack" target="_blank" rel="noopener noreferrer" aria-label="Slack Community" title="Slack Community"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52ZM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313ZM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834ZM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312ZM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834ZM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312ZM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52ZM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313Z"/></svg></a><a class="social-link" href="https://community.ortussolutions.com/" target="_blank" rel="noopener noreferrer" aria-label="Community Forum" title="Community Forum"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg></a></div>
+				
+			</div>
+			<div class="rb-foot-col">
+				<h4>Learn</h4>
+				<a href="/next/getting-started/">Getting Started</a>
+				<a href="/next/course/">Tutorial Course</a>
+				<a href="/next/releases/">Release Notes</a>
+			</div>
+			<div class="rb-foot-col">
+				<h4>Guides</h4>
+				<a href="/next/guides/the-dsl/">The RuleBook DSL</a>
+				<a href="/next/guides/external-rules/">External Rules</a>
+				<a href="/next/guides/visualizer/">Rule Visualizer</a>
+			</div>
+			<div class="rb-foot-col">
+				<h4>Community</h4>
+				
+					<a href="https://github.com/coldbox-modules/rulebox/issues" target="_blank" rel="noopener noreferrer">Issues</a>
+				
+				<a href="https://www.ortussolutions.com/community/slack" target="_blank" rel="noopener noreferrer">Slack</a>
+				<a href="https://community.ortussolutions.com/" target="_blank" rel="noopener noreferrer">Forum</a>
+			</div>
+		</div>
+		<div class="rb-wrap rb-foot-bottom">
+			<span>&copy; 2026 Ortus Solutions, Corp. Apache License 2.0.</span>
+			<div class="rb-foot-right">
+				<a class="rb-foot-verse" href="https://www.bible.com/bible/59/JHN.14.6.ESV" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">❤️</span> He is the truth and the life</a>
+				<a href="https://www.coldbox.org" target="_blank" rel="noopener noreferrer">Part of the ColdBox platform</a>
+			</div>
+		</div>
+	</footer>
+
+	
+	
+		<script src="/next/assets/image-gallery-init.js" defer></script>
+	
+
+	
+	
+</body>
+</html>
+
