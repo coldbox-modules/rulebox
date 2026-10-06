@@ -27,7 +27,7 @@ moduleSettings = {
 ```
 
 That's it - `enabled` is the only thing you strictly need. Once on, the UI
-lives at `/rulebox-visualizer/visualizer/index` (and friends), via the
+lives at `/rulebox-visualizer` (and friends), via the
 module's `this.entryPoint = "rulebox-visualizer"`.
 
 While `enabled` is `false` (the default), every visualizer route 404s, and -
@@ -45,11 +45,11 @@ With `enabled = true`, browse to your app's `/rulebox-visualizer` entry point:
 
 | Screen | URL |
 |--------|-----|
-| Dashboard | `/rulebox-visualizer/visualizer/index` |
-| Rule Visualizer (chain) | `/rulebox-visualizer/visualizer/chain?name={rulebook}` |
-| Dry Run | `/rulebox-visualizer/visualizer/dryrun` |
-| Metrics | `/rulebox-visualizer/visualizer/metrics` |
-| Live Tracker | `/rulebox-visualizer/visualizer/live` |
+| Dashboard | `/rulebox-visualizer` |
+| Rule Visualizer (chain) | `/rulebox-visualizer/chain?name={rulebook}` |
+| Dry Run | `/rulebox-visualizer/dryrun` |
+| Metrics | `/rulebox-visualizer/metrics` |
+| Live Tracker | `/rulebox-visualizer/live` |
 
 The left sidebar links between the screens. The footer shows the metrics
 store in use and confirms the visualizer is enabled.

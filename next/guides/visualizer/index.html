@@ -247,7 +247,7 @@ itself.</p>
 }
 </code></pre>
 <p>That's it - <code>enabled</code> is the only thing you strictly need. Once on, the UI
-lives at <code>/rulebox-visualizer/visualizer/index</code> (and friends), via the
+lives at <code>/rulebox-visualizer</code> (and friends), via the
 module's <code>this.entryPoint = &quot;rulebox-visualizer&quot;</code>.</p>
 <p>While <code>enabled</code> is <code>false</code> (the default), every visualizer route 404s, and -
 just as importantly - RuleBox does no extra work at all: no metrics are
@@ -263,11 +263,11 @@ auth interceptor) the same way you would any other admin UI.</p>
 <tr><th>Screen</th><th>URL</th></tr>
 </thead>
 <tbody>
-<tr><td>Dashboard</td><td><code>/rulebox-visualizer/visualizer/index</code></td></tr>
-<tr><td>Rule Visualizer (chain)</td><td><code>/rulebox-visualizer/visualizer/chain?name={rulebook}</code></td></tr>
-<tr><td>Dry Run</td><td><code>/rulebox-visualizer/visualizer/dryrun</code></td></tr>
-<tr><td>Metrics</td><td><code>/rulebox-visualizer/visualizer/metrics</code></td></tr>
-<tr><td>Live Tracker</td><td><code>/rulebox-visualizer/visualizer/live</code></td></tr>
+<tr><td>Dashboard</td><td><code>/rulebox-visualizer</code></td></tr>
+<tr><td>Rule Visualizer (chain)</td><td><code>/rulebox-visualizer/chain?name={rulebook}</code></td></tr>
+<tr><td>Dry Run</td><td><code>/rulebox-visualizer/dryrun</code></td></tr>
+<tr><td>Metrics</td><td><code>/rulebox-visualizer/metrics</code></td></tr>
+<tr><td>Live Tracker</td><td><code>/rulebox-visualizer/live</code></td></tr>
 </tbody>
 </table></div>
 <p>The left sidebar links between the screens. The footer shows the metrics

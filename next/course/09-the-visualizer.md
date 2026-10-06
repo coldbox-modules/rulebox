@@ -36,7 +36,7 @@ variables.moduleSettings = {
 Restart your app, then open:
 
 ```
-/rulebox-visualizer/visualizer/index
+/rulebox-visualizer
 ```
 
 > **Lock it down.** RuleBox does not secure the Visualizer for you. Put
