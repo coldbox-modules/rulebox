@@ -125,10 +125,16 @@ class{
 		prc.rulebookNames  = rulebookNames
 		prc.chain          = []
 		prc.chainLoadError = ""
+		prc.facts          = []
+		prc.factsEnforced  = false
+		prc.factsStrict    = false
 
 		try{
 			var ruleBook = registry.getRuleBook( rc.name )
-			prc.chain = walkChain( ruleBook )
+			prc.chain         = walkChain( ruleBook )
+			prc.facts         = ruleBook.getFactDefinitions()
+			prc.factsEnforced = ruleBook.getFactsEnforced()
+			prc.factsStrict   = ruleBook.getFactsStrict()
 		} catch( any e ){
 			prc.chainLoadError = e.message
 		}
@@ -148,9 +154,11 @@ class{
 	/**
 	 * JSON action backing the dry-run playground: POST { name, facts } -> RuleBook.dryRun() report.
 	 *
-	 * POST only (see this.allowedMethods). Answers 400 when rc.facts is not a JSON object, 404 for an
-	 * unknown rulebook and 422 when a rule's predicate throws while evaluating the supplied facts -
-	 * always with a generic message; the details are logged server-side, never returned.
+	 * POST only (see this.allowedMethods). Answers 400 when rc.facts is not a JSON object, or when the
+	 * rulebook enforces its facts and they are invalid (with { error, problems }, the problems naming the
+	 * facts but never their values), 404 for an unknown rulebook and 422 when a rule's predicate throws
+	 * while evaluating the supplied facts - always with a generic message; the details are logged
+	 * server-side, never returned.
 	 */
 	function runDryRun( event, rc, prc ){
 		param rc.name = ""
@@ -179,6 +187,13 @@ class{
 
 		try{
 			var report = ruleBook.dryRun( facts )
+		} catch( "RuleBox.InvalidFactsException" e ){
+			event.renderData(
+				data       = { error: "The facts are not valid for rulebook '#rc.name#'.", problems: jsonDeserialize( e.extendedInfo ) },
+				statusCode = 400,
+				type       = "json"
+			)
+			return
 		} catch( any e ){
 			variables.logger?.error(
 				"Dry run of rulebook '#rc.name#' failed: #e.message#",
@@ -212,6 +227,36 @@ class{
 			statusCode = 405,
 			type       = "json"
 		)
+	}
+
+	/**
+	 * JSON action backing the dry run form: the facts rulebook rc.name declares, as
+	 * { name, enforced, strict, facts }, facts in declaration order (see RuleBook.getFactDefinitions()).
+	 * Answers 404 for an unknown rulebook and 422 when it cannot be loaded.
+	 */
+	function apiFacts( event, rc, prc ){
+		param rc.name = ""
+
+		if( !rc.name.len() || !registry.getRuleBookNames().contains( rc.name ) ){
+			event.renderData( data={ error: "Unknown rulebook '#rc.name#'." }, statusCode=404, type="json" )
+			return
+		}
+
+		try{
+			var ruleBook = registry.getRuleBook( rc.name )
+			var data     = {
+				"name"     : rc.name,
+				"enforced" : ruleBook.getFactsEnforced(),
+				"strict"   : ruleBook.getFactsStrict(),
+				"facts"    : ruleBook.getFactDefinitions()
+			}
+		} catch( any e ){
+			variables.logger?.error( "Loading rulebook '#rc.name#' failed: #e.message#", { type: e.type, detail: e.detail } )
+			event.renderData( data={ error: "The rulebook '#rc.name#' could not be loaded." }, statusCode=422, type="json" )
+			return
+		}
+
+		event.renderData( data=data, type="json" )
 	}
 
 	/**

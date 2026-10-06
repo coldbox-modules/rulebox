@@ -2,24 +2,97 @@
 <h1 class="h3 mb-4">Dry Run</h1>
 
 <div
-	x-data="rbDryRun( #htmlEditFormat( jsonSerialize( prc.rulebookNames ) )#, '#prc.vizLink( 'runDryRun' )#', '#htmlEditFormat( jsStringFormat( event.getValue( 'name', '' ) ) )#' )"
+	x-data="rbDryRun( #htmlEditFormat( jsonSerialize( prc.rulebookNames ) )#, '#prc.vizLink( 'runDryRun' )#', '#prc.vizLink( 'apiFacts' )#', '#htmlEditFormat( jsStringFormat( event.getValue( 'name', '' ) ) )#' )"
+	x-init="loadFacts()"
 	class="row g-3"
 >
 	<div class="col-lg-6">
 		<div class="card bg-body-tertiary h-100">
-			<div class="card-header d-flex align-items-center justify-content-between">
-				<select class="form-select form-select-sm w-auto" x-model="rulebookName">
+			<div class="card-header d-flex align-items-center justify-content-between gap-2">
+				<select class="form-select form-select-sm w-auto" x-model="rulebookName" @change="loadFacts()">
 					<template x-for="n in rulebookNames" :key="n">
 						<option :value="n" :selected="n === rulebookName" x-text="n"></option>
 					</template>
 				</select>
-				<button class="btn btn-sm btn-primary" @click="run()" :disabled="running">
-					<i class="ph ph-play"></i> Run dry run
-				</button>
+				<div class="d-flex align-items-center gap-2">
+					<div class="btn-group btn-group-sm" role="group" aria-label="Facts input" x-show="definitions.length">
+						<button type="button" class="btn" :class="mode === 'form' ? 'btn-secondary' : 'btn-outline-secondary'" @click="showForm()">Form</button>
+						<button type="button" class="btn" :class="mode === 'json' ? 'btn-secondary' : 'btn-outline-secondary'" @click="showJson()">JSON</button>
+					</div>
+					<button class="btn btn-sm btn-primary" @click="run()" :disabled="running">
+						<i class="ph ph-play"></i> Run dry run
+					</button>
+				</div>
 			</div>
 			<div class="card-body">
-				<label class="form-label small text-secondary">Facts (JSON)</label>
-				<textarea class="form-control font-monospace" rows="14" x-model="factsText"></textarea>
+				<template x-if="definitions.length">
+					<div class="d-flex align-items-center gap-2 mb-3 small">
+						<span class="text-secondary" x-text="definitions.length + ' declared ' + ( definitions.length === 1 ? 'fact' : 'facts' )"></span>
+						<span class="badge text-bg-warning" x-show="strict">strict</span>
+						<span class="badge text-bg-info" x-show="enforced && !strict">enforced</span>
+						<span class="badge text-bg-light border" x-show="!enforced">described</span>
+					</div>
+				</template>
+
+				<form x-show="mode === 'form'" @submit.prevent="run()">
+					<div class="d-flex flex-column gap-3">
+					<template x-for="def in definitions" :key="def.name">
+						<div>
+							<label class="form-label small mb-1 d-flex align-items-center gap-2" :for="'fact-' + def.name">
+								<span class="font-monospace fw-medium" x-text="def.name"></span>
+								<span class="text-danger" x-show="def.required" title="required">*</span>
+								<span class="text-secondary" x-text="def.type"></span>
+							</label>
+
+							<template x-if="def.values">
+								<select class="form-select form-select-sm" :id="'fact-' + def.name" x-model="values[ def.name ]" :class="{ 'is-invalid': problemFor( def.name ) }">
+									<option value="">(not set)</option>
+									<template x-for="v in def.values" :key="String( v )">
+										<option :value="String( v )" :selected="String( v ) === values[ def.name ]" x-text="String( v )"></option>
+									</template>
+								</select>
+							</template>
+							<template x-if="!def.values && def.type === 'boolean'">
+								<select class="form-select form-select-sm" :id="'fact-' + def.name" x-model="values[ def.name ]" :class="{ 'is-invalid': problemFor( def.name ) }">
+									<option value="">(not set)</option>
+									<option value="true">true</option>
+									<option value="false">false</option>
+								</select>
+							</template>
+							<template x-if="!def.values && ( def.type === 'numeric' || def.type === 'integer' )">
+								<input type="number" class="form-control form-control-sm" :id="'fact-' + def.name" :step="def.type === 'integer' ? 1 : 'any'" x-model="values[ def.name ]" :class="{ 'is-invalid': problemFor( def.name ) }">
+							</template>
+							<template x-if="!def.values && def.type === 'date'">
+								<input type="date" class="form-control form-control-sm" :id="'fact-' + def.name" x-model="values[ def.name ]" :class="{ 'is-invalid': problemFor( def.name ) }">
+							</template>
+							<template x-if="!def.values && def.type === 'string'">
+								<input type="text" class="form-control form-control-sm" :id="'fact-' + def.name" x-model="values[ def.name ]" :class="{ 'is-invalid': problemFor( def.name ) }">
+							</template>
+							<template x-if="!def.values && isJsonType( def.type )">
+								<textarea class="form-control form-control-sm font-monospace" rows="3" :id="'fact-' + def.name" x-model="values[ def.name ]" placeholder="JSON value" :class="{ 'is-invalid': problemFor( def.name ) }"></textarea>
+							</template>
+
+							<template x-if="problemFor( def.name )">
+								<div class="invalid-feedback d-block" x-text="problemFor( def.name )"></div>
+							</template>
+							<div class="form-text" x-show="def.description" x-text="def.description"></div>
+						</div>
+					</template>
+					</div>
+					<button type="submit" class="d-none"></button>
+				</form>
+
+				<div x-show="mode === 'json'">
+					<label class="form-label small text-secondary">Facts (JSON)</label>
+					<textarea class="form-control font-monospace" rows="14" x-model="factsText"></textarea>
+					<div class="form-text" x-show="!definitions.length && !loadingFacts">This rulebook does not declare its facts, so enter them as JSON.</div>
+				</div>
+
+				<ul class="list-unstyled small text-danger mt-3 mb-0" x-show="otherProblems().length">
+					<template x-for="p in otherProblems()" :key="p.fact + p.problem">
+						<li><i class="ph ph-warning-circle"></i> <span x-text="p.message"></span></li>
+					</template>
+				</ul>
 				<div class="text-danger small mt-2" x-show="error" x-text="error"></div>
 			</div>
 		</div>
@@ -47,21 +120,136 @@
 </div>
 
 <script>
-	function rbDryRun( rulebookNames, runUrl, initialName ){
+	function rbDryRun( rulebookNames, runUrl, factsUrl, initialName ){
+		const JSON_TYPES = [ 'any', 'struct', 'array', 'object' ]
 		return {
 			rulebookNames,
 			rulebookName: initialName || ( rulebookNames[ 0 ] ?? '' ),
+			definitions: [],
+			enforced: false,
+			strict: false,
+			values: {},
+			mode: 'json',
 			factsText: '{\n\n}',
 			results: [],
+			problems: [],
 			error: '',
 			running: false,
-			async run(){
+			loadingFacts: false,
+			isJsonType( type ){
+				return JSON_TYPES.includes( type )
+			},
+			// The form keeps every value as text; this is how a value reads in its input
+			toInput( def, value ){
+				if( value === undefined || value === null ) return ''
+				if( def.values || !this.isJsonType( def.type ) ) return String( value )
+				return JSON.stringify( value )
+			},
+			// Load the facts the selected rulebook declares, and prefill the form with defaults, else examples
+			async loadFacts(){
+				this.definitions = []
+				this.enforced = false
+				this.strict = false
+				this.values = {}
+				this.results = []
+				this.problems = []
 				this.error = ''
+				if( !this.rulebookName ) return
+				this.loadingFacts = true
+				try{
+					const res = await fetch( factsUrl + '?name=' + encodeURIComponent( this.rulebookName ) )
+					const body = await res.json().catch( () => ( {} ) )
+					if( !res.ok ) throw new Error( body.error || ( 'Server returned ' + res.status ) )
+					this.definitions = body.facts || []
+					this.enforced = !!body.enforced
+					this.strict = !!body.strict
+					const values = {}
+					for( const def of this.definitions ){
+						values[ def.name ] = this.toInput( def, 'default' in def ? def[ 'default' ] : def.example )
+					}
+					this.values = values
+					this.mode = this.definitions.length ? 'form' : 'json'
+					this.factsText = this.definitions.length ? JSON.stringify( this.formFacts(), null, 2 ) : '{\n\n}'
+				} catch( e ){
+					this.error = e.message
+					this.mode = 'json'
+				} finally {
+					this.loadingFacts = false
+				}
+			},
+			// The facts struct the form describes; a blank field leaves its fact out
+			formFacts(){
+				const facts = {}
+				for( const def of this.definitions ){
+					const raw = this.values[ def.name ] ?? ''
+					if( raw === '' ) continue
+					if( def.values ){
+						const match = def.values.find( ( v ) => String( v ) === raw )
+						facts[ def.name ] = match === undefined ? raw : match
+					} else if( def.type === 'numeric' || def.type === 'integer' ){
+						facts[ def.name ] = Number( raw )
+					} else if( def.type === 'boolean' ){
+						facts[ def.name ] = raw === 'true'
+					} else if( this.isJsonType( def.type ) ){
+						try{
+							facts[ def.name ] = JSON.parse( raw )
+						} catch( e ){
+							if( def.type !== 'any' ) throw new Error( 'Fact ' + def.name + ' must be valid JSON: ' + e.message )
+							facts[ def.name ] = raw
+						}
+					} else {
+						facts[ def.name ] = raw
+					}
+				}
+				return facts
+			},
+			showForm(){
+				if( this.mode === 'form' ) return
 				let facts
 				try{
 					facts = JSON.parse( this.factsText || '{}' )
 				} catch( e ){
 					this.error = 'Facts must be valid JSON: ' + e.message
+					return
+				}
+				const values = {}
+				for( const def of this.definitions ){
+					values[ def.name ] = this.toInput( def, facts[ def.name ] )
+				}
+				this.values = values
+				this.error = ''
+				this.mode = 'form'
+			},
+			showJson(){
+				if( this.mode === 'json' ) return
+				try{
+					this.factsText = JSON.stringify( this.formFacts(), null, 2 )
+				} catch( e ){
+					this.error = e.message
+					return
+				}
+				this.error = ''
+				this.mode = 'json'
+			},
+			problemFor( name ){
+				if( this.mode !== 'form' ) return ''
+				const problem = this.problems.find( ( p ) => p.fact === name )
+				return problem ? problem.message : ''
+			},
+			// Problems the form cannot show next to a field: every problem in JSON mode, undeclared facts in form mode
+			otherProblems(){
+				if( this.mode !== 'form' ) return this.problems
+				const declared = this.definitions.map( ( d ) => d.name )
+				return this.problems.filter( ( p ) => !declared.includes( p.fact ) )
+			},
+			async run(){
+				this.error = ''
+				this.problems = []
+				let facts
+				try{
+					facts = this.mode === 'form' ? this.formFacts() : JSON.parse( this.factsText || '{}' )
+				} catch( e ){
+					this.error = this.mode === 'form' ? e.message : 'Facts must be valid JSON: ' + e.message
 					return
 				}
 				this.running = true
@@ -73,6 +261,8 @@
 					} )
 					if( !res.ok ){
 						const body = await res.json().catch( () => ( {} ) )
+						this.problems = Array.isArray( body.problems ) ? body.problems : []
+						this.results = []
 						throw new Error( body.error || ( 'Server returned ' + res.status ) )
 					}
 					this.results = await res.json()

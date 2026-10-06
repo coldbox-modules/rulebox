@@ -290,6 +290,27 @@ class{
 	}
 
 	/**
+	 * Whether run() and dryRun() check their facts against the declared facts. Runs defineFacts() first,
+	 * so a class that enforces there reports it.
+	 *
+	 * @return true after enforceFacts() or strictFacts()
+	 */
+	boolean function getFactsEnforced(){
+		ensureFactsDefined()
+		return variables.factsEnforced
+	}
+
+	/**
+	 * Whether enforcing also rejects undeclared facts. Runs defineFacts() first, like getFactsEnforced().
+	 *
+	 * @return true after strictFacts() or enforceFacts( strict = true )
+	 */
+	boolean function getFactsStrict(){
+		ensureFactsDefined()
+		return variables.factsStrict
+	}
+
+	/**
 	 * The facts this rulebook declares, in declaration order, for documentation, a UI or tests
 	 *
 	 * @return An array of { name, type, required, description, and default, example and values when set }
