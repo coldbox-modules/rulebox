@@ -53,14 +53,31 @@
 	variables.iconDir = getDirectoryFromPath( getCurrentTemplatePath() ) & "icons/"
 
 	/**
-	 * The inline SVG markup of one Phosphor icon from the theme's icons folder
+	 * The inline SVG markup of one Phosphor icon from the theme's icons folder. It carries a 1em size of
+	 * its own, so a page shown with a stale or missing stylesheet gets text-sized icons, not huge ones.
 	 *
 	 * @name The icon's file name without .svg, e.g. "rocket-launch"
 	 *
-	 * @return The SVG markup, sized and colored by CSS (fill is currentColor)
+	 * @return The SVG markup, sized by CSS where home.css sets a size, colored by currentColor
 	 */
 	function phIcon( required string name ){
-		return fileRead( variables.iconDir & arguments.name & ".svg" )
+		return fileRead( variables.iconDir & arguments.name & ".svg" ).replace( "<svg ", '<svg width="1em" height="1em" ', "one" )
+	}
+
+	// GitHub Pages lets browsers keep a stylesheet for 10 minutes, so after a deploy a browser can pair
+	// the new page with the old CSS. A version taken from each file's content makes a changed file a new URL.
+	variables.themeAssetsDir = getDirectoryFromPath( getCurrentTemplatePath() ) & "assets/"
+
+	/**
+	 * A short content hash of one of the theme's own stylesheets, for its ?v= cache-busting parameter.
+	 * bx-sites already fingerprints style.css and the extraCss bundle; home.css is ours, so it needs this.
+	 *
+	 * @name The file name in the theme's assets folder, e.g. "home.css"
+	 *
+	 * @return The first 10 characters of the file's hash
+	 */
+	function assetVersion( required string name ){
+		return hash( fileRead( variables.themeAssetsDir & arguments.name ) ).left( 10 )
 	}
 
 	// Feature cards: Phosphor icon, title, text, API, guide
@@ -162,7 +179,7 @@
 	<link rel="stylesheet" href="#variables.basePath#assets/vendor/bootstrap/bootstrap.min.css">
 	<link rel="stylesheet" href="#variables.basePath#assets/vendor/highlight/github.min.css">
 	<link rel="stylesheet" href="#variables.basePath##variables.siteConfig.theme.styleUrl ?: 'assets/theme/style.css'#">
-	<link rel="stylesheet" href="#variables.basePath#assets/theme/home.css">
+	<link rel="stylesheet" href="#variables.basePath#assets/theme/home.css?v=#assetVersion( 'home.css' )#">
 
 	<!--- Extra CSS --->
 	#renderExtraCss( variables.siteConfig.extraCss ?: [] )#
