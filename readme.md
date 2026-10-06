@@ -7,24 +7,32 @@
   </a>
 </p>
 
-# RuleBox: A Rule Engine For ColdBox Applications
+# RuleBox: A Rule Engine For ColdBox & BoxLang Applications
 
 **RuleBox** is a modern, intuitive, natural-language rules engine for
-BoxLang and ColdBox applications, based on the great work of
-[RuleBook](https://github.com/rulebook-rules/rulebook) - ported over to
-BoxLang.
+BoxLang and ColdBox applications.
 
-Tired of classes filled with if/then/else statements? Need a nice
-abstraction that decouples rules from each other and lets you write them
-the same way you write the rest of your BoxLang? RuleBox is right for
+Tired of classes filled with `if/then/else` statements? Need a nice
+abstraction that decouples rules from each other and lets you write them the same way you write the rest of your BoxLang? RuleBox is right for
 you. Rules are written in an expressive, dynamic Domain Specific Language
 modeled closely after the
 [Given-When-Then](https://martinfowler.com/bliki/GivenWhenThen.html)
 methodology.
 
+![RuleBox Visualizer Dashboard](https://rulebox.coldbox.org/assets/visualizer/dashboard.png)
+
+## 🔋 Features
+
+- Natural-language rules engine for BoxLang and ColdBox applications.
+- Decouples rules from each other for better maintainability.
+- Expressive, dynamic Domain Specific Language (DSL) modeled after Given-When-Then.
+- Visualizer dashboard for dry-run, metrics, and live tracking.
+- Supports external rules from JSON, YAML, or a database.
+- Thread-safe and robust error handling.
+
 ## 📖 Documentation
 
-**Full documentation, guides, and the complete DSL reference now live
+**Full documentation, guides, and the complete DSL reference
 at: https://rulebox.coldbox.org**
 
 The site covers everything: getting started, defining RuleBooks, the
@@ -38,20 +46,34 @@ worked example - versioned, so the 1.0.0 docs stay right where they were.
 
 ## Requirements
 
-- BoxLang 1.14+
-
-The Visualizer Live Tracker needs BoxLang 1.18.0+. Older runtimes whitespace-compress server-sent events and drop the blank line that ends each event. This was fixed in boxlang-web-support for 1.18.0.
+- BoxLang 1.18+
+- ColdBox 8+
+- CommandBox 7.x (`bx-cli` module for BoxLang)
 
 ## Installation
+
+In your ColdBox application run this within the CommandBox shell:
 
 ```bash
 box install rulebox
 ```
 
-Optional, only if you use them:
+Optionally, if you will be using YAML rules or our SQL metrics store:
 
 - YAML rule files: `box install bx-yaml`
 - Visualizer metrics that survive a restart (`SQLiteMetricsStore`): `box install bx-sqlite`, plus a datasource
+
+```bash
+box install bx-yaml, bx-sqlite
+```
+
+Or open your `server.json` and add them in the `installScripts` section:
+
+```json
+"scripts":{
+	"onServerInitialInstall":"install bx-esapi,bx-yaml,bx-sqlite --noSave"
+}
+```
 
 ## License
 
@@ -63,4 +85,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ----
 
-Made with ❤️ by [Ortus Solutions, Corp](https://www.ortussolutions.com)
+Made with ❤️ by [Ortus Solutions, Corp](https://www.ortussolutions.com).
+
+[❤️ He is the truth and the life](https://www.bible.com/bible/59/JHN.14.6.ESV)
