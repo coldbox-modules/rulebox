@@ -1,5 +1,5 @@
 ﻿<bx:output>
-<h1>Module Tester</h1>
+<h1>Welcome to RuleBox</h1>
 <div>
 	#view()#
 </div>

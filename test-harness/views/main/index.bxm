@@ -1,3 +1,6 @@
-<cfoutput>
-Module Tester
-</cfoutput>
+<bx:output>
+<ul>
+	<li><a href="/tests/runner.bxm">Run Tests</a></li>
+	<li><a href="/rulebox-visualizer">Open Visualizer</a></li>
+</ul>
+</bx:output>

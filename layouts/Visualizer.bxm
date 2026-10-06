@@ -106,7 +106,7 @@
 		</nav>
 		<!--- min-width: 0 lets a wide table scroll inside its card instead of widening the page --->
 		<main class="flex-grow-1 p-4" style="min-width: 0">
-			#renderView()#
+			#view()#
 		</main>
 	</div>
 </body>

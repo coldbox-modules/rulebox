@@ -18,7 +18,6 @@ class {
 	this.dependencies 		= []
 	// Global application helper mixins (handlers/views/layouts): ruleBook( name )
 	this.applicationHelper	= [ "mixins/Helpers.bxm" ]
-	// Enables convention-based routing for the visualizer's handler/views under /rulebox-visualizer.
 	// The visualizer itself stays inert (routes 404, no events recorded) unless settings.visualizer.enabled = true.
 	this.entryPoint			= "rulebox-visualizer"
 
@@ -70,6 +69,11 @@ class {
 			// See the "Rule Visualizer" guide for the full settings shape.
 			visualizer = duplicate( static.VISUALIZER_DEFAULTS )
 		}
+
+		// Visualizer routes
+		variables.routes = [
+			{ pattern="/", handler="visualizer", action="index" }
+		]
 	}
 
 	/**
