@@ -82,13 +82,15 @@ Click any screenshot to enlarge it:
 ::: image-gallery columns="3"
 ::: image src="../assets/visualizer/dashboard.png" alt="The Dashboard: totals, Problem rules and Slowest rules panels, a table of every rulebook with its outcomes and error rate, and a recent activity feed" caption="Dashboard"
 :::
-::: image src="../assets/visualizer/chain-loanapproval.png" alt="The chain view for the loanapproval rulebook, showing priority badges, a stops-chain marker, and per-rule outcome counts" caption="Rule Visualizer (chain view)"
+::: image src="../assets/visualizer/chain-loanapproval.png" alt="The chain view for the loanapproval rulebook: a Facts panel listing its four declared facts with type, required, default and description, then its rules with priority badges, a stops-chain marker and per-rule outcome counts" caption="Rule Visualizer (chain view)"
 :::
 ::: image src="../assets/visualizer/chain-fraudcheck.png" alt="The chain view for fraudcheck: each rule's evaluations, average and maximum duration and error rate, with callFraudService failing 34% of the time and showing its last error" caption="Chain view with a failing rule"
 :::
 ::: image src="../assets/visualizer/chain-seasonalpromo.png" alt="The chain view for seasonalpromo, showing active windows on two rules" caption="Chain view with active windows"
 :::
-::: image src="../assets/visualizer/dryrun.png" alt="The Dry Run playground: a rulebook picker and JSON facts on the left, which rules would execute on the right" caption="Dry Run"
+::: image src="../assets/visualizer/dryrun.png" alt="The Dry Run playground: a form built from the rulebook's declared facts on the left, which rules would execute on the right" caption="Dry Run"
+:::
+::: image src="../assets/visualizer/dryrun-invalid-facts.png" alt="A dry run of a rulebook that enforces its facts, rejected with one message per invalid fact" caption="Dry Run with invalid facts"
 :::
 ::: image src="../assets/visualizer/metrics.png" alt="The Metrics screen for fraudcheck: evaluations, average duration, completion and error rates, a rule health table with a failing rule and its last error, and outcomes by state" caption="Metrics"
 :::
@@ -133,14 +135,33 @@ run. Each row shows:
 Use the dropdown to switch rulebooks, or **Dry Run** to jump to the playground
 with this rulebook preselected.
 
+A rulebook that [declares its facts](declaring-facts.md) gets a **Facts**
+panel above the chain: each fact's name, type (and allowed values), whether
+it is required, its default, description and example. A badge says whether
+the rulebook only describes its facts (**described**), checks them on every
+run (**enforced**), or also rejects undeclared facts (**strict**).
+
 Rules with an active window (`activeFrom` / `activeUntil`) show it inline.
 
 ### Dry Run
 
-Pick a rulebook, paste facts as JSON, and press **Run dry run**. The result
-lists every rule in order and whether it **would execute** for those facts,
+Pick a rulebook, enter facts, and press **Run dry run**. The result lists
+every rule in order and whether it **would execute** for those facts,
 without running any action. It is backed by `RuleBook.dryRun()`, so nothing
 is recorded in your metrics.
+
+When the rulebook [declares its facts](declaring-facts.md), the screen
+builds a form from them: a field per fact that fits its type (a number
+input, a true/false or allowed-values picker, a date picker, a text box, or
+JSON for structs and arrays), a `*` on required facts, and the description
+under each field. Fields start with the fact's default, or else its
+example; leave a field blank to leave the fact out. **Form** and **JSON**
+switch between the form and the raw facts, keeping both in step. A
+rulebook that declares no facts takes JSON only.
+
+When the rulebook enforces its facts, a dry run with a missing or invalid
+fact is rejected, and each problem shows next to its field (or under the
+JSON). The messages name the fact but never repeat its value.
 
 ### Metrics
 

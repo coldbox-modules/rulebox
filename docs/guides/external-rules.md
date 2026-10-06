@@ -19,7 +19,8 @@ priority chain, audit trail, and `dryRun()` support as any other rule.
 ## The rule-definition schema
 
 A rule source is any object with a `load()` method that returns an array
-of rule-definition structs. Each struct can contain:
+of rule-definition structs (or an [envelope](#declaring-facts-in-a-rule-file)
+holding that array). Each struct can contain:
 
 | Key | Required | Meaning |
 |---|---|---|
@@ -52,6 +53,50 @@ throughout these guides:
 	}
 ]
 ```
+
+## Declaring facts in a rule file
+
+A rule source can also return an envelope struct instead of a bare array,
+so a rule file can [declare the facts](declaring-facts.md) its rules take:
+
+```json
+{
+	"facts": {
+		"creditScore": { "type": "numeric", "required": true, "description": "FICO score", "example": 680 },
+		"loanType": { "type": "string", "values": [ "fixed", "variable" ], "default": "fixed" }
+	},
+	"enforceFacts": true,
+	"rules": [
+		{ "name": "approve", "when": { "gte": [ "creditScore", 600 ] } }
+	]
+}
+```
+
+| Key | Meaning |
+|---|---|
+| `rules` | The array of rule definitions. Required |
+| `facts` | The facts, keyed by name, each with `type`, `required`, `default`, `description`, `example` and `values`: the same struct [`withFacts()`](declaring-facts.md#declaring-facts-from-data-withfacts) takes |
+| `enforceFacts` | `true` to check the facts on every run. See [Enforcing facts](declaring-facts.md#enforcing-facts) |
+| `strictFacts` | `true` to also reject undeclared facts |
+
+The same envelope works in YAML:
+
+```yaml
+facts:
+  creditScore:
+    type: numeric
+    required: true
+strictFacts: true
+rules:
+  - name: approve
+    when:
+      gte: [ creditScore, 600 ]
+```
+
+Any other key, a `facts` that isn't a struct, or a flag that isn't a
+boolean throws `RuleBox.InvalidRuleDefinitionException`. The facts are
+declared only after every rule builds, so a file that fails to load adds
+neither rules nor facts.
 
 ## The condition tree grammar
 
@@ -225,7 +270,7 @@ is available in the exception `detail`.
 ## Writing your own source
 
 Any object with a `load()` method returning an array of rule-definition
-structs works with `loadRules()` - a REST call, a config service, a cache,
+structs, or an envelope, works with `loadRules()` - a REST call, a config service, a cache,
 whatever fits. There's no interface to implement.
 
 ## Reloading rules manually
@@ -275,11 +320,25 @@ moduleSettings = {
 			// A DB source needs the struct form, since it can't be expressed as a path or array
 			"fraud" : {
 				"source" : { "type" : "db", "datasource" : "myApp", "sql" : "SELECT * FROM rules WHERE ruleset = 'fraud'" }
+			},
+
+			// The struct form can also declare the facts the rulebook takes, and enforce them
+			"loans" : {
+				"source"       : "config/rules/loans.json",
+				"facts"        : { "creditScore" : { "type" : "numeric", "required" : true } },
+				"enforceFacts" : true
 			}
 		}
 	}
 }
 ```
+
+`facts`, `enforceFacts` and `strictFacts` work as in a
+[rule-file envelope](#declaring-facts-in-a-rule-file). Config `facts` are
+applied after the source's, key by key, so config can add a fact or change
+one part of a declaration (say, its `description`) and keep the rest. The
+flags only turn checking on: a rule file that enforces its facts keeps
+enforcing them.
 
 `actions`/`predicates` values here can only be WireBox mapping ID strings
 (a closure can't be written in config) - resolved eagerly, same as calling

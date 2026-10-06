@@ -79,6 +79,9 @@
 						</div>
 					</template>
 					</div>
+					<template x-if="Object.keys( extraFacts ).length">
+						<div class="form-text mt-3">Also sending undeclared facts from JSON: <span class="font-monospace" x-text="Object.keys( extraFacts ).join( ', ' )"></span></div>
+					</template>
 					<button type="submit" class="d-none"></button>
 				</form>
 
@@ -129,6 +132,7 @@
 			enforced: false,
 			strict: false,
 			values: {},
+			extraFacts: {},
 			mode: 'json',
 			factsText: '{\n\n}',
 			results: [],
@@ -151,6 +155,7 @@
 				this.enforced = false
 				this.strict = false
 				this.values = {}
+				this.extraFacts = {}
 				this.results = []
 				this.problems = []
 				this.error = ''
@@ -177,9 +182,10 @@
 					this.loadingFacts = false
 				}
 			},
-			// The facts struct the form describes; a blank field leaves its fact out
+			// The facts struct the form describes, plus any undeclared facts carried over from JSON; a blank
+			// field leaves its fact out
 			formFacts(){
-				const facts = {}
+				const facts = { ...this.extraFacts }
 				for( const def of this.definitions ){
 					const raw = this.values[ def.name ] ?? ''
 					if( raw === '' ) continue
@@ -187,6 +193,7 @@
 						const match = def.values.find( ( v ) => String( v ) === raw )
 						facts[ def.name ] = match === undefined ? raw : match
 					} else if( def.type === 'numeric' || def.type === 'integer' ){
+						if( isNaN( Number( raw ) ) ) throw new Error( 'Fact ' + def.name + ' must be a number.' )
 						facts[ def.name ] = Number( raw )
 					} else if( def.type === 'boolean' ){
 						facts[ def.name ] = raw === 'true'
@@ -212,13 +219,46 @@
 					this.error = 'Facts must be valid JSON: ' + e.message
 					return
 				}
+				if( facts === null || typeof facts !== 'object' || Array.isArray( facts ) ){
+					this.error = 'Facts must be a JSON object.'
+					return
+				}
+				const unshowable = this.definitions.filter( ( def ) => !this.fitsForm( def, facts[ def.name ] ) ).map( ( def ) => def.name )
+				if( unshowable.length ){
+					this.error = 'The form cannot show the value of ' + unshowable.join( ', ' ) + '. Run it from JSON, or change it here first.'
+					return
+				}
 				const values = {}
+				const extraFacts = {}
 				for( const def of this.definitions ){
 					values[ def.name ] = this.toInput( def, facts[ def.name ] )
 				}
+				for( const name of Object.keys( facts ) ){
+					if( !this.definitions.some( ( def ) => def.name === name ) ) extraFacts[ name ] = facts[ name ]
+				}
 				this.values = values
+				this.extraFacts = extraFacts
 				this.error = ''
 				this.mode = 'form'
+			},
+			// Whether a JSON value can be shown in its fact's form field without being lost
+			fitsForm( def, value ){
+				if( value === undefined || value === null ) return true
+				if( def.values ) return def.values.some( ( v ) => String( v ) === String( value ) )
+				switch( def.type ){
+					case 'numeric':
+						return value !== '' && !isNaN( Number( value ) )
+					case 'integer':
+						return value !== '' && Number.isInteger( Number( value ) )
+					case 'boolean':
+						return [ 'true', 'false' ].includes( String( value ) )
+					case 'date':
+						return /^\d{4}-\d{2}-\d{2}$/.test( String( value ) )
+					case 'string':
+						return typeof value !== 'object'
+					default:
+						return true
+				}
 			},
 			showJson(){
 				if( this.mode === 'json' ) return
