@@ -544,11 +544,11 @@
 					<p>Install the module and run your first rule in five minutes.</p>
 					<span>Getting Started</span>
 				</a>
-				<a class="rb-cta rb-card" href="https://www.ortussolutions.com/services" target="_blank" rel="noopener noreferrer">
+				<a class="rb-cta rb-card" href="mailto:consulting@ortussolutions.com?subject=RuleBox%20Professional%20Support">
 					<span class="rb-cta-ico" aria-hidden="true">#phIcon( "lifebuoy" )#</span>
 					<h3>Professional support</h3>
-					<p>Ortus Solutions, the team behind ColdBox and BoxLang, offers support and consulting.</p>
-					<span>Talk to Ortus</span>
+					<p>Get expert help designing, implementing, or supporting your RuleBox integration from the Ortus Solutions team.</p>
+					<span>Email consulting@ortussolutions.com</span>
 				</a>
 				<bx:if len( variables.repoUrl )>
 					<a class="rb-cta rb-card" href="#bxsitesUrlAttr( variables.repoUrl )#" target="_blank" rel="noopener noreferrer">
