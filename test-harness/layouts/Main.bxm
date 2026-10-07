@@ -1,0 +1,6 @@
+﻿<bx:output>
+<h1>Welcome to RuleBox</h1>
+<div>
+	#view()#
+</div>
+</bx:output>

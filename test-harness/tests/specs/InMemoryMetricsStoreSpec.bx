@@ -1,0 +1,298 @@
+/**
+ * Tests for InMemoryMetricsStore, the fallback-of-last-resort IMetricsStore implementation.
+ */
+class extends="tests.resources.BaseSpec"{
+
+	function run( testResults, testBox ){
+		describe( "InMemoryMetricsStore", function(){
+
+			function anEvent( rulebookName="rb", ruleName="r1", state="EXECUTED", durationMs=10, timestamp="2026-01-01T00:00:00.000" ){
+				return arguments
+			}
+
+			beforeEach( function(){
+				variables.store = new rulebox.models.metrics.InMemoryMetricsStore();
+			} );
+
+			it( "starts with no events", function(){
+				expect( variables.store.queryEvents() ).toBeEmpty();
+				expect( variables.store.queryRuleBookNames() ).toBeEmpty();
+			} );
+
+			it( "returns recorded events newest first", function(){
+				variables.store.recordEvent( anEvent( ruleName="r1", timestamp="1" ) );
+				variables.store.recordEvent( anEvent( ruleName="r2", timestamp="2" ) );
+
+				var events = variables.store.queryEvents();
+
+				expect( events[ 1 ].ruleName ).toBe( "r2" );
+				expect( events[ 2 ].ruleName ).toBe( "r1" );
+			} );
+
+			it( "filters queryEvents by rulebookName", function(){
+				variables.store.recordEvent( anEvent( rulebookName="a" ) );
+				variables.store.recordEvent( anEvent( rulebookName="b" ) );
+
+				var events = variables.store.queryEvents( filters={ rulebookName: "a" } );
+
+				expect( events ).toHaveLength( 1 );
+				expect( events[ 1 ].rulebookName ).toBe( "a" );
+			} );
+
+			it( "respects the limit passed to queryEvents", function(){
+				for( var i = 1; i <= 5; i++ ){
+					variables.store.recordEvent( anEvent( ruleName="r#i#" ) );
+				}
+
+				expect( variables.store.queryEvents( limit=2 ) ).toHaveLength( 2 );
+			} );
+
+			it( "aggregates a rulebook summary across every recorded state", function(){
+				variables.store.recordEvent( anEvent( rulebookName="rb", state="EXECUTED", durationMs=10 ) );
+				variables.store.recordEvent( anEvent( rulebookName="rb", state="EXECUTED", durationMs=20 ) );
+				variables.store.recordEvent( anEvent( rulebookName="rb", state="SKIPPED", durationMs=1 ) );
+
+				var summary = variables.store.queryRuleBookSummary( "rb" );
+
+				expect( summary.totalEvaluations ).toBe( 3 );
+				expect( summary.countsByState.EXECUTED ).toBe( 2 );
+				expect( summary.countsByState.SKIPPED ).toBe( 1 );
+				expect( summary.totalDurationMs ).toBe( 31 );
+				expect( summary.avgDurationMs ).toBe( 31 / 3 );
+			} );
+
+			it( "returns a zero-valued summary for a rulebook with no recorded events", function(){
+				var summary = variables.store.queryRuleBookSummary( "neverRan" );
+
+				expect( summary.totalEvaluations ).toBe( 0 );
+				expect( summary.avgDurationMs ).toBe( 0 );
+				expect( summary.countsByState ).toBeEmpty();
+			} );
+
+			it( "aggregates per-rule metrics with min/max/lastRunAt", function(){
+				variables.store.recordEvent( anEvent( ruleName="r1", durationMs=5, timestamp="1" ) );
+				variables.store.recordEvent( anEvent( ruleName="r1", durationMs=15, timestamp="2" ) );
+				variables.store.recordEvent( anEvent( ruleName="other", durationMs=999, timestamp="3" ) );
+
+				var metrics = variables.store.queryRuleMetrics( "rb", "r1" );
+
+				expect( metrics.totalEvaluations ).toBe( 2 );
+				expect( metrics.minDurationMs ).toBe( 5 );
+				expect( metrics.maxDurationMs ).toBe( 15 );
+				expect( metrics.lastRunAt ).toBe( "2" );
+			} );
+
+			it( "reports completed and failed counts and rates for a rule and its rulebook", function(){
+				variables.store.recordEvent( anEvent( state="EXECUTED", durationMs=10 ) );
+				variables.store.recordEvent( anEvent( state="SKIPPED", durationMs=20 ) );
+				variables.store.recordEvent( anEvent( state="STOPPED", durationMs=30 ) );
+				var failed = anEvent( state="FAILED", durationMs=40 );
+				failed.errorType    = "TestBoom";
+				failed.errorMessage = "Kaboom";
+				variables.store.recordEvent( failed );
+
+				var metrics = variables.store.queryRuleMetrics( "rb", "r1" );
+				expect( metrics.completed ).toBe( 3 );
+				expect( metrics.failed ).toBe( 1 );
+				expect( metrics.completionRate ).toBe( 0.75 );
+				expect( metrics.errorRate ).toBe( 0.25 );
+				expect( metrics.avgDurationMs ).toBe( 25 );
+
+				var summary = variables.store.queryRuleBookSummary( "rb" );
+				expect( summary.completed ).toBe( 3 );
+				expect( summary.errorRate ).toBe( 0.25 );
+			} );
+
+			it( "keeps the most recent error of a rule as lastError, and none for a healthy rule", function(){
+				var first = anEvent( state="FAILED", timestamp="2026-01-01T00:00:01.000" );
+				first.errorType    = "TestBoom";
+				first.errorMessage = "first";
+				var second = anEvent( state="FAILED", timestamp="2026-01-01T00:00:02.000" );
+				second.errorType    = "OtherBoom";
+				second.errorMessage = "second";
+				variables.store.recordEvent( first );
+				variables.store.recordEvent( second );
+				variables.store.recordEvent( anEvent( ruleName="healthy" ) );
+
+				var lastError = variables.store.queryRuleMetrics( "rb", "r1" ).lastError;
+				expect( lastError.type ).toBe( "OtherBoom" );
+				expect( lastError.message ).toBe( "second" );
+				expect( lastError.at ).toBe( "2026-01-01T00:00:02.000" );
+				expect( variables.store.queryRuleMetrics( "rb", "healthy" ) ).notToHaveKey( "lastError" );
+			} );
+
+			it( "keeps the error type and message on FAILED events", function(){
+				var failed = anEvent( state="FAILED" );
+				failed.errorType    = "TestBoom";
+				failed.errorMessage = "Kaboom";
+				variables.store.recordEvent( failed );
+
+				var events = variables.store.queryEvents();
+				expect( events[ 1 ].errorType ).toBe( "TestBoom" );
+				expect( events[ 1 ].errorMessage ).toBe( "Kaboom" );
+			} );
+
+			it( "lists the metrics of every rule in a rulebook, and nothing for an unknown rulebook", function(){
+				variables.store.recordEvent( anEvent( ruleName="a", durationMs=5 ) );
+				variables.store.recordEvent( anEvent( ruleName="b", durationMs=50 ) );
+				variables.store.recordEvent( anEvent( rulebookName="other", ruleName="c" ) );
+
+				var list = variables.store.queryAllRuleMetrics( "rb" );
+				expect( list ).toHaveLength( 2 );
+				var byName = {};
+				for( var metrics in list ){
+					byName[ metrics.ruleName ] = metrics;
+				}
+				expect( byName.a.avgDurationMs ).toBe( 5 );
+				expect( byName.b.maxDurationMs ).toBe( 50 );
+				expect( byName.b.rulebookName ).toBe( "rb" );
+				expect( variables.store.queryAllRuleMetrics( "nope" ) ).toBeEmpty();
+			} );
+
+			it( "stores each distinct error of a rule once with a count, and keeps traces out of the feed", function(){
+				var failure = ( fingerprint, message, timestamp ) => {
+					var event = anEvent( state="FAILED", timestamp=timestamp );
+					event.errorType          = "TestBoom";
+					event.errorMessage       = message;
+					event.errorFingerprint   = fingerprint;
+					event.errorCausedBy      = [ { type: "Cause", message: "why" } ];
+					event.errorStackTrace    = [ "run() /app/Rules.bx:4" ];
+					event.errorRawStackTrace = "java trace";
+					return event;
+				};
+				variables.store.recordEvent( failure( "fpA", "A", "2026-01-01T00:00:01.000" ) );
+				variables.store.recordEvent( failure( "fpA", "A", "2026-01-01T00:00:02.000" ) );
+				variables.store.recordEvent( failure( "fpB", "B", "2026-01-01T00:00:03.000" ) );
+
+				var errors = variables.store.queryRuleErrors( "rb", "r1" );
+				expect( errors ).toHaveLength( 2 );
+				expect( errors[ 1 ].fingerprint ).toBe( "fpB" );
+				expect( errors[ 2 ].count ).toBe( 2 );
+				expect( errors[ 2 ].firstAt ).toBe( "2026-01-01T00:00:01.000" );
+				expect( errors[ 2 ].lastAt ).toBe( "2026-01-01T00:00:02.000" );
+				expect( errors[ 2 ].causedBy[ 1 ].type ).toBe( "Cause" );
+				expect( errors[ 2 ].stackTrace ).toBe( [ "run() /app/Rules.bx:4" ] );
+				expect( errors[ 2 ].rawStackTrace ).toBe( "java trace" );
+				expect( variables.store.queryRuleErrors( "rb", "r1", 1 ) ).toHaveLength( 1 );
+				expect( variables.store.queryRuleErrors( "rb", "nope" ) ).toBeEmpty();
+				expect( variables.store.queryRuleMetrics( "rb", "r1" ).lastError.fingerprint ).toBe( "fpB" );
+
+				var feed = variables.store.queryEvents();
+				expect( feed[ 1 ].errorFingerprint ).toBe( "fpB" );
+				expect( feed[ 1 ] ).notToHaveKey( "errorStackTrace" );
+				expect( feed[ 1 ] ).notToHaveKey( "errorRawStackTrace" );
+				expect( feed[ 1 ] ).notToHaveKey( "errorCausedBy" );
+			} );
+
+			it( "lists distinct rulebook names that have recorded events", function(){
+				variables.store.recordEvent( anEvent( rulebookName="a" ) );
+				variables.store.recordEvent( anEvent( rulebookName="a" ) );
+				variables.store.recordEvent( anEvent( rulebookName="b" ) );
+
+				expect( variables.store.queryRuleBookNames().sort( "text" ) ).toBe( [ "a", "b" ] );
+			} );
+
+			it( "reset() clears every recorded event", function(){
+				variables.store.recordEvent( anEvent() );
+				variables.store.reset();
+
+				expect( variables.store.queryEvents() ).toBeEmpty();
+			} );
+
+			it( "keeps counting totals past the recent-event cap", function(){
+				variables.store.setMaxEventsPerRulebook( 10 );
+				for( var i = 1; i <= 25; i++ ){
+					variables.store.recordEvent( anEvent( rulebookName="rb", ruleName="r1", durationMs=i ) );
+				}
+
+				var summary = variables.store.queryRuleBookSummary( "rb" );
+				var metrics = variables.store.queryRuleMetrics( "rb", "r1" );
+
+				expect( summary.totalEvaluations ).toBe( 25 );
+				expect( summary.countsByState.EXECUTED ).toBe( 25 );
+				expect( summary.totalDurationMs ).toBe( 325 );
+				expect( summary.avgDurationMs ).toBe( 13 );
+				expect( metrics.totalEvaluations ).toBe( 25 );
+				expect( metrics.minDurationMs ).toBe( 1 );
+				expect( metrics.maxDurationMs ).toBe( 25 );
+				// ...while the feed itself stays bounded
+				expect( variables.store.queryEvents( limit=100 ) ).toHaveLength( 10 );
+			} );
+
+			it( "counts past the default cap of 1000 events per rulebook", function(){
+				for( var i = 1; i <= 1200; i++ ){
+					variables.store.recordEvent( anEvent( rulebookName="rb" ) );
+				}
+
+				expect( variables.store.queryRuleBookSummary( "rb" ).totalEvaluations ).toBe( 1200 );
+				expect( variables.store.queryEvents( limit=5000 ) ).toHaveLength( 1000 );
+			} );
+
+			it( "keeps a quiet rulebook's aggregates and feed entries while another rulebook floods past the cap", function(){
+				variables.store.setMaxEventsPerRulebook( 10 );
+				variables.store.recordEvent( anEvent( rulebookName="quiet", ruleName="q1", state="SKIPPED", durationMs=7, timestamp="quiet-ts" ) );
+				variables.store.recordEvent( anEvent( rulebookName="quiet", ruleName="q1", state="EXECUTED", durationMs=3, timestamp="quiet-ts2" ) );
+				for( var i = 1; i <= 50; i++ ){
+					variables.store.recordEvent( anEvent( rulebookName="busy", ruleName="b1" ) );
+				}
+
+				var summary = variables.store.queryRuleBookSummary( "quiet" );
+				var metrics = variables.store.queryRuleMetrics( "quiet", "q1" );
+
+				expect( summary.totalEvaluations ).toBe( 2 );
+				expect( summary.countsByState.SKIPPED ).toBe( 1 );
+				expect( summary.countsByState.EXECUTED ).toBe( 1 );
+				expect( summary.totalDurationMs ).toBe( 10 );
+				expect( metrics.minDurationMs ).toBe( 3 );
+				expect( metrics.maxDurationMs ).toBe( 7 );
+				expect( metrics.lastRunAt ).toBe( "quiet-ts2" );
+				expect( variables.store.queryEvents( filters={ rulebookName: "quiet" } ) ).toHaveLength( 2 );
+				expect( variables.store.queryRuleBookSummary( "busy" ).totalEvaluations ).toBe( 50 );
+				expect( variables.store.queryEvents( filters={ rulebookName: "busy" }, limit=100 ) ).toHaveLength( 10 );
+				expect( variables.store.queryRuleBookNames().sort( "text" ) ).toBe( [ "busy", "quiet" ] );
+			} );
+
+			it( "returns unfiltered events newest first across rulebooks by recording order, not timestamp", function(){
+				// Timestamps deliberately disagree with recording order
+				variables.store.recordEvent( anEvent( rulebookName="a", ruleName="first", timestamp="9" ) );
+				variables.store.recordEvent( anEvent( rulebookName="b", ruleName="second", timestamp="1" ) );
+				variables.store.recordEvent( anEvent( rulebookName="a", ruleName="third", timestamp="5" ) );
+				variables.store.recordEvent( anEvent( rulebookName="b", ruleName="fourth", timestamp="0" ) );
+
+				var names = variables.store.queryEvents().map( ( evt ) => evt.ruleName );
+
+				expect( names ).toBe( [ "fourth", "third", "second", "first" ] );
+				expect( variables.store.queryEvents( limit=3 ).map( ( evt ) => evt.ruleName ) ).toBe( [ "fourth", "third", "second" ] );
+			} );
+
+			it( "applies the unfiltered limit across rulebooks after the cap", function(){
+				variables.store.setMaxEventsPerRulebook( 3 );
+				for( var i = 1; i <= 6; i++ ){
+					variables.store.recordEvent( anEvent( rulebookName=( i % 2 == 0 ? "even" : "odd" ), ruleName="r#i#" ) );
+				}
+
+				var names = variables.store.queryEvents( limit=4 ).map( ( evt ) => evt.ruleName );
+
+				expect( names ).toBe( [ "r6", "r5", "r4", "r3" ] );
+			} );
+
+			it( "reset() clears the running aggregates and rulebook names", function(){
+				variables.store.recordEvent( anEvent( rulebookName="rb", ruleName="r1", durationMs=5 ) );
+				variables.store.reset();
+
+				var summary = variables.store.queryRuleBookSummary( "rb" );
+				var metrics = variables.store.queryRuleMetrics( "rb", "r1" );
+
+				expect( summary.totalEvaluations ).toBe( 0 );
+				expect( summary.countsByState ).toBeEmpty();
+				expect( summary.totalDurationMs ).toBe( 0 );
+				expect( metrics.totalEvaluations ).toBe( 0 );
+				expect( metrics.minDurationMs ).toBe( 0 );
+				expect( metrics.lastRunAt ).toBe( "" );
+				expect( variables.store.queryRuleBookNames() ).toBeEmpty();
+			} );
+
+		} );
+	}
+
+}

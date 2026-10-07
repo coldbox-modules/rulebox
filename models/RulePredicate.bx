@@ -1,0 +1,17 @@
+/**
+ * The optional contract for a class-based predicate registered via RuleBook.registerPredicate().
+ *
+ * Implementing this interface is not required - registerPredicate() duck-types on the presence of
+ * a test() method - but it gives you a documented contract and IDE support.
+ */
+interface{
+
+	/**
+	 * Test this predicate.
+	 *
+	 * @facts The facts struct for this rule invocation
+	 * @params The params struct associated with this predicate reference, if any
+	 */
+	boolean function test( struct facts, struct params )
+
+}

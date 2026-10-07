@@ -1,3 +1,0 @@
-<cfoutput>
-Module Tester
-</cfoutput>

@@ -1,0 +1,14 @@
+[
+	{
+		"name": "highRisk",
+		"priority": 10,
+		"when": { "lt": [ "creditScore", 600 ] },
+		"then": [ { "action": "flagHighRisk" } ],
+		"stop": true
+	},
+	{
+		"name": "approve",
+		"when": { "gte": [ "creditScore", 600 ] },
+		"then": [ { "action": "approveApplicant", "params": { "reason": "good credit" } } ]
+	}
+]

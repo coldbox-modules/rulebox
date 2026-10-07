@@ -1,0 +1,106 @@
+	<bx:include template="includes/page-helpers.bxm">
+	<bx:output>
+	<article class="page-content">
+		<!--- Page actions at the top --->
+		<bx:if variables.pageActionsEnabled and variables.pageActionsPosition == 'top'>
+			#renderPageActions()#
+		</bx:if>
+		<!--- Fallback notice for untranslated content --->
+		<bx:if variables.page.isFallbackContent>
+			<p class="fallback-notice">#bxsitesIcon( 'globe' )# #encodeForHTML( variables.stringsResolver.format( variables.strings.notTranslatedNotice, { "locale" : defaultLocaleLabel() } ) )#</p>
+		</bx:if>
+		<!--- Breadcrumbs --->
+		<bx:if variables.breadcrumbsEnabled and variables.page.breadcrumbs.len() gt 1>
+			#renderBreadcrumbs( variables.page.breadcrumbs )#
+		</bx:if>
+		<!--- Page title --->
+		<h1 class="page-title" id="page-title">
+			<a href="##page-title" id="page-title" class="anchor"></a>
+			<bx:if len( variables.page.iconHtml )>
+				<span class="page-icon">#variables.page.iconHtml#</span>
+			</bx:if>
+			#encodeForHTML( variables.page.title )#
+		</h1>
+		<!--- Page summary --->
+		<bx:if len( variables.page.summary )>
+			<p class="page-summary">#encodeForHTML( variables.page.summary )#</p>
+		</bx:if>
+		<!--- Page tags --->
+		<bx:if variables.page.tags.len() gt 0>
+			#renderTags( variables.page.tags )#
+		</bx:if>
+		<!--- Page meta at the top --->
+		<bx:if ( len( variables.page.editUrl ) or len( variables.page.lastUpdated ) or len( variables.page.markdownUrl ) ) and variables.pageMetaPosition == 'top'>
+			#renderPageMeta( variables.page.editUrl, variables.page.lastUpdated, variables.page.markdownUrl )#
+		</bx:if>
+		<!--- Table of contents at the top --->
+		<bx:if variables.page.toc.len() gt 0 and variables.tocPosition == 'top'>
+			#renderToc( variables.page.toc )#
+		</bx:if>
+		<!--- Table of contents sticky --->
+		<bx:if variables.page.toc.len() gt 0 and variables.tocPosition == 'sticky'>
+			#renderToc( variables.page.toc, true )#
+		</bx:if>
+
+		<!--- Page content --->
+		#variables.page.contentHtml#
+	<!--- End of page content --->
+
+	<!--- Page actions at the bottom --->
+	<bx:if ( len( variables.page.editUrl ) or len( variables.page.lastUpdated ) or len( variables.page.markdownUrl ) ) and variables.pageMetaPosition == 'bottom'>
+		#renderPageMeta( variables.page.editUrl, variables.page.lastUpdated, variables.page.markdownUrl )#
+	</bx:if>
+</article>
+
+<!--- Course lesson badge and navigation --->
+<bx:if len( variables.page.course.id )>
+	<!--- Course lesson badge and navigation --->
+	<div class="bxsites-course-lesson-badge">Lesson #variables.page.course.lessonIndex# of #variables.page.course.lessonTotal# - #encodeForHTML( variables.page.course.courseTitle )#</div>
+	<div class="bxsites-course-lesson-meta" data-bxsites-course-lesson data-bxsites-course-id="#variables.page.course.id#" data-bxsites-lesson-url="#variables.basePath##variables.page.urlPath#" hidden></div>
+	<button
+		type="button"
+		class="bxsites-course-mark-complete"
+		data-bxsites-course-mark-complete
+		data-bxsites-course-id="#variables.page.course.id#"
+		data-bxsites-lesson-url="#variables.basePath##variables.page.urlPath#">
+		Mark complete
+	</button>
+	<!--- Course lesson navigation --->
+	<bx:if len( variables.page.course.prevLesson.url ) or len( variables.page.course.nextLesson.url )>
+		<nav class="page-nav page-nav--course d-flex justify-content-between" aria-label="Course lesson navigation">
+			<bx:if len( variables.page.course.prevLesson.url )>
+				<a class="page-nav__prev" href="#variables.basePath##variables.page.course.prevLesson.url#">&larr; #encodeForHTML( variables.page.course.prevLesson.title )#</a>
+			</bx:if>
+			<bx:if !len( variables.page.course.prevLesson.url )>
+				<span></span>
+			</bx:if>
+			<bx:if len( variables.page.course.nextLesson.url )>
+				<a class="page-nav__next" href="#variables.basePath##variables.page.course.nextLesson.url#">#encodeForHTML( variables.page.course.nextLesson.title )# &rarr;</a>
+			</bx:if>
+		</nav>
+	</bx:if>
+</bx:if>
+
+<!--- Page navigation --->
+<bx:if len( variables.page.prevPage.url ) or len( variables.page.nextPage.url )>
+	<nav class="page-nav d-flex justify-content-between" aria-label="#encodeForHTML( variables.strings.pageNavigation )#">
+		<!--- Previous and next page navigation --->
+		<bx:if len( variables.page.prevPage.url )>
+			<a class="page-nav__prev" href="#variables.basePath##variables.page.prevPage.url#">&larr; #encodeForHTML( variables.page.prevPage.title )#</a>
+		</bx:if>
+		<!--- Placeholder for when there is no previous page --->
+		<bx:if !len( variables.page.prevPage.url )>
+			<span></span>
+		</bx:if>
+		<!--- Placeholder for when there is no next page --->
+		<bx:if len( variables.page.nextPage.url )>
+			<a class="page-nav__next" href="#variables.basePath##variables.page.nextPage.url#">#encodeForHTML( variables.page.nextPage.title )# &rarr;</a>
+		</bx:if>
+	</nav>
+</bx:if>
+
+<!--- Page actions --->
+<bx:if variables.pageActionsEnabled and variables.pageActionsPosition == 'bottom'>
+	#renderPageActions()#
+</bx:if>
+</bx:output>

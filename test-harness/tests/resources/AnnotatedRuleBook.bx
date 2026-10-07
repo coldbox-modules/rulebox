@@ -1,0 +1,14 @@
+/**
+ * The docblock, which the @description annotation wins over
+ */
+@description( "Approves loans from an annotation" )
+class extends="rulebox.models.RuleBook"{
+
+	/**
+	 * One rule, so the rulebook can run
+	 */
+	function defineRules(){
+		addRule( newRule( "approve" ).then( ( facts, result ) => result.setValue( "approved" ) ) )
+	}
+
+}

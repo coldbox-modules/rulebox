@@ -1,0 +1,617 @@
+<!---
+	RuleBox home page. Based on the bx-sites bootstrap theme's home.bxm (same head,
+	search, dark mode and helpers), with RuleBox's own sections and assets/theme/home.css.
+
+	The outer shell for the site's own homepage (`docs/index.md`'s own
+	`layout: home` frontmatter) - selected in place of `layout.bxm` via
+	ThemeRenderer.renderPage()'s own `layoutHint` (BuildPipeline.bx's
+	renderDocTree() forwards every page's own `page.layout` as the
+	layoutHint, so any page can opt into an alternate outer shell this way,
+	not just the blog). Unlike `blog.bxm`, this is NOT a close derivative of
+	`layout.bxm` - there's no sidebar, no TOC rail, and the header is a
+	horizontal marketing nav instead of the docs hamburger/sidebar toggle.
+	It never includes `#variables.bodyFile#` - the whole page is hardcoded
+	here, so `docs/index.md`'s own Markdown body is unused when this layout
+	renders it.
+--->
+<bx:include template="#variables.moduleAssetsDir#/icons.bxm">
+<bx:include template="#variables.moduleAssetsDir#/locale-flags.bxm">
+<bx:include template="includes/site-helpers.bxm">
+<bx:script>
+	// module spec section 7 - search is fully static/client-side (provider "local") by
+	// default, opt-out via bxsites.json's `search`; `searchProvider.provider` picks a
+	// different provider ("algolia"/"pagefind" built-in here, anything else left to a theme override)
+	variables.searchEnabled = ( variables.siteConfig.search ?: false ) ? true : false
+	variables.searchProviderName = lCase( trim( variables.siteConfig.searchProvider.provider ?: "local" ) )
+	variables.searchAlgolia = variables.siteConfig.searchProvider.algolia ?: {}
+
+	variables.repoUrl = trim( variables.siteConfig.repo.url ?: "" )
+	variables.socialLinks = variables.siteConfig.social ?: []
+	variables.footerEnabled = ( variables.siteConfig.footer ?: false ) ? true : false
+	variables.navCollapsible = ( variables.siteConfig.theme.options.navCollapsible ?: false ) ? true : false
+	variables.navExpandAll = ( variables.siteConfig.theme.options.navExpandAll ?: true ) ? true : false
+	variables.tocPosition = variables.siteConfig.theme.options.tocPosition ?: "top"
+	variables.mainContentClass = variables.tocPosition == "sticky" ? "col-xl-8" : "col-xl-10"
+	variables.pageMetaPosition = variables.siteConfig.theme.options.pageMetaPosition ?: "bottom"
+	variables.breadcrumbsEnabled = ( variables.siteConfig.theme.options.breadcrumbs ?: true ) ? true : false
+	variables.faviconUrl = trim( variables.siteConfig.theme.favicon ?: "" )
+	variables.ogImageUrl = len( trim( variables.page.ogImage ?: "" ) ) ? trim( variables.page.ogImage ) : trim( variables.siteConfig.ogImage ?: "" )
+	variables.ogDescription = len( variables.page.description ?: "" ) ? variables.page.description : ( variables.siteConfig.description ?: "" )
+	variables.analyticsProvider = trim( variables.siteConfig.analytics.provider ?: "" )
+	variables.analyticsId = trim( variables.siteConfig.analytics.id ?: "" )
+	variables.mermaidEnabled = ( variables.siteConfig.mermaid ?: false ) ? true : false
+	variables.mathEnabled = ( variables.siteConfig.math ?: false ) ? true : false
+	variables.openapiEnabled = ( variables.siteConfig.openapi ?: false ) ? true : false
+	variables.pageActionsEnabled = ( variables.siteConfig.pageActions ?: false ) ? true : false
+	variables.pageActionsPosition = variables.siteConfig.theme.options.pageActionsPosition ?: "top"
+	variables.accentColor = trim( variables.siteConfig.theme.options.accentColor ?: "" )
+	variables.accentColorDark = trim( variables.siteConfig.theme.options.accentColorDark ?: "" )
+	variables.imageGalleryEnabled = ( variables.siteConfig.imageGallery ?: false ) ? true : false
+	variables.assetUrl = variables.basePath & "assets/"
+
+	// Phosphor icons (MIT, regular weight), read from icons/ next to this template at build time
+	variables.iconDir = getDirectoryFromPath( getCurrentTemplatePath() ) & "icons/"
+
+	/**
+	 * The inline SVG markup of one Phosphor icon from the theme's icons folder. It carries a 1em size of
+	 * its own, so a page shown with a stale or missing stylesheet gets text-sized icons, not huge ones.
+	 *
+	 * @name The icon's file name without .svg, e.g. "rocket-launch"
+	 *
+	 * @return The SVG markup, sized by CSS where home.css sets a size, colored by currentColor
+	 */
+	function phIcon( required string name ){
+		return fileRead( variables.iconDir & arguments.name & ".svg" ).replace( "<svg ", '<svg width="1em" height="1em" ', "one" )
+	}
+
+	// Feature cards: Phosphor icon, title, text, API, guide. A card marked next: true is a feature that is only
+	// in the Next docs so far: on a released version's home page it links there and carries a "Next" tag.
+	variables.features = [
+		{ icon: "text-aa", title: "Natural-language DSL", text: "Rules read like sentences. No nested conditionals, no scattered business logic.", code: "given / when / except / then", href: "guides/the-dsl/" },
+		{ icon: "brackets-curly", title: "Rules as data", text: "Load rules from JSON, YAML or a database table, with named actions and predicates.", code: "loadRules( source )", href: "guides/external-rules/" },
+		{ icon: "books", title: "Declared rulebooks", text: "Declare rulebooks in config or a folder, then get one anywhere by name.", code: 'ruleBook( "loan" )', href: "guides/external-rules/" },
+		{ icon: "clipboard-text", title: "Declared facts", text: "Say which facts a rulebook takes, with types, defaults, examples and descriptions.", code: 'fact( "creditScore" ).required()', href: "guides/declaring-facts/" },
+		{ icon: "shield-check", title: "Enforced facts", text: "Reject a missing or invalid fact before any rule runs, with every problem listed.", code: "enforceFacts() / strictFacts()", href: "guides/declaring-facts/" },
+		{ icon: "note-pencil", title: "Self-describing", text: "Describe rulebooks and rules, or let a class's docblock do it. The Visualizer shows them.", code: 'withDescription( "..." )', href: "guides/defining-rulebooks/" },
+		{ icon: "list-checks", title: "Full audit trail", text: "Know which rules executed, skipped or failed on every run.", code: "getRuleStatusMap()", href: "guides/auditing/" },
+		{ icon: "flask", title: "Dry runs", text: "Ask what would happen for a set of facts, without running a single action.", code: "dryRun( facts )", href: "guides/auditing/" },
+		{ icon: "ranking", title: "Priorities and stops", text: "Order rules explicitly and let one rule end the chain.", code: "withPriority( 20 ).stop()", href: "guides/the-dsl/" },
+		{ icon: "clock-countdown", title: "Time windows", text: "Turn a rule on for a season or a campaign, then let it expire.", code: "active( from, until )", href: "guides/the-dsl/" },
+		{ icon: "presentation-chart", title: "Rule Visualizer", text: "Dashboard, chain view, dry run, rule health, errors with stack traces and a live tracker.", code: "visualizer.enabled = true", href: "guides/visualizer/" },
+		{ icon: "plugs-connected", title: "WireBox native", text: "Inject rulebooks and the Builder. A fresh RuleBook per decision keeps it thread safe.", code: 'inject="rulebook:loan"', href: "guides/thread-safety/" }
+	]
+
+	// The rule flow, left to right
+	variables.stages = [
+		{ icon: "database", title: "Facts", code: "run( facts )", text: "A struct of name and value pairs: the data you decide on, declared and checked if you want." },
+		{ icon: "question", title: "When", code: ".when( ... )", text: "Each rule tests its condition, in priority order." },
+		{ icon: "prohibit", title: "Except", code: ".except( ... )", text: "An exception skips the rule even when the condition holds." },
+		{ icon: "lightning", title: "Then", code: ".then( ... )", text: "Actions run, set the result, and can stop the chain." },
+		{ icon: "check-circle", title: "Result", code: ".getResult()", text: "One answer, plus an audit trail of every rule." }
+	]
+
+	// Tutorial Course lessons (docs/course/*)
+	variables.lessons = [
+		{ title: "What is RuleBox?", slug: "01-what-is-rulebox" },
+		{ title: "Your First Rule", slug: "02-your-first-rule" },
+		{ title: "Facts and Results", slug: "03-facts-and-results" },
+		{ title: "More Rules", slug: "04-more-rules" },
+		{ title: "See What Happened", slug: "05-see-what-happened" },
+		{ title: "Rules from JSON", slug: "06-rules-from-json" },
+		{ title: "RuleBooks in ColdBox", slug: "07-rulebooks-in-coldbox" },
+		{ title: "When Things Go Wrong", slug: "08-when-things-go-wrong" },
+		{ title: "The Visualizer", slug: "09-the-visualizer" },
+		{ title: "Where to Go Next", slug: "10-where-to-go-next" }
+	]
+
+	// Visualizer screenshots, shown with bx-sites' own image-gallery markup and lightbox
+	variables.shots = [
+		{ src: "visualizer/dashboard.png", title: "Dashboard", text: "Every rulebook, plus the rules that fail most and the slowest ones." },
+		{ src: "visualizer/chain-fraudcheck.png", title: "Chain view", text: "Rules in run order, with durations, error rates and the last error." },
+		{ src: "visualizer/chain-loanapproval.png", title: "Facts and descriptions", text: "What a rulebook decides, the facts it takes, and what each rule does." },
+		{ src: "visualizer/dryrun.png", title: "Dry run", text: "Fill in a form built from the declared facts and see which rules would fire." },
+		{ src: "visualizer/metrics-errors.png", title: "Errors and stack traces", text: "Each distinct error once, with a count, its cause and where it was thrown." },
+		{ src: "visualizer/live.png", title: "Live tracker", text: "Every evaluation as it happens. Open a failure to see why." }
+	]
+</bx:script>
+<bx:output>
+<!doctype html>
+<html lang="#encodeForHTML( variables.currentLocale.len() ? variables.currentLocale : 'en' )#" dir="#encodeForHTML( variables.currentLocaleDir )#">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>#encodeForHTML( variables.page.title )# - #encodeForHTML( variables.siteConfig.name )#</title>
+	<meta property="og:type" content="#encodeForHTML( len( trim( variables.page.ogType ?: '' ) ) ? variables.page.ogType : 'website' )#">
+	<meta property="og:site_name" content="#encodeForHTML( variables.siteConfig.name )#">
+	<meta property="og:title" content="#encodeForHTML( variables.page.title )#">
+
+	<!--- Open Graph and meta tags for SEO --->
+	#renderArticleMeta()#
+
+	<!--- Canonical URL --->
+	<bx:if len( variables.page.canonicalUrl )>
+		<link rel="canonical" href="#encodeForHTML( variables.page.canonicalUrl )#">
+	</bx:if>
+
+	<!--- Meta description and Open Graph description --->
+	<bx:if len( variables.ogDescription )>
+		<meta name="description" content="#encodeForHTML( variables.ogDescription )#">
+		<meta property="og:description" content="#encodeForHTML( variables.ogDescription )#">
+	</bx:if>
+
+	<!--- Open Graph image and Twitter card --->
+	<bx:if len( variables.ogImageUrl )>
+		<meta property="og:image" content="#resolveAssetUrl( variables.ogImageUrl )#">
+		<meta name="twitter:card" content="summary_large_image">
+	</bx:if>
+
+	<!--- Favicon --->
+	<!--- A PNG first for browsers without SVG favicons; the SVG after it wins where supported --->
+	<link rel="icon" type="image/png" sizes="32x32" href="#resolveAssetUrl( 'assets/brand/favicon-32.png' )#">
+	<bx:if len( variables.faviconUrl )>
+		<link rel="icon" href="#resolveAssetUrl( variables.faviconUrl )#">
+	</bx:if>
+	<link rel="apple-touch-icon" href="#resolveAssetUrl( 'assets/brand/apple-touch-icon.png' )#">
+
+	<!--- Color mode detection (before CSS, to avoid flash) --->
+	<script>
+		( function () {
+			var configuredMode = "#variables.siteConfig.theme.options.colorMode ?: 'auto'#";
+			var stored = localStorage.getItem( "bxsites-theme" );
+			var prefersDark = window.matchMedia( "(prefers-color-scheme: dark)" ).matches;
+			var wantsDark = stored ? stored === "dark" : ( configuredMode === "dark" || ( configuredMode === "auto" && prefersDark ) );
+			if ( wantsDark ) {
+				document.documentElement.setAttribute( "data-theme", "dark" );
+			}
+		} )();
+	</script>
+
+	<!--- Base CSS and theme CSS (+ the homepage-only stylesheet) --->
+	<link rel="stylesheet" href="#variables.basePath#assets/vendor/bootstrap/bootstrap.min.css">
+	<link rel="stylesheet" href="#variables.basePath#assets/vendor/highlight/github.min.css">
+	<link rel="stylesheet" href="#themeAssetUrl( 'style.css' )#">
+	<link rel="stylesheet" href="#themeAssetUrl( 'home.css' )#">
+
+	<!--- Extra CSS --->
+	#renderExtraCss( variables.siteConfig.extraCss ?: [] )#
+
+	<!--- Accent color overrides --->
+	<bx:if len( variables.accentColor ) or len( variables.accentColorDark )>
+		<style>
+			<!--- Light mode accent color --->
+			<bx:if len( variables.accentColor )>
+				:root {
+					--bxsites-accent: #variables.accentColor#;
+					--bxsites-link: #variables.accentColor#;
+					--bxsites-link-hover: color-mix( in srgb, #variables.accentColor# 85%, black );
+				}
+			</bx:if>
+			<!--- Dark mode accent color --->
+			<bx:if len( variables.accentColorDark )>
+				[data-theme="dark"] {
+					--bxsites-accent: #variables.accentColorDark#;
+					--bxsites-link: #variables.accentColorDark#;
+					--bxsites-link-hover: color-mix( in srgb, #variables.accentColorDark# 85%, white );
+				}
+			</bx:if>
+		</style>
+	</bx:if>
+
+	<!--- Math CSS --->
+	<bx:if variables.mathEnabled>
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+	</bx:if>
+
+	<!--- OpenAPI CSS --->
+	<bx:if variables.openapiEnabled>
+		<link rel="stylesheet" href="#variables.basePath#assets/vendor/swagger-ui/swagger-ui.css">
+	</bx:if>
+
+	<!--- Google Analytics --->
+	<bx:if variables.analyticsProvider == 'google'>
+		<script async src="https://www.googletagmanager.com/gtag/js?id=#encodeForHTML( variables.analyticsId )#"></script>
+		<script>
+			window.dataLayer = window.dataLayer || [];
+			function gtag(){dataLayer.push(arguments);}
+			gtag('js', new Date());
+			gtag('config', '#variables.analyticsId#');
+		</script>
+	</bx:if>
+
+	<!--- Local search CSS and JS --->
+	<bx:if variables.searchEnabled and variables.searchProviderName eq 'local'>
+		<script>window.__BXSITES_BASE_PATH__ = "#variables.basePath#";</script>
+		<script>window.__BXSITES_SEARCH_NO_RESULTS__ = "#encodeForJavaScript( variables.strings.searchNoResults )#";</script>
+		<script src="#variables.basePath#assets/vendor/minisearch/minisearch.js"></script>
+		<script src="#moduleAssetUrl( 'search.js' )#" defer></script>
+	</bx:if>
+
+	<!--- Algolia search CSS --->
+	<bx:if variables.searchEnabled and variables.searchProviderName eq 'algolia'>
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3">
+	</bx:if>
+
+	<!--- Pagefind search CSS --->
+	<bx:if variables.searchEnabled and variables.searchProviderName eq 'pagefind'>
+		<link rel="stylesheet" href="#variables.basePath#pagefind/pagefind-ui.css">
+	</bx:if>
+
+	<!--- Alpine JS --->
+	<script src="#variables.basePath#assets/vendor/alpine/cdn.min.js" defer></script>
+</head>
+<body
+	class="rb-home"
+	x-data="{ dark: document.documentElement.getAttribute( 'data-theme' ) === 'dark', copied: false, menu: false }"
+	x-init="$watch( 'dark', v => { document.documentElement.setAttribute( 'data-theme', v ? 'dark' : 'light' ); localStorage.setItem( 'bxsites-theme', v ? 'dark' : 'light' ) } )">
+
+	<div class="rb-glows" aria-hidden="true"><div class="rb-glow rb-glow-1"></div><div class="rb-glow rb-glow-2"></div></div>
+
+	<!--- Nav --->
+	<header class="rb-nav">
+		<div class="rb-wrap rb-navrow">
+			<a class="rb-brand" href="#variables.basePath#">
+				<img class="rb-logo-light" src="#variables.assetUrl#brand/rulebox-logo-full-light.svg" alt="#encodeForHTML( variables.siteConfig.name )#">
+				<img class="rb-logo-dark" src="#variables.assetUrl#brand/rulebox-logo-full-dark.svg" alt="#encodeForHTML( variables.siteConfig.name )#">
+			</a>
+			<nav class="rb-navlinks" id="rb-navlinks" :class="menu && 'rb-navlinks-open'" @click.outside="menu = false" aria-label="Main">
+				<a href="#variables.basePath#getting-started/">Docs</a>
+				<a href="#variables.basePath#course/">Course</a>
+				<a href="#variables.basePath#guides/">Guides</a>
+				<a href="#variables.basePath#guides/visualizer/">Visualizer</a>
+			</nav>
+			<div class="rb-navcta">
+				<bx:if variables.searchEnabled>
+					<div class="rb-search"><bx:include template="#variables.themeDir#/search.bxm"></div>
+				</bx:if>
+				<bx:if variables.versions.len() gt 1>
+					#renderVersionSwitcher( variables.versions, variables.currentVersion )#
+				</bx:if>
+				<button type="button" class="rb-icon-btn" @click="dark = !dark" aria-label="#encodeForHTML( variables.strings.toggleDarkMode )#">
+					<span x-show="!dark">#bxsitesIcon( "moon" )#</span>
+					<span x-show="dark" x-cloak>#bxsitesIcon( "sun" )#</span>
+				</button>
+				<bx:if len( variables.repoUrl )>
+					<a class="rb-btn rb-btn-ghost rb-btn-sm" href="#bxsitesUrlAttr( variables.repoUrl )#" target="_blank" rel="noopener noreferrer">#bxsitesIcon( "github" )# Star</a>
+				</bx:if>
+				<!--- Below 1180px the links move into this menu --->
+				<button type="button" class="rb-icon-btn rb-menu-btn" @click.stop="menu = !menu" :aria-expanded="menu" aria-controls="rb-navlinks" aria-label="Menu">
+					<svg x-show="!menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+					<svg x-show="menu" x-cloak viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+				</button>
+			</div>
+		</div>
+	</header>
+
+	<main>
+		<!--- Hero --->
+		<section class="rb-hero">
+			<div class="rb-wrap rb-hero-grid">
+				<div class="rb-hero-copy">
+					<div class="rb-pill">
+						<span class="rb-pill-logos">
+							<img src="#variables.assetUrl#coldbox-icon.svg" alt="ColdBox">
+							<img src="#variables.assetUrl#boxlang-icon.svg" alt="BoxLang">
+						</span>
+						The rules engine for ColdBox and BoxLang
+					</div>
+					<h1>Business rules, <br><span class="rb-grad">without the business logic mess!</span></h1>
+					<p class="rb-lead"><strong>RuleBox</strong> turns tangled <code>if</code>/<code>else</code> blocks into named rules you can read,
+						test and audit. Given some facts, when a condition holds, then act. Write them in BoxLang, YAML, JSON or even the database and
+						your business rules can change without a deploy.</p>
+					<div class="rb-actions">
+						<a class="rb-btn rb-btn-primary" href="#variables.basePath#course/">Start the Tutorial
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+						</a>
+						<a class="rb-btn rb-btn-ghost" href="#variables.basePath#guides/">Read the Docs</a>
+					</div>
+					<div class="rb-install-row">
+						<div class="rb-install">
+							<span><span class="rb-prompt">$</span> box install rulebox</span>
+							<button type="button" @click="navigator.clipboard.writeText( 'box install rulebox' ); copied = true; setTimeout( () => copied = false, 1500 )" :aria-label="copied ? 'Copied' : 'Copy install command'" aria-label="Copy install command">
+								<svg x-show="!copied" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+								<svg x-show="copied" x-cloak viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+							</button>
+						</div>
+						<div class="rb-badges"><span>BoxLang 1.18+</span><span>ColdBox 8+</span><span>Apache 2.0</span></div>
+					</div>
+				</div>
+
+				<div class="rb-window">
+					<div class="rb-window-frame">
+						<div class="rb-window-bar">
+							<span class="rb-dot rb-dot-r"></span><span class="rb-dot rb-dot-y"></span><span class="rb-dot rb-dot-g"></span>
+							<span class="rb-tab rb-tab-on">LoanApproval.bx</span>
+						</div>
+<pre class="rb-code"><span class="k">class</span> extends=<span class="s">"rulebox.models.RuleBook"</span> {
+
+  <span class="k">function</span> <span class="f">defineRules</span>(){
+    <span class="f">addRule</span>(
+      <span class="f">newRule</span>( <span class="s">"declineLowScores"</span> )
+        .<span class="f">withPriority</span>( <span class="n">20</span> )
+        .<span class="f">when</span>( ( facts ) =&gt; facts.creditScore &lt; <span class="n">580</span> )
+        .<span class="f">then</span>( ( facts, result ) =&gt; result.<span class="f">setValue</span>( <span class="s">"DECLINED"</span> ) )
+        .<span class="f">stop</span>()
+    )
+    <span class="f">addRule</span>(
+      <span class="f">newRule</span>( <span class="s">"autoApprove"</span> )
+        .<span class="f">when</span>( ( facts ) =&gt; facts.creditScore &gt;= <span class="n">680</span> )
+        .<span class="f">except</span>( ( facts ) =&gt; facts.requestedAmount &gt; <span class="n">500000</span> )
+        .<span class="f">then</span>( ( facts, result ) =&gt; result.<span class="f">setValue</span>( <span class="s">"APPROVED"</span> ) )
+    )
+  }
+}</pre>
+<pre class="rb-code rb-code-foot"><span class="c">// in any handler</span>
+<span class="f">ruleBook</span>( <span class="s">"loan"</span> )
+  .<span class="f">run</span>( { creditScore: <span class="n">720</span>, requestedAmount: <span class="n">250000</span> } )
+  .<span class="f">getResult</span>().<span class="f">getValue</span>() <span class="c">// "APPROVED"</span><span class="rb-cursor" aria-hidden="true"></span></pre>
+					</div>
+					<div class="rb-float rb-float-1 rb-card" aria-hidden="true">
+						<span class="rb-float-ico rb-float-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+						<span class="rb-mono">autoApprove</span><span class="rb-ok">EXECUTED</span>
+					</div>
+					<div class="rb-float rb-float-2 rb-card" aria-hidden="true">
+						<span class="rb-float-ico rb-float-skip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 12h12"/></svg></span>
+						<span class="rb-mono">declineLowScores</span><span class="rb-skip">SKIPPED</span>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<!--- Video tour --->
+		<section class="rb-section" id="tour">
+			<div class="rb-wrap">
+				<div class="rb-section-head rb-center">
+					<span class="rb-eyebrow"><span class="rb-eyebrow-ico" aria-hidden="true">#phIcon( "play-circle" )#</span>One-minute tour</span>
+					<h2>See the <span class="rb-grad">Rule Visualizer</span> in action</h2>
+				</div>
+				<div class="rb-video">
+					<video controls preload="metadata" playsinline poster="#variables.assetUrl#video/rulebox-visualizer-intro-poster.png" aria-label="A one-minute tour of the RuleBox Visualizer">
+						<source src="#variables.assetUrl#video/rulebox-visualizer-intro.mp4" type="video/mp4">
+					</video>
+				</div>
+				<p class="rb-video-note">Dashboard, chain view, dry runs, rule health, errors with stack traces and the live tracker, recorded against the RuleBox test app.</p>
+			</div>
+		</section>
+
+		<!--- How a rule runs --->
+		<section class="rb-section">
+			<div class="rb-wrap">
+				<div class="rb-section-head rb-center">
+					<span class="rb-eyebrow"><span class="rb-eyebrow-ico" aria-hidden="true">#phIcon( "flow-arrow" )#</span>How a rule runs</span>
+					<h2>Facts in. A decision out. <span class="rb-grad">Every step recorded.</span></h2>
+					<p>Rules run in priority order. Each one checks its condition, acts or skips, and can stop the chain. The audit trail shows exactly what happened.</p>
+				</div>
+				<div class="rb-flow rb-card">
+					<bx:loop array="#variables.stages#" item="stage" index="i">
+						<div class="rb-stage">
+							<bx:if i lt variables.stages.len()>
+								<div class="rb-link" aria-hidden="true"><span class="rb-pulse" style="animation-delay: #( i - 1 ) * 0.5#s"></span></div>
+							</bx:if>
+							<div class="rb-stage-ico" aria-hidden="true">#phIcon( stage.icon )#</div>
+							<h3>#stage.title#</h3>
+							<code>#encodeForHTML( stage.code )#</code>
+							<p>#stage.text#</p>
+						</div>
+					</bx:loop>
+				</div>
+			</div>
+		</section>
+
+		<!--- Features --->
+		<section class="rb-section" id="features">
+			<div class="rb-wrap">
+				<div class="rb-head-row">
+					<div class="rb-section-head">
+						<span class="rb-eyebrow"><span class="rb-eyebrow-ico" aria-hidden="true">#phIcon( "puzzle-piece" )#</span>Everything a rule needs</span>
+						<h2>Small API. <span class="rb-grad">Serious engine.</span></h2>
+					</div>
+					<a href="#variables.basePath#guides/">Browse all guides</a>
+				</div>
+				<div class="rb-grid3">
+					<bx:loop array="#variables.features#" item="feature">
+						<bx:set featureIsAhead = ( feature.next ?: false ) && variables.currentVersion != "Next">
+						<a class="rb-feature rb-card" href="#variables.basePath##( featureIsAhead ? "next/" : "" )##feature.href#">
+							<span class="rb-feature-ico" aria-hidden="true">#phIcon( feature.icon )#</span>
+							<h3>#feature.title#<bx:if featureIsAhead> <span class="rb-feature-tag">Next</span></bx:if></h3>
+							<p>#feature.text#</p>
+							<code>#encodeForHTML( feature.code )#</code>
+						</a>
+					</bx:loop>
+				</div>
+			</div>
+		</section>
+
+		<!--- Code or data --->
+		<section class="rb-section">
+			<div class="rb-wrap">
+				<div class="rb-section-head rb-center">
+					<span class="rb-eyebrow"><span class="rb-eyebrow-ico" aria-hidden="true">#phIcon( "code" )#</span>Code or data</span>
+					<h2>The same rule, <span class="rb-grad">two ways.</span></h2>
+					<p>Keep logic that rarely changes in BoxLang. Move thresholds that change often into JSON, YAML or a database table, and load them at runtime.</p>
+				</div>
+				<div class="rb-grid2">
+					<div class="rb-pane rb-card">
+						<div class="rb-pane-head"><b>In BoxLang</b><span>LoanApproval.bx</span></div>
+<pre class="rb-code"><span class="f">newRule</span>( <span class="s">"declineLowScores"</span> )
+  .<span class="f">withDescription</span>( <span class="s">"Declines a score under 580"</span> )
+  .<span class="f">withPriority</span>( <span class="n">20</span> )
+  .<span class="f">when</span>( ( facts ) =&gt; facts.creditScore &lt; <span class="n">580</span> )
+  .<span class="f">then</span>( ( facts, result ) =&gt;
+    result.<span class="f">setValue</span>( <span class="s">"DECLINED"</span> )
+  )
+  .<span class="f">stop</span>()</pre>
+					</div>
+					<div class="rb-pane rb-card" x-data="{ format: 'json' }">
+						<div class="rb-pane-head">
+							<div class="rb-pane-title">
+								<b>As data</b>
+								<div class="rb-tabs" role="tablist" aria-label="Rule file format">
+									<button type="button" role="tab" :class="{ 'rb-tab-active': format === 'json' }" :aria-selected="format === 'json'" @click="format = 'json'">JSON</button>
+									<button type="button" role="tab" :class="{ 'rb-tab-active': format === 'yaml' }" :aria-selected="format === 'yaml'" @click="format = 'yaml'">YAML</button>
+								</div>
+							</div>
+							<span x-text="format === 'json' ? 'config/rules/loan.json' : 'config/rules/loan.yaml'">config/rules/loan.json</span>
+						</div>
+<pre class="rb-code" role="tabpanel" x-show="format === 'yaml'" x-cloak><span class="p">- name</span>: <span class="s">declineLowScores</span>
+  <span class="p">description</span>: <span class="s">Declines a score under 580</span>
+  <span class="p">priority</span>: <span class="n">20</span>
+  <span class="p">when</span>:
+    <span class="p">lt</span>: [ <span class="s">creditScore</span>, <span class="n">580</span> ]
+  <span class="p">then</span>:
+    - <span class="p">action</span>: <span class="s">decide</span>
+      <span class="p">params</span>: { <span class="p">decision</span>: <span class="s">DECLINED</span> }
+  <span class="p">stop</span>: <span class="k">true</span></pre>
+<pre class="rb-code" role="tabpanel" x-show="format === 'json'">{
+  <span class="p">"name"</span>: <span class="s">"declineLowScores"</span>,
+  <span class="p">"description"</span>: <span class="s">"Declines a score under 580"</span>,
+  <span class="p">"priority"</span>: <span class="n">20</span>,
+  <span class="p">"when"</span>: { <span class="p">"lt"</span>: [ <span class="s">"creditScore"</span>, <span class="n">580</span> ] },
+  <span class="p">"then"</span>: [ { <span class="p">"action"</span>: <span class="s">"decide"</span>,
+    <span class="p">"params"</span>: { <span class="p">"decision"</span>: <span class="s">"DECLINED"</span> } } ],
+  <span class="p">"stop"</span>: <span class="k">true</span>
+}</pre>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<!--- Visualizer gallery --->
+		<section class="rb-section" id="visualizer">
+			<div class="rb-wrap">
+				<div class="rb-head-row">
+					<div class="rb-section-head">
+						<span class="rb-eyebrow"><span class="rb-eyebrow-ico" aria-hidden="true">#phIcon( "monitor" )#</span>Rule Visualizer</span>
+						<h2>See your rules. <span class="rb-grad">Watch them fire.</span></h2>
+						<p>A built-in admin UI: browse every rulebook, view its chain in run order, dry-run any facts, find the rules that fail or run slow, read each error with its stack trace, and stream evaluations live.</p>
+					</div>
+					<a href="#variables.basePath#guides/visualizer/">Turn it on in one setting</a>
+				</div>
+				<div class="bxsites-image-gallery bxsites-image-gallery--cols-3">
+					<bx:loop array="#variables.shots#" item="shot">
+						<figure class="bxsites-image-gallery__item">
+							<img class="bxsites-image-gallery__image" src="#variables.assetUrl##shot.src#" alt="#encodeForHTMLAttribute( shot.title & ': ' & shot.text )#" data-bxsites-lightbox loading="lazy">
+							<figcaption class="bxsites-image-gallery__caption"><b>#shot.title#.</b> #encodeForHTML( shot.text )#</figcaption>
+						</figure>
+					</bx:loop>
+				</div>
+			</div>
+		</section>
+
+		<!--- Tutorial Course --->
+		<section class="rb-section" id="course">
+			<div class="rb-wrap">
+				<div class="rb-course rb-card">
+					<div class="rb-head-row" style="margin-bottom: 0">
+						<div class="rb-section-head">
+							<span class="rb-eyebrow"><span class="rb-eyebrow-ico" aria-hidden="true">#phIcon( "graduation-cap" )#</span>Tutorial Course</span>
+							<h2>Learn RuleBox in <span class="rb-grad">ten short lessons.</span></h2>
+							<p>Build a loan decision from a single <code>if</code> statement to rules in a file, running inside ColdBox and showing up in the Visualizer.</p>
+						</div>
+						<a class="rb-btn rb-btn-primary" href="#variables.basePath#course/#variables.lessons[ 1 ].slug#/">Start lesson 1</a>
+					</div>
+					<ol class="rb-lessons">
+						<bx:loop array="#variables.lessons#" item="lesson" index="n">
+							<li>
+								<span class="rb-num">#numberFormat( n, "00" )#</span>
+								<a href="#variables.basePath#course/#lesson.slug#/">#encodeForHTML( lesson.title )#</a>
+							</li>
+						</bx:loop>
+					</ol>
+				</div>
+			</div>
+		</section>
+
+		<!--- Platform --->
+		<section class="rb-section" style="padding-top: 16px; padding-bottom: 64px">
+			<div class="rb-wrap rb-stack">
+				<span class="rb-eyebrow"><span class="rb-eyebrow-ico" aria-hidden="true">#phIcon( "stack" )#</span>Built on the Ortus stack</span>
+				<a class="rb-stack-mark" href="https://www.coldbox.org" target="_blank" rel="noopener noreferrer" aria-label="ColdBox"><img src="#variables.assetUrl#coldbox-icon.svg" alt=""></a>
+				<div class="rb-stack-row">
+					<a class="rb-chip-logo rb-card" href="https://boxlang.io" target="_blank" rel="noopener noreferrer"><img src="#variables.assetUrl#boxlang-icon.svg" alt="">BoxLang</a>
+					<a class="rb-chip-logo rb-card" href="https://www.coldbox.org" target="_blank" rel="noopener noreferrer"><img src="#variables.assetUrl#coldbox-icon.svg" alt="">ColdBox</a>
+					<a class="rb-chip-logo rb-card" href="https://www.testbox.run" target="_blank" rel="noopener noreferrer"><img src="#variables.assetUrl#testbox-icon.svg" alt="">TestBox</a>
+					<a class="rb-chip-logo rb-card" href="https://www.ortussolutions.com/products/commandbox" target="_blank" rel="noopener noreferrer"><img src="#variables.assetUrl#commandbox-icon.svg" alt="">CommandBox</a>
+				</div>
+			</div>
+		</section>
+
+		<!--- Calls to action --->
+		<section class="rb-section" style="padding-top: 0">
+			<div class="rb-wrap rb-grid3">
+				<a class="rb-cta rb-card" href="#variables.basePath#getting-started/">
+					<span class="rb-cta-ico" aria-hidden="true">#phIcon( "rocket-launch" )#</span>
+					<h3>Get started</h3>
+					<p>Install the module and run your first rule in five minutes.</p>
+					<span>Getting Started</span>
+				</a>
+				<a class="rb-cta rb-card" href="mailto:consulting@ortussolutions.com?subject=RuleBox%20Professional%20Support">
+					<span class="rb-cta-ico" aria-hidden="true">#phIcon( "lifebuoy" )#</span>
+					<h3>Professional support</h3>
+					<p>Get expert help designing, implementing, or supporting your RuleBox integration from the Ortus Solutions team.</p>
+					<span>Email consulting@ortussolutions.com</span>
+				</a>
+				<bx:if len( variables.repoUrl )>
+					<a class="rb-cta rb-card" href="#bxsitesUrlAttr( variables.repoUrl )#" target="_blank" rel="noopener noreferrer">
+						<span class="rb-cta-ico" aria-hidden="true">#phIcon( "github-logo" )#</span>
+						<h3>Open source</h3>
+						<p>Apache 2.0 licensed. Issues, ideas and pull requests welcome on GitHub.</p>
+						<span>coldbox-modules/rulebox</span>
+					</a>
+				</bx:if>
+			</div>
+		</section>
+	</main>
+
+	<!--- Footer --->
+	<footer class="rb-footer">
+		<div class="rb-wrap rb-foot">
+			<div class="rb-foot-brand">
+				<a class="rb-brand" href="#variables.basePath#">
+					<img class="rb-logo-light" src="#variables.assetUrl#brand/rulebox-logo-full-light.svg" alt="#encodeForHTML( variables.siteConfig.name )#">
+					<img class="rb-logo-dark" src="#variables.assetUrl#brand/rulebox-logo-full-dark.svg" alt="#encodeForHTML( variables.siteConfig.name )#">
+				</a>
+				<p>A natural-language rules engine for BoxLang and ColdBox.</p>
+				<bx:if variables.socialLinks.len() gt 0>
+					<div class="rb-social">#renderSocialLinks( variables.socialLinks )#</div>
+				</bx:if>
+			</div>
+			<div class="rb-foot-col">
+				<h4>Learn</h4>
+				<a href="#variables.basePath#getting-started/">Getting Started</a>
+				<a href="#variables.basePath#course/">Tutorial Course</a>
+				<a href="#variables.basePath#releases/">Release Notes</a>
+			</div>
+			<div class="rb-foot-col">
+				<h4>Guides</h4>
+				<a href="#variables.basePath#guides/the-dsl/">The RuleBook DSL</a>
+				<a href="#variables.basePath#guides/external-rules/">External Rules</a>
+				<a href="#variables.basePath#guides/visualizer/">Rule Visualizer</a>
+			</div>
+			<div class="rb-foot-col">
+				<h4>Community</h4>
+				<bx:if len( variables.repoUrl )>
+					<a href="#bxsitesUrlAttr( variables.repoUrl )#/issues" target="_blank" rel="noopener noreferrer">Issues</a>
+				</bx:if>
+				<a href="https://www.ortussolutions.com/community/slack" target="_blank" rel="noopener noreferrer">Slack</a>
+				<a href="https://community.ortussolutions.com/" target="_blank" rel="noopener noreferrer">Forum</a>
+			</div>
+		</div>
+		<div class="rb-wrap rb-foot-bottom">
+			<span>&copy; #year( now() )# Ortus Solutions, Corp. Apache License 2.0.</span>
+			<div class="rb-foot-right">
+				<a class="rb-foot-verse" href="https://www.bible.com/bible/59/JHN.14.6.ESV" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">❤️</span> He is the truth and the life</a>
+				<a href="https://www.coldbox.org" target="_blank" rel="noopener noreferrer">Part of the ColdBox platform</a>
+			</div>
+		</div>
+	</footer>
+
+	<!--- Lightbox for the screenshot gallery (bx-sites' own script) --->
+	<bx:if variables.imageGalleryEnabled>
+		<script src="#moduleAssetUrl( 'image-gallery-init.js' )#" defer></script>
+	</bx:if>
+
+	<!--- Extra JS --->
+	#renderExtraJs( variables.siteConfig.extraJs ?: [] )#
+</body>
+</html>
+</bx:output>

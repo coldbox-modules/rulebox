@@ -1,0 +1,269 @@
+<bx:script>
+	/**
+	 * Small extra icon set for home.bxm's own marketing sections -
+	 * bxsitesIcon() (icons.bxm) only covers social/repo/dark-mode/meta
+	 * icons, not enough distinct concepts (themes, plugins, deploy,
+	 * versions, Gradle/Maven/Spring...) to avoid every card in a 12-card
+	 * grid falling back to the same generic globe glyph.
+	 */
+	function homeIcon( required string name ) {
+		var icons = {
+			"list" : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',
+			"themes" : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>',
+			"search" : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
+			"offline" : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2 3 7v6c0 5 4 8 9 9 5-1 9-4 9-9V7l-9-5Z"/></svg>',
+			"plugin" : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>',
+			"deploy" : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>',
+			"versions" : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>',
+			"function" : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 3H5a2 2 0 0 0-2 2v4m0 6v4a2 2 0 0 0 2 2h4m6 0h4a2 2 0 0 0 2-2v-4m0-6V5a2 2 0 0 0-2-2h-4"/></svg>',
+			"blocks" : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',
+			"import" : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',
+			"server" : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h.01M9 15h.01M15 9v6"/></svg>',
+			"robot" : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1" fill="currentColor" stroke="none"/><circle cx="9" cy="14" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="14" r="1" fill="currentColor" stroke="none"/><path d="M9 17.5h6"/><path d="M2 12v3M22 12v3"/></svg>',
+			"claude" : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg>',
+			"chatgpt" : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg>',
+			"gemini" : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.04 19.32Q12 21.51 12 24q0-2.49.93-4.68.96-2.19 2.58-3.81t3.81-2.55Q21.51 12 24 12q-2.49 0-4.68-.93a12.3 12.3 0 0 1-3.81-2.58 12.3 12.3 0 0 1-2.58-3.81Q12 2.49 12 0q0 2.49-.96 4.68-.93 2.19-2.55 3.81a12.3 12.3 0 0 1-3.81 2.58Q2.49 12 0 12q2.49 0 4.68.96 2.19.93 3.81 2.55t2.55 3.81"/></svg>',
+			"cursor" : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg>',
+			"api" : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 3H5a2 2 0 0 0-2 2v4m0 6v4a2 2 0 0 0 2 2h4m6 0h4a2 2 0 0 0 2-2v-4m0-6V5a2 2 0 0 0-2-2h-4"/></svg>',
+			"cube" : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z"/><path d="M3 7l9 5 9-5M12 12v10"/></svg>',
+			"check-shield" : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2 3 7v6c0 5 4 8 9 9 5-1 9-4 9-9V7l-9-5Z"/><path d="M9 12l2 2 4-4"/></svg>',
+			"java" : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.915 0 11.7.215C9.515 2.4 7.47 6.39 6.046 10.483c-1.064 1.024-3.633 2.81-3.711 3.551-.093.87 1.746 2.611 1.55 3.235-.198.625-1.304 1.408-1.014 1.939.1.188.823.011 1.277-.491a13.389 13.389 0 0 0-.017 2.14c.076.906.27 1.668.643 2.232.372.563.956.911 1.667.911.397 0 .727-.114 1.024-.264.298-.149.571-.33.91-.5.68-.34 1.634-.666 3.53-.604 1.903.062 2.872.39 3.559.704.687.314 1.15.664 1.925.664.767 0 1.395-.336 1.807-.9.412-.563.631-1.33.72-2.24.06-.623.055-1.32 0-2.066.454.45 1.117.604 1.213.424.29-.53-.816-1.314-1.013-1.937-.198-.624 1.642-2.366 1.549-3.236-.08-.748-2.707-2.568-3.748-3.586C16.428 6.374 14.308 2.394 12.13.215zm.175 6.038a2.95 2.95 0 0 1 2.943 2.942 2.95 2.95 0 0 1-2.943 2.943A2.95 2.95 0 0 1 9.148 8.98a2.95 2.95 0 0 1 2.942-2.942zM8.685 7.983a3.515 3.515 0 0 0-.145.997c0 1.951 1.6 3.55 3.55 3.55 1.95 0 3.55-1.598 3.55-3.55 0-.329-.046-.648-.132-.951.334.095.64.208.915.336a42.699 42.699 0 0 1 2.042 5.829c.678 2.545 1.01 4.92.846 6.607-.082.844-.29 1.51-.606 1.94-.315.431-.713.651-1.315.651-.593 0-.932-.27-1.673-.61-.741-.338-1.825-.694-3.792-.758-1.974-.064-3.073.293-3.821.669-.375.188-.659.373-.911.5s-.466.2-.752.2c-.53 0-.876-.209-1.16-.64-.285-.43-.474-1.101-.545-1.948-.141-1.693.176-4.069.823-6.614a43.155 43.155 0 0 1 1.934-5.783c.348-.167.749-.31 1.192-.425zm-3.382 4.362a.216.216 0 0 1 .13.031c-.166.56-.323 1.116-.463 1.665a33.849 33.849 0 0 0-.547 2.555 3.9 3.9 0 0 0-.2-.39c-.58-1.012-.914-1.642-1.16-2.08.315-.24 1.679-1.755 2.24-1.781zm13.394.01c.562.027 1.926 1.543 2.24 1.783-.246.438-.58 1.068-1.16 2.08a4.428 4.428 0 0 0-.163.309 32.354 32.354 0 0 0-.562-2.49 40.579 40.579 0 0 0-.482-1.652.216.216 0 0 1 .127-.03z"/></svg>',
+			"gradle" : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.695 4.297a3.807 3.807 0 0 0-5.29-.09.368.368 0 0 0 0 .533l.46.47a.363.363 0 0 0 .474.032 2.182 2.182 0 0 1 2.86 3.291c-3.023 3.02-7.056-5.447-16.211-1.083a1.24 1.24 0 0 0-.534 1.745l1.571 2.713a1.238 1.238 0 0 0 1.681.461l.037-.02-.029.02.688-.384a16.083 16.083 0 0 0 2.193-1.635.384.384 0 0 1 .499-.016.357.357 0 0 1 .016.534 16.435 16.435 0 0 1-2.316 1.741H8.77l-.696.39a1.958 1.958 0 0 1-.963.25 1.987 1.987 0 0 1-1.726-.989L3.9 9.696C1.06 11.72-.686 15.603.26 20.522a.363.363 0 0 0 .354.296h1.675a.363.363 0 0 0 .37-.331 2.478 2.478 0 0 1 4.915 0 .36.36 0 0 0 .357.317h1.638a.363.363 0 0 0 .357-.317 2.478 2.478 0 0 1 4.914 0 .363.363 0 0 0 .358.317h1.627a.363.363 0 0 0 .363-.357c.037-2.294.656-4.93 2.42-6.25 6.108-4.57 4.502-8.486 3.088-9.9zm-6.229 6.901l-1.165-.584a.73.73 0 1 1 1.165.587z"/></svg>',
+			"maven" : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.237.001c-.312-.013-.665.072-.828.457-.158.374-.283 1.188-.34 2.276l1.223.591c-.02-.737.007-1.43.076-2.066-.026.299-.056.96.006 2.039.019.342.049.725.088 1.15.002.024.002.047.007.069a45.485 45.485 0 0 0 .309 2.412c.057.368.126.752.195 1.16l-.01.01c.014.01.015.018.014.023l.03.16c.03.162.06.328.093.494l.108.553.056.289a61.72 61.72 0 0 0 .457 2.068c.09.382.186.78.287 1.186.098.386.199.783.309 1.193.096.362.199.735.303 1.117.003.018.012.036.015.055a145.826 145.826 0 0 0 .34 1.185l.049.174c.078.261.158.533.242.805a4.2 4.2 0 0 1-.293-.135l-.19-.654c-.02-.077-.042-.148-.062-.225l-.002-.004-.004-.002c-.087-.3-.17-.607-.257-.916-.023-.087-.044-.173-.069-.263l-.314-1.178c-.1-.381-.194-.765-.29-1.154-.094-.39-.185-.78-.277-1.172-.093-.401-.181-.8-.265-1.203-.085-.396-.161-.798-.24-1.193a50.315 50.315 0 0 1-.211-1.17c-.004-.013-.006-.03-.01-.041l.004-.002c-.057-.386-.116-.77-.174-1.15a60.905 60.905 0 0 1-.154-1.204 27.447 27.447 0 0 1-.172-2.41l-1.22-.59c-.004.074-.01.15-.013.23-.012.294-.02.605-.023.93a45.3 45.3 0 0 0 .006 1.157c.009.37.025.755.045 1.148.02.336.042.675.07 1.022l.002.039.006.004c.003.023.007.05.006.076.033.368.064.739.107 1.115a34.493 34.493 0 0 0 .303 2.125c.01.064.024.131.035.195a23.418 23.418 0 0 0 .547 2.32c.07.237.14.464.21.68.063.182.13.365.194.545.155.422.327.832.512 1.232l.006.004a.318.318 0 0 0 .02.05c.225.485.475.95.755 1.395.01.013.02.033.03.047-.455-.183-1.259-.098-1.253-.097.83.288 1.557.64 2.016 1.175-.183.2-.523.352-.953.477.594.064.924-.039 1.045-.092-.31.26-.483.732-.635 1.24.35-.57.696-.949 1.033-1.094.078.258.162.524.244.788A147.532 147.532 0 0 0 5.157 24a.56.56 0 0 0 .43-.312c.13-.282.83-1.775 1.908-3.875.413 1.303.88 2.679 1.386 4.109a.494.494 0 0 0 .076-.465 103.735 103.735 0 0 1-1.308-3.945c.154-.299.316-.612.484-.932.125.04.255.094.389.155.203.186.352.491.482.84a1.515 1.515 0 0 0-.334-1.098c1.335.258 2.547.09 3.287-.81a3.97 3.97 0 0 0 .192-.258c-.325.304-.682.404-1.313.273.996-.281 1.523-.617 2.035-1.22.12-.145.244-.303.371-.48-.943.722-1.927.822-2.9.493l-.045-.018c.914.02 2.203-.474 3.092-1.189.41-.33.796-.73 1.17-1.21.28-.359.55-.76.82-1.216.234-.393.468-.824.7-1.293a2.83 2.83 0 0 1-.74.137l-.144.008c-.048.002-.093 0-.146.002.885-.198 1.5-.74 1.994-1.447-.24.117-.628.262-1.07.297-.058.006-.12.006-.182.006-.013-.002-.028 0-.047-.002.306-.078.574-.178.81-.309a3.363 3.363 0 0 0 .358-.236c.044-.037.088-.07.13-.106.099-.086.193-.18.28-.287.028-.034.056-.063.08-.098.036-.05.073-.098.104-.146a8.388 8.388 0 0 0 .51-.828c.015-.031.032-.057.046-.088.04-.084.08-.16.11-.227.042-.099.074-.179.092-.238a.515.515 0 0 1-.108.051c-.273.112-.727.187-1.086.201-.004 0-.008 0-.013.004h-.067c.72-.214 1.067-.45 1.422-.818a13.883 13.883 0 0 0 1.154-1.428c.264-.37.505-.738.692-1.072a6.5 6.5 0 0 0 .298-.592c.066-.157.122-.305.172-.45-.466.01-.986.011-1.48 0 .495.01 1.015.007 1.484-.005.5-1.485.063-2.262.063-2.262s-.526-1.212-1.4-.851c-.426.175-1.172.73-2.083 1.56l.514 1.45a17.561 17.561 0 0 1 1.703-1.602c-.257.22-.807.726-1.615 1.644-.256.29-.537.624-.844.997-.017.02-.035.038-.047.06a51.435 51.435 0 0 0-1.666 2.187c-.248.34-.498.704-.765 1.088h-.016c.002.02-.004.028-.01.032l-.101.152c-.104.155-.213.31-.318.47l-.352.534c-.061.09-.124.181-.186.277-.184.282-.367.573-.558.873a97.351 97.351 0 0 0-1.428 2.338 96.866 96.866 0 0 0-1.341 2.343c-.012.017-.02.04-.034.057a197.256 197.256 0 0 0-.668 1.223l-.097.181c-.17.318-.346.642-.52.979 0 .004-.005.008-.006.013-.026.048-.05.093-.072.141-.117.222-.218.424-.45.87a1.352 1.352 0 0 0-.233-.182l.345-.65c.047-.089.096-.177.143-.27l.04-.077.546-1.001.13-.233v-.006l-.001-.006c.169-.31.345-.62.52-.94.051-.087.102-.173.153-.265.224-.395.454-.794.684-1.197a91.685 91.685 0 0 1 2.135-3.504c.247-.386.503-.77.754-1.152.092-.138.182-.272.279-.41a72.9 72.9 0 0 1 .48-.701c.007-.012.019-.024.026-.037h.006c.26-.356.517-.713.773-1.065.278-.373.554-.735.83-1.09a31.075 31.075 0 0 1 1.777-2.075l-.515-1.446c-.06.057-.126.116-.192.178a32.37 32.37 0 0 0-.758.729c-.295.294-.597.606-.912.935a46.032 46.032 0 0 0-1.632 1.838l-.03.033.002.008c-.017.02-.033.044-.054.064-.266.323-.538.649-.801.985a39.105 39.105 0 0 0-1.445 1.95c-.043.06-.085.126-.127.186a26.458 26.458 0 0 0-1.403 2.303c-.13.247-.256.485-.37.715-.096.195-.187.395-.278.591-.21.463-.398.93-.566 1.399l.002.006a.36.36 0 0 0-.026.058c-.108.303-.203.608-.29.914-.14.174-.302.325-.483.46a3.505 3.505 0 0 0-.131-.153 5.148 5.148 0 0 0 .824-2.211 6.4 6.4 0 0 0-.016-1.488c-.046-.4-.126-.82-.238-1.274-.097-.393-.217-.81-.363-1.248-.091.185-.22.367-.379.545l-.086.094c-.029.032-.06.06-.092.094.434-.674.486-1.397.358-2.148a2.722 2.722 0 0 1-.49.85c-.033.038-.072.077-.11.116-.01.007-.019.018-.033.028.144-.24.25-.467.318-.698a1.29 1.29 0 0 0 .04-.146 2.85 2.85 0 0 0 .038-.225l.018-.146a2.11 2.11 0 0 0-.002-.354c-.003-.04-.004-.076-.01-.113-.01-.055-.016-.105-.027-.154a7.416 7.416 0 0 0-.193-.84c-.01-.028-.015-.056-.026-.084-.027-.079-.048-.149-.072-.209a2.1 2.1 0 0 0-.09-.209.455.455 0 0 1-.035.1c-.102.24-.34.57-.557.8-.003.003-.007.005-.007.01l-.04.043c.318-.58.39-.946.385-1.398a12.274 12.274 0 0 0-.16-1.615 10.68 10.68 0 0 0-.232-1.104 5.853 5.853 0 0 0-.18-.558 6.337 6.337 0 0 0-.172-.391 26.18 26.18 0 0 0 .002-.004C5.576.341 4.82.124 4.82.124s-.27-.11-.582-.123zm3.38 15.783l.032.082v.002c-.06.033-.116.067-.178.097-.012.004-.024.012-.039.018a2.41 2.41 0 0 0 .186-.2zm-.603 1.626c.13.136.25.242.354.32l.07.227a1.866 1.866 0 0 0-.246.053l-.03-.098c-.024-.084-.048-.17-.076-.257l-.021-.073zm.26.875a2.34 2.34 0 0 1 .271.01l.07.229a.778.778 0 0 1 .247-.004l-.326.627a127.643 127.643 0 0 1-.262-.862z"/></svg>',
+			"spring" : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.8537 1.4158a10.4504 10.4504 0 0 1-1.284 2.2471A11.9666 11.9666 0 1 0 3.8518 20.7757l.4445.3951a11.9543 11.9543 0 0 0 19.6316-8.2971c.3457-3.0126-.568-6.8649-2.0743-11.458zM5.5805 20.8745a1.0174 1.0174 0 1 1-.1482-1.4323 1.0396 1.0396 0 0 1 .1482 1.4323zm16.1991-3.5806c-2.9385 3.9263-9.2601 2.5928-13.2852 2.7904 0 0-.7161.0494-1.4323.1481 0 0 .2717-.1234.6174-.2469 2.8398-.9877 4.1732-1.1853 5.9018-2.0743 3.2349-1.6545 6.4698-5.2844 7.1118-9.0379-1.2347 3.6053-4.9881 6.7167-8.3959 7.9761-2.3459.8643-6.5685 1.7039-6.5685 1.7039l-.1729-.0988c-2.8645-1.4076-2.9632-7.6304 2.2718-9.6306 2.2966-.889 4.4696-.395 6.9637-.9877 2.6422-.6174 5.7043-2.5929 6.939-5.1857 1.3828 4.1732 3.062 10.643.0493 14.6434z"/></svg>',
+			"boxlang" : '<svg viewBox="0 0 500 500"><defs><linearGradient id="bxhBoxlangGrad" x1="15.624" y1="250" x2="484.376" y2="250" gradientUnits="userSpaceOnUse"><stop stop-color="##00DBFF"/><stop offset="1" stop-color="##00FF75"/></linearGradient></defs><path d="M177.94 75.3152L223.47 37.5453L223.516 37.4998L223.608 37.5681C225.22 37.8185 226.809 38.069 228.421 38.3649C326.228 57.6255 389.56 151.697 370.054 248.228C350.755 343.939 257.278 406.229 160.668 388.721C181.51 384.054 201.546 374.583 219.048 360.081C277.705 311.406 285.374 224.938 236.136 166.951C207.925 133.712 167.14 117.069 126.423 118.048L177.964 75.2925L177.94 75.3152Z" fill="url(##bxhBoxlangGrad)"/><path d="M21.6043 419.494C12.5262 408.044 13.9467 390.952 24.7561 381.336C35.5655 371.72 51.7019 373.224 60.7801 384.674C69.8582 396.124 68.4376 413.217 57.6282 422.833C46.8188 432.449 30.6824 430.944 21.6043 419.494Z" fill="url(##bxhBoxlangGrad)"/><path d="M276.864 495.023C194.023 511.236 112.53 486.871 53.9785 436.035C57.3953 434.608 60.6727 432.706 63.6479 430.238C69.7843 425.211 73.9217 418.735 75.9439 411.76C88.7745 418.939 102.326 425.052 116.597 429.808C238.488 470.635 371.141 407.39 412.91 288.667C454.819 169.921 389.899 40.6914 268.031 0C374.163 17.0284 458.282 96.1695 479.271 198.725C507.35 335.019 416.768 467.623 276.864 495V495.023Z" fill="url(##bxhBoxlangGrad)"/></svg>',
+			"commandbox" : '<svg viewBox="0 0 500 500"><defs><linearGradient id="bxhCmdboxGrad" x1="0" y1="249.999" x2="500" y2="249.999" gradientUnits="userSpaceOnUse"><stop stop-color="##00DBFF"/><stop offset="1" stop-color="##00FF75"/></linearGradient></defs><path d="M0 107.162L116.795 228.266V278.504L0 400.432V345.152L88.5586 253.385L0 162.351V107.162Z" fill="url(##bxhCmdboxGrad)"/><path d="M351.212 414.649C262.653 414.832 190.505 343.233 190.321 254.675C190.138 166.116 261.737 93.9673 350.295 93.784C393.383 93.6006 434.637 110.927 464.981 141.547C405.117 59.2223 289.881 41.0705 207.465 100.935C125.048 160.799 106.988 276.035 166.852 358.452C226.717 440.776 341.953 458.928 424.369 399.064C428.403 396.13 432.436 392.922 436.103 389.805C410.893 406.215 381.282 415.015 351.212 414.649Z" fill="url(##bxhCmdboxGrad)"/><path d="M405.849 119.451C467.822 155.663 488.816 235.329 452.787 297.302C416.575 359.275 336.909 380.269 274.937 344.24C239.366 323.613 215.806 287.309 211.222 246.33V253.848C211.222 333.697 275.853 398.237 355.611 398.237C435.369 398.237 500 333.606 500 253.848C499.175 194.075 461.863 140.628 405.849 119.451Z" fill="url(##bxhCmdboxGrad)"/><path d="M336.63 129.624C289.142 129.44 247.521 160.793 234.228 206.265C255.772 158.96 311.602 138.15 358.907 159.693C406.211 181.237 427.022 237.068 405.478 284.372C390.26 318.017 356.615 339.378 319.853 339.378C311.602 339.194 303.352 338.186 295.376 336.261C308.485 341.853 322.512 344.695 336.905 344.511C396.219 344.145 444.073 295.832 443.707 236.518C443.157 177.387 395.485 129.807 336.63 129.624Z" fill="url(##bxhCmdboxGrad)"/></mask><g mask="url(##bxhCmdboxMask)"><rect x="-14.2969" y="-14.2725" width="521.426" height="521.428" fill="url(##bxhCmdboxG3)"/></g><defs><linearGradient id="bxhCmdboxG0" x1="403.351" y1="50" x2="84.9543" y2="426.495" gradientUnits="userSpaceOnUse"><stop offset="0.278846" stop-color="##00BFF3"/><stop offset="0.735577" stop-color="##034DC7"/><stop offset="1" stop-color="##1D1E63"/></linearGradient><linearGradient id="bxhCmdboxG1" x1="456.608" y1="110.528" x2="222.861" y2="426.58" gradientUnits="userSpaceOnUse"><stop offset="0.278846" stop-color="##00BFF3"/><stop offset="0.735577" stop-color="##034DC7"/><stop offset="1" stop-color="##1D1E63"/></linearGradient><linearGradient id="bxhCmdboxG2" x1="392.387" y1="115.187" x2="210.873" y2="347.767" gradientUnits="userSpaceOnUse"><stop offset="0.278846" stop-color="##00BFF3"/><stop offset="0.735577" stop-color="##034DC7"/><stop offset="1" stop-color="##1D1E63"/></linearGradient><linearGradient id="bxhCmdboxG3" x1="399.31" y1="108.408" x2="80.3399" y2="483.458" gradientUnits="userSpaceOnUse"><stop offset="0.278846" stop-color="##33CFFF"/><stop offset="1" stop-color="##0D87C5"/></linearGradient></defs></svg>',
+			"testbox" : '<svg width="500" height="500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(##bxhTestboxClip)"><path d="M500.011 253.749L420.595 144.895V192.95H376.113L376.167 177.035L305.149 135.576V81.0649H352.211L245.601 0L144.863 81.0649H186.053V139.057L119.864 178.663V197.441H79.4156V149.386L0 258.268L79.4156 356.624V314.576H119.864V328.835L191.926 371.894V418.938H150.736L251.474 500.003L358.084 418.938H311.021V367.627L375.728 328.835V310.056H420.595V356.596L500.011 253.749ZM241.979 377.171L139.32 316.288L139.128 195.112L242.061 255.826L241.979 377.171ZM249.059 245.777L146.126 185.091L249.031 124.713L351.992 185.063L249.086 245.777H249.059ZM357.26 317.635L254.629 378.518L254.547 257.173L357.48 196.459L357.26 317.635Z" fill="url(##bxhTestboxGrad)"/></g><defs><linearGradient id="bxhTestboxGrad" x1="396.619" y1="117.64" x2="90.7572" y2="477.285" gradientUnits="userSpaceOnUse"><stop offset="0.278846" stop-color="##33CFFF"/><stop offset="1" stop-color="##0D87C5"/></linearGradient><clipPath id="bxhTestboxClip"><rect width="500" height="500" fill="white"/></clipPath></defs></svg>',
+			"matchbox" : '<svg viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M382.866 0H117.134C52.5282 0 0 52.5024 0 117.083V382.917C0 447.498 52.5146 500 117.134 500H383.069L382.866 499.797C447.472 499.797 500 447.294 500 382.713V117.083C500 52.5024 447.485 0 382.866 0ZM461.014 382.917C461.014 426.038 426 461.04 382.852 461.04H117.121C73.9732 461.04 38.9589 426.038 38.9589 382.917V117.287C38.9589 74.1649 73.9732 39.1633 117.121 39.1633V38.96H382.852C426 38.96 461.014 73.9616 461.014 117.083V382.917Z" fill="url(##bxhMatchboxG0)"/><path d="M331.539 153.614C323.772 145.345 316.248 136.696 310.487 126.8C299.331 107.375 292.946 88.2065 293.949 69.4043C294.451 62.0163 285.802 57.5021 280.285 62.3823C233.044 104.365 216.492 169.787 216.492 247.869C216.492 253.888 210.474 257.901 204.956 255.637C180.638 245.239 164.1 226.939 159.464 196.736C158.461 189.592 149.69 186.705 145.054 192.222C117.238 224.309 108.833 261.9 113.103 303.259C117.238 344.239 147.182 397.636 182.779 418.431C249.514 457.011 328.909 435.932 367.136 371.812C390.696 332.337 393.082 284.077 380.041 239.966C370.145 206.754 354.353 177.798 331.539 153.614ZM312.493 386.222C293.014 418.96 253.296 427.676 221.63 409.281C204.089 399.005 189.3 372.679 187.293 352.508C185.165 332.079 189.3 313.535 202.964 297.742C205.35 295.112 209.606 296.495 210.107 299.992C212.371 314.904 220.505 323.932 232.542 328.948C235.307 330.195 238.303 328.202 238.303 325.193C238.181 286.721 246.328 254.512 269.63 233.825C272.396 231.317 276.652 233.568 276.395 237.214C275.893 246.487 279.024 256.016 284.542 265.533C287.429 270.426 291.062 274.683 294.939 278.696C306.095 290.598 313.984 305.021 318.756 321.302C325.276 342.978 324.016 366.796 312.493 386.222Z" fill="url(##bxhMatchboxG1)"/><defs><linearGradient id="bxhMatchboxG0" x1="0" y1="250" x2="499.986" y2="250" gradientUnits="userSpaceOnUse"><stop stop-color="##00FF78"/><stop offset="1" stop-color="##00DBFF"/></linearGradient><linearGradient id="bxhMatchboxG1" x1="112.06" y1="249.049" x2="387.917" y2="249.049" gradientUnits="userSpaceOnUse"><stop stop-color="##00FF78"/><stop offset="1" stop-color="##00DBFF"/></linearGradient></defs></svg>'
+		}
+		var key = lcase( trim( arguments.name ) )
+		return icons[ key ] ?: icons[ "cube" ]
+	}
+
+	/**
+	 * Renders the sidebar navigation tree as nested <ul>/<li> markup.
+	 * A node is "active" when its URL matches the current page's own
+	 * `urlPath` (or, on a course lesson page, the course index URL).
+	 * URL-less nodes render as disabled <span>s. With `navCollapsible`,
+	 * parent nodes get a toggle button and their child list starts
+	 * collapsed unless the subtree contains the active page or
+	 * `navExpandAll` is on. `nested`/`collapsed` track recursion state.
+	 */
+	function renderNavList( required array nodes, boolean nested = false, boolean collapsed = false ) {
+		var html = sb{ "<ul class=""nav flex-column" & ( arguments.nested ? " nav--nested" : "" ) & """" & ( arguments.collapsed ? " hidden" : "" ) & ">" }
+		for ( var node in arguments.nodes ) {
+			var isActive = len( node.url ) && ( node.url == variables.page.urlPath || ( len( variables.page.course.id ) && node.url == variables.page.course.indexUrl ) )
+			var linkClass = "nav-link" & ( isActive ? " active" : "" )
+			var labelHtml = ( len( node.iconHtml ?: "" ) ? node.iconHtml & " " : "" ) & encodeForHTML( node.title )
+			var linkOrSpan = len( node.url )
+				? "<a class=""" & linkClass & """ href=""" & variables.basePath & node.url & """>" & labelHtml & "</a>"
+				: "<span class=""nav-link disabled"">" & labelHtml & "</span>"
+
+			if ( node.children.len() && variables.navCollapsible ) {
+				var open = variables.navExpandAll || navContainsActive( node )
+				html &= "<li class=""nav-item nav-item--group"">"
+				html &= "<div class=""nav-group-header"">" & linkOrSpan
+				html &= "<button type=""button"" class=""nav-toggle"" aria-expanded=""" & ( open ? "true" : "false" ) & """ aria-label=""" & encodeForHTML( variables.stringsResolver.format( variables.strings.toggleSection, { "title" : node.title } ) ) & """><span class=""nav-toggle__icon"" aria-hidden=""true"">▸</span></button>"
+				html &= "</div>"
+				html &= renderNavList( node.children, true, !open )
+				html &= "</li>"
+				continue
+			}
+
+			html &= "<li class=""nav-item"">" & linkOrSpan
+			if ( node.children.len() ) {
+				html &= renderNavList( node.children, true )
+			}
+			html &= "</li>"
+		}
+		html &= "</ul>"
+		return html
+	}
+
+	/**
+	 * True when the given nav node (or any descendant) is the current
+	 * page - renderNavList() uses this to decide whether a collapsible
+	 * group should start open. Same active definition as renderNavList()
+	 * itself uses (page URL match, or course index URL on lesson pages).
+	 */
+	boolean function navContainsActive( required struct node ) {
+		if ( len( arguments.node.url ) && ( arguments.node.url == variables.page.urlPath || ( len( variables.page.course.id ) && arguments.node.url == variables.page.course.indexUrl ) ) ) {
+			return true
+		}
+		for ( var child in arguments.node.children ) {
+			if ( navContainsActive( child ) ) {
+				return true
+			}
+		}
+		return false
+	}
+
+	/**
+	 * Renders the footer's/social row icon anchors - one anchor per entry
+	 * in bxsites.yaml's own `social` list. `icon` picks the glyphs via
+	 * bxsitesIcon() (icons.bxm); `label` (or the icon name as fallback)
+	 * goes into aria-label/title. Empty list renders nothing.
+	 */
+	function renderSocialLinks( required array links ) {
+		var html = sb{ "" }
+		for ( var link in arguments.links ) {
+			html &= '<a class="social-link" href="' & bxsitesUrlAttr( link.url ) & '" target="_blank" rel="noopener noreferrer" aria-label="' & encodeForHTML( link.label ?: link.icon ?: "Link" ) & '" title="' & encodeForHTML( link.label ?: link.icon ?: "Link" ) & '">' & bxsitesIcon( link.icon ?: "generic" ) & '</a>'
+		}
+		return html
+	}
+
+	/**
+	 * Renders the docs version switcher - a plain <select> whose onchange
+	 * handler jumps straight to the picked version's own URL (no JS
+	 * framework needed). Labels/URLs come from bxsites.yaml's own
+	 * versioning config; the current version's option is marked selected.
+	 * Only rendered when there is more than one version.
+	 *
+	 * The unreleased docs bx-sites builds at /next/ ("Next") come first, then
+	 * a divider and the released versions, newest first, the newest marked
+	 * "(Current)": Next, 2.0.0 (Current), 1.0.0.
+	 *
+	 * @versions The bx-sites versions, as [ { label, url } ]
+	 * @currentVersion The label of the version being rendered
+	 *
+	 * @return The <select> markup
+	 */
+	function renderVersionSwitcher( required array versions, required string currentVersion ) {
+		var released = arguments.versions.filter( ( v ) => v.label != "Next" )
+		var next     = arguments.versions.filter( ( v ) => v.label == "Next" )
+		var html     = sb{ '<select class="version-switcher form-select form-select-sm" onchange="location.href=this.value" aria-label="' & encodeForHTML( variables.strings.version ) & '">' }
+		html &= renderVersionOptions( next, arguments.currentVersion )
+		if ( next.len() && released.len() ) {
+			html &= '<option disabled>──────</option>'
+		}
+		html &= renderVersionOptions( released, arguments.currentVersion, true )
+		html &= '</select>'
+		return html
+	}
+
+	/**
+	 * The <option> tags for some versions, with the version being rendered selected
+	 *
+	 * @versions The versions, as [ { label, url } ]
+	 * @currentVersion The label of the version being rendered
+	 * @markLatest Label the first version "(Current)", the release the site root serves
+	 *
+	 * @return The <option> markup
+	 */
+	function renderVersionOptions( required array versions, required string currentVersion, boolean markLatest = false ) {
+		var html = ""
+		for ( var v, index in arguments.versions ) {
+			var selected = v.label == arguments.currentVersion ? " selected" : ""
+			var label    = arguments.markLatest && index == 1 ? v.label & " (Current)" : v.label
+			html &= '<option value="' & bxsitesUrlAttr( v.url ) & '"' & selected & '>' & encodeForHTML( label ) & '</option>'
+		}
+		return html
+	}
+
+	/**
+	 * A flag-icon dropdown - the trigger button shows the
+	 * current locale's own flag, opening a menu listing every locale by
+	 * its own flag + label. A locale's `flag` (bxsites.json's own
+	 * `i18n.locales[].flag`) wins when set; bxsitesLocaleFlag() falls back
+	 * to a built-in language-code lookup otherwise (locale-flags.bxm).
+	 * Alpine (already loaded for the dark-mode toggle) drives open/close -
+	 * no new JS dependency.
+	 */
+	function renderLocaleDropdown( required array locales, required string currentLocale ) {
+		var current = locales[ 1 ]
+		for ( var l in arguments.locales ) {
+			if ( l.code == arguments.currentLocale ) {
+				current = l
+				break
+			}
+		}
+		var currentFlag = len( current.flag ?: "" ) ? current.flag : bxsitesLocaleFlag( current.code )
+
+		var html = sb{ '<div class="locale-dropdown" x-data="{ open: false }" @click.outside="open = false" @keydown.escape.window="open = false">' }
+		html &= '<button type="button" class="locale-dropdown__trigger" @click="open = !open" aria-haspopup="true" :aria-expanded="open" aria-label="' & encodeForHTML( variables.stringsResolver.format( variables.strings.language, { "label" : current.label } ) ) & '">'
+		html &= '<span class="locale-dropdown__flag" aria-hidden="true">' & currentFlag & '</span>'
+		html &= '<span class="locale-dropdown__caret" aria-hidden="true">▾</span>'
+		html &= '</button>'
+		html &= '<ul class="locale-dropdown__menu" x-show="open" x-cloak role="menu">'
+		for ( var l in arguments.locales ) {
+			var flag = len( l.flag ?: "" ) ? l.flag : bxsitesLocaleFlag( l.code )
+			var active = l.code == arguments.currentLocale
+			html &= '<li role="none"><a role="menuitem" class="locale-dropdown__item' & ( active ? ' locale-dropdown__item--active' : '' ) & '" href="' & bxsitesUrlAttr( l.url ) & '">'
+			html &= '<span class="locale-dropdown__flag" aria-hidden="true">' & flag & '</span> ' & encodeForHTML( l.label )
+			html &= '</a></li>'
+		}
+		html &= '</ul></div>'
+		return html
+	}
+
+	/**
+	 * Resolves a config URL (favicon/ogImage/extraCss/extraJs/theme style)
+	 * for the head's own <link>/<script> tags. Absolute URLs with a scheme
+	 * (https:, urn:, etc.) pass through untouched (regex protects scheme
+	 * chars like "+" and "." too); everything else gets prefixed with the
+	 * site's own basePath. Used by most head-asset helpers below.
+	 */
+	function resolveAssetUrl( required string url ) {
+		return arguments.url.reFindNoCase( "^[a-z][a-z0-9+.\-]*://" ) ? arguments.url : variables.basePath & arguments.url
+	}
+
+	/**
+	 * Emits `article:published_time` and one `article:author` <meta> tag
+	 * per element of page.articleAuthorUrls - Open Graph extras for blog
+	 * posts (byline data comes from BlogBuilder.bx). Returns "" when the
+	 * page has no publishedTime, so the head stays clean on plain docs.
+	 */
+	function renderArticleMeta() {
+		if ( !len( trim( variables.page.publishedTime ?: "" ) ) ) {
+			return ""
+		}
+		var html = sb{ '<meta property="article:published_time" content="' & encodeForHTML( variables.page.publishedTime ) & '">' }
+		for ( var authorUrl in ( variables.page.articleAuthorUrls ?: [] ) ) {
+			html &= '<meta property="article:author" content="' & encodeForHTML( authorUrl ) & '">'
+		}
+		return html
+	}
+
+	/**
+	 * Builds the header/footer brand mark. With a `theme.logo` configured,
+	 * emits an <img> (empty alt - decorative) followed by the site name in
+	 * a <span>; the bare fallback is the ⚡ glyph plus the site name. Runs
+	 * the logo through resolveAssetUrl() so a base path site still finds it.
+	 */
+	function renderBrandMark() {
+		var logo = trim( variables.siteConfig.theme.logo ?: "" )
+		var name = encodeForHTML( variables.siteConfig.name )
+		if ( len( logo ) ) {
+			return '<img class="brand-logo" src="' & resolveAssetUrl( logo ) & '" alt=""><span class="brand-name">' & name & '</span>'
+		}
+		return '⚡ ' & name
+	}
+
+	/**
+	 * Emits one <link rel="stylesheet"> per entry of bxsites.yaml's own
+	 * `extraCss` list, resolved through resolveAssetUrl() (absolute URLs
+	 * keep working, relative paths get the basePath). Returns "" for an
+	 * empty list so the head stays clean.
+	 */
+	function renderExtraCss( required array urls ) {
+		var html = sb{ "" }
+		for ( var url in arguments.urls ) {
+			html &= '<link rel="stylesheet" href="' & resolveAssetUrl( url ) & '">'
+		}
+		return html
+	}
+
+	/**
+	 * Emits one deferred <script> per entry of bxsites.yaml's own
+	 * `extraJs` list, resolved through resolveAssetUrl(). Deferred so the
+	 * raw `</body>`-end position alone can't block parsing; matching the
+	 * layouts' own pattern of always-in-list scripts. "" when empty.
+	 */
+	function renderExtraJs( required array urls ) {
+		var html = sb{ "" }
+		for ( var url in arguments.urls ) {
+			html &= '<script src="' & resolveAssetUrl( url ) & '" defer></script>'
+		}
+		return html
+	}
+</bx:script>

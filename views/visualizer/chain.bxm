@@ -1,0 +1,145 @@
+<bx:output>
+<div class="d-flex align-items-start justify-content-between gap-3 mb-4">
+	<div>
+		<h1 class="h3 mb-1">#htmlEditFormat( prc.rulebookName )#</h1>
+		<bx:if len( prc.description )>
+			<p class="text-secondary mb-2" style="max-width: 48rem">#htmlEditFormat( prc.description )#</p>
+		</bx:if>
+		<span class="badge bg-primary">#prc.chain.len()# rules</span>
+	</div>
+	<div class="d-flex gap-2 flex-shrink-0 text-nowrap">
+		<form method="get" class="d-flex gap-2">
+			<select name="name" class="form-select form-select-sm" onchange="this.form.submit()">
+				<bx:loop array="#prc.rulebookNames#" index="n">
+				<bx:output>
+					<option value="#htmlEditFormat( n )#" #( n == prc.rulebookName ? "selected" : "" )#>#htmlEditFormat( n )#</option>
+				</bx:output>
+				</bx:loop>
+			</select>
+		</form>
+		<bx:if !prc.chainLoadError.len()>
+			<a class="btn btn-sm btn-primary" href="#prc.vizLink( 'dryrun' )#?name=#urlEncodedFormat( prc.rulebookName )#">
+				<i class="ph ph-flask"></i> Dry Run
+			</a>
+		</bx:if>
+	</div>
+</div>
+
+<bx:if prc.chainLoadError.len()>
+	<div class="alert alert-danger" role="alert">
+		<strong>This rulebook could not be loaded.</strong>
+		<bx:output>#htmlEditFormat( prc.chainLoadError )#</bx:output>
+	</div>
+<bx:else>
+<bx:if prc.facts.len()>
+<div class="card bg-body-tertiary mb-4">
+	<div class="card-header d-flex align-items-center gap-2">
+		<i class="ph ph-list-checks"></i>
+		<span class="fw-medium">Facts</span>
+		<span class="badge text-bg-secondary">#prc.facts.len()#</span>
+		<bx:if prc.factsStrict>
+			<span class="badge text-bg-warning" title="Run and dry run reject invalid and undeclared facts">strict</span>
+		<bx:elseif prc.factsEnforced>
+			<span class="badge text-bg-info" title="Run and dry run reject invalid facts">enforced</span>
+		<bx:else>
+			<span class="badge text-bg-light border" title="Declared for documentation; not checked on run">described</span>
+		</bx:if>
+	</div>
+	<div class="table-responsive">
+		<table class="table table-sm mb-0 align-middle rb-facts-table" style="--bs-table-bg: transparent">
+			<thead>
+				<tr>
+					<th scope="col" class="ps-3">Fact</th>
+					<th scope="col">Type</th>
+					<th scope="col">Required</th>
+					<th scope="col">Default</th>
+					<th scope="col" class="pe-3">Description</th>
+				</tr>
+			</thead>
+			<tbody>
+				<bx:loop array="#prc.facts#" index="fact">
+				<bx:output>
+					<tr>
+						<td class="font-monospace ps-3">#htmlEditFormat( fact.name )#</td>
+						<td>
+							#htmlEditFormat( fact.type )#
+							<bx:if fact.keyExists( "values" )>
+								<div class="small text-secondary">one of: #htmlEditFormat( fact.values.filter( ( v ) => isSimpleValue( v ) ).toList( ", " ) )#</div>
+							</bx:if>
+						</td>
+						<td>
+							<bx:if fact.required>
+								<span class="badge text-bg-danger">required</span>
+							<bx:else>
+								<span class="text-secondary small">optional</span>
+							</bx:if>
+						</td>
+						<td class="font-monospace small">#fact.keyExists( "default" ) ? htmlEditFormat( isSimpleValue( fact.default ?: "" ) ? ( fact.default ?: "null" ) : jsonSerialize( fact.default ) ) : ""#</td>
+						<td class="small pe-3">
+							#htmlEditFormat( fact.description )#
+							<bx:if fact.keyExists( "example" )>
+								<div class="text-secondary">e.g. <span class="font-monospace">#htmlEditFormat( isSimpleValue( fact.example ) ? fact.example : jsonSerialize( fact.example ) )#</span></div>
+							</bx:if>
+						</td>
+					</tr>
+				</bx:output>
+				</bx:loop>
+			</tbody>
+		</table>
+	</div>
+</div>
+</bx:if>
+<div class="d-flex flex-column gap-2">
+	<bx:loop array="#prc.chain#" index="node">
+	<bx:output>
+		<div class="card bg-body-tertiary">
+			<div class="card-body d-flex align-items-start justify-content-between gap-3">
+				<div>
+					<div class="d-flex align-items-center gap-2 mb-1">
+						<span class="badge text-bg-secondary">P#htmlEditFormat( node.priority )#</span>
+						<span class="fw-medium">#htmlEditFormat( node.name )#</span>
+						<bx:if node.stops>
+							<span class="badge rb-badge-STOPPED border">stops chain</span>
+						</bx:if>
+						<bx:if len( node.activeFrom ) or len( node.activeUntil )>
+							<span class="badge text-bg-dark">
+								<i class="ph ph-clock"></i>
+								active #htmlEditFormat( len( node.activeFrom ) ? node.activeFrom : "always" )# &rarr; #htmlEditFormat( len( node.activeUntil ) ? node.activeUntil : "always" )#
+							</span>
+						</bx:if>
+					</div>
+					<bx:if len( node.description )>
+						<div class="small mb-1">#htmlEditFormat( node.description )#</div>
+					</bx:if>
+					<div class="text-secondary small">
+						#numberFormat( node.metrics.totalEvaluations )# evaluations &middot;
+						avg #numberFormat( node.metrics.avgDurationMs, "0.00" )#ms &middot;
+						max #numberFormat( node.metrics.maxDurationMs, "0.00" )#ms &middot;
+						<span class="#node.metrics.failed ? 'text-danger fw-medium' : ''#">#numberFormat( node.metrics.errorRate * 100, "0.0" )#% errors</span>
+					</div>
+					<bx:if node.metrics.keyExists( "lastError" )>
+						<div class="small mt-1 rb-error-text">
+							<i class="ph ph-warning-circle"></i>
+							<span class="fw-medium">#htmlEditFormat( node.metrics.lastError.type )#</span>: #htmlEditFormat( node.metrics.lastError.message )#
+							<span class="text-secondary">(#htmlEditFormat( node.metrics.lastError.at )#)</span>
+							<a class="ms-1" href="#prc.vizLink( 'metrics' )#?name=#urlEncodedFormat( prc.rulebookName )#&rule=#urlEncodedFormat( node.name )#">Show errors and stack traces</a>
+						</div>
+					</bx:if>
+				</div>
+				<div class="d-flex gap-1 flex-wrap" style="max-width: 360px">
+					<bx:loop collection="#node.metrics.countsByState#" item="state">
+					<bx:output>
+						<span class="badge border rb-badge-#htmlEditFormat( state )#">#htmlEditFormat( state )#: #htmlEditFormat( node.metrics.countsByState[ state ] )#</span>
+					</bx:output>
+					</bx:loop>
+				</div>
+			</div>
+		</div>
+	</bx:output>
+	</bx:loop>
+	<bx:if prc.chain.isEmpty()>
+		<div class="text-secondary">This rulebook has no rules.</div>
+	</bx:if>
+</div>
+</bx:if>
+</bx:output>

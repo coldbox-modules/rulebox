@@ -1,0 +1,369 @@
+<bx:include template="#variables.moduleAssetsDir#/icons.bxm">
+<bx:include template="#variables.moduleAssetsDir#/locale-flags.bxm">
+<bx:include template="includes/site-helpers.bxm">
+<bx:script>
+	// module spec section 7 - search is fully static/client-side (provider "local") by
+	// default, opt-out via bxsites.json's `search`; `searchProvider.provider` picks a
+	// different provider ("algolia"/"pagefind" built-in here, anything else left to a theme override)
+	variables.searchEnabled = ( variables.siteConfig.search ?: false ) ? true : false
+	variables.searchProviderName = lCase( trim( variables.siteConfig.searchProvider.provider ?: "local" ) )
+	variables.searchAlgolia = variables.siteConfig.searchProvider.algolia ?: {}
+	variables.repoUrl = trim( variables.siteConfig.repo.url ?: "" )
+	variables.socialLinks = variables.siteConfig.social ?: []
+	variables.footerEnabled = ( variables.siteConfig.footer ?: false ) ? true : false
+	variables.navCollapsible = ( variables.siteConfig.theme.options.navCollapsible ?: false ) ? true : false
+	variables.navExpandAll = ( variables.siteConfig.theme.options.navExpandAll ?: true ) ? true : false
+	variables.tocPosition = variables.siteConfig.theme.options.tocPosition ?: "top"
+	variables.mainContentClass = variables.tocPosition == "sticky" ? "col-xl-8" : "col-xl-10"
+	variables.pageMetaPosition = variables.siteConfig.theme.options.pageMetaPosition ?: "bottom"
+	variables.breadcrumbsEnabled = ( variables.siteConfig.theme.options.breadcrumbs ?: true ) ? true : false
+	variables.faviconUrl = trim( variables.siteConfig.theme.favicon ?: "" )
+	variables.ogImageUrl = len( trim( variables.page.ogImage ?: "" ) ) ? trim( variables.page.ogImage ) : trim( variables.siteConfig.ogImage ?: "" )
+	variables.ogDescription = len( variables.page.description ?: "" ) ? variables.page.description : ( variables.siteConfig.description ?: "" )
+	variables.analyticsProvider = trim( variables.siteConfig.analytics.provider ?: "" )
+	variables.analyticsId = trim( variables.siteConfig.analytics.id ?: "" )
+	variables.mermaidEnabled = ( variables.siteConfig.mermaid ?: false ) ? true : false
+	variables.mathEnabled = ( variables.siteConfig.math ?: false ) ? true : false
+	variables.openapiEnabled = ( variables.siteConfig.openapi ?: false ) ? true : false
+	variables.imageGalleryEnabled = ( variables.siteConfig.imageGallery ?: false ) ? true : false
+	variables.contentBlocksEnabled = ( variables.siteConfig.cloud.contentBlocks ?: false ) ? true : false
+	variables.pageActionsEnabled = ( variables.siteConfig.pageActions ?: false ) ? true : false
+	variables.pageActionsPosition = variables.siteConfig.theme.options.pageActionsPosition ?: "top"
+	variables.accentColor = trim( variables.siteConfig.theme.options.accentColor ?: "" )
+	variables.accentColorDark = trim( variables.siteConfig.theme.options.accentColorDark ?: "" )
+</bx:script>
+<bx:output>
+<!doctype html>
+<html lang="#encodeForHTML( variables.currentLocale.len() ? variables.currentLocale : 'en' )#" dir="#encodeForHTML( variables.currentLocaleDir )#">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>#encodeForHTML( variables.page.title )# - #encodeForHTML( variables.siteConfig.name )#</title>
+	<meta property="og:type" content="#encodeForHTML( len( trim( variables.page.ogType ?: '' ) ) ? variables.page.ogType : 'website' )#">
+	<meta property="og:site_name" content="#encodeForHTML( variables.siteConfig.name )#">
+	<meta property="og:title" content="#encodeForHTML( variables.page.title )#">
+
+	<!--- Open Graph and meta tags for SEO --->
+	#renderArticleMeta()#
+
+	<!--- Canonical URL --->
+	<bx:if len( variables.page.canonicalUrl )>
+		<link rel="canonical" href="#encodeForHTML( variables.page.canonicalUrl )#">
+	</bx:if>
+
+	<!--- Meta description and Open Graph description --->
+	<bx:if len( variables.ogDescription )>
+		<meta name="description" content="#encodeForHTML( variables.ogDescription )#">
+		<meta property="og:description" content="#encodeForHTML( variables.ogDescription )#">
+	</bx:if>
+
+	<!--- Open Graph image and Twitter card --->
+	<bx:if len( variables.ogImageUrl )>
+		<meta property="og:image" content="#resolveAssetUrl( variables.ogImageUrl )#">
+		<meta name="twitter:card" content="summary_large_image">
+	</bx:if>
+
+	<!--- Favicon --->
+	<!--- A PNG first for browsers without SVG favicons; the SVG after it wins where supported --->
+	<link rel="icon" type="image/png" sizes="32x32" href="#resolveAssetUrl( 'assets/brand/favicon-32.png' )#">
+	<bx:if len( variables.faviconUrl )>
+		<link rel="icon" href="#resolveAssetUrl( variables.faviconUrl )#">
+	</bx:if>
+	<link rel="apple-touch-icon" href="#resolveAssetUrl( 'assets/brand/apple-touch-icon.png' )#">
+
+	<!--- Theme color and accent color --->
+	<script>
+		( function () {
+			var configuredMode = "#variables.siteConfig.theme.options.colorMode ?: 'auto'#";
+			var stored = localStorage.getItem( "bxsites-theme" );
+			var prefersDark = window.matchMedia( "(prefers-color-scheme: dark)" ).matches;
+			var wantsDark = stored ? stored === "dark" : ( configuredMode === "dark" || ( configuredMode === "auto" && prefersDark ) );
+			if ( wantsDark ) {
+				document.documentElement.setAttribute( "data-theme", "dark" );
+			}
+		} )();
+	</script>
+
+	<!--- Base CSS and theme CSS --->
+	<link rel="stylesheet" href="#variables.basePath#assets/vendor/bootstrap/bootstrap.min.css">
+	<link rel="stylesheet" href="#variables.basePath#assets/vendor/highlight/github.min.css">
+	<link rel="stylesheet" href="#themeAssetUrl( 'style.css' )#">
+
+	<!--- Extra CSS --->
+	#renderExtraCss( variables.siteConfig.extraCss ?: [] )#
+
+	<!--- Accent color CSS --->
+	<bx:if len( variables.accentColor ) or len( variables.accentColorDark )>
+		<style>
+			<!--- Light mode accent color --->
+			<bx:if len( variables.accentColor )>
+				:root {
+					--bxsites-accent: #variables.accentColor#;
+					--bxsites-link: #variables.accentColor#;
+					--bxsites-link-hover: color-mix( in srgb, #variables.accentColor# 85%, black );
+				}
+			</bx:if>
+			<!--- Dark mode accent color --->
+			<bx:if len( variables.accentColorDark )>
+				[data-theme="dark"] {
+					--bxsites-accent: #variables.accentColorDark#;
+					--bxsites-link: #variables.accentColorDark#;
+					--bxsites-link-hover: color-mix( in srgb, #variables.accentColorDark# 85%, white );
+				}
+			</bx:if>
+		</style>
+	</bx:if>
+
+	<!--- Math CSS --->
+	<bx:if variables.mathEnabled>
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+	</bx:if>
+
+	<!--- OpenAPI CSS --->
+	<bx:if variables.openapiEnabled>
+		<link rel="stylesheet" href="#variables.basePath#assets/vendor/swagger-ui/swagger-ui.css">
+	</bx:if>
+
+	<!--- Google Analytics --->
+	<bx:if variables.analyticsProvider == 'google'>
+		<script async src="https://www.googletagmanager.com/gtag/js?id=#encodeForHTML( variables.analyticsId )#"></script>
+		<script>
+			window.dataLayer = window.dataLayer || [];
+			function gtag(){dataLayer.push(arguments);}
+			gtag('js', new Date());
+			gtag('config', '#variables.analyticsId#');
+		</script>
+	</bx:if>
+
+	<!--- Local search CSS and JS --->
+	<bx:if variables.searchEnabled and variables.searchProviderName eq 'local'>
+		<script>window.__BXSITES_BASE_PATH__ = "#variables.basePath#";</script>
+		<script>window.__BXSITES_SEARCH_NO_RESULTS__ = "#encodeForJavaScript( variables.strings.searchNoResults )#";</script>
+		<script src="#variables.basePath#assets/vendor/minisearch/minisearch.js"></script>
+		<script src="#moduleAssetUrl( 'search.js' )#" defer></script>
+	</bx:if>
+
+	<!--- Algolia search CSS --->
+	<bx:if variables.searchEnabled and variables.searchProviderName eq 'algolia'>
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3">
+	</bx:if>
+
+	<!--- Pagefind search CSS --->
+	<bx:if variables.searchEnabled and variables.searchProviderName eq 'pagefind'>
+		<link rel="stylesheet" href="#variables.basePath#pagefind/pagefind-ui.css">
+	</bx:if>
+<!--- Alpine JS --->
+	<script src="#variables.basePath#assets/vendor/alpine/cdn.min.js" defer></script>
+</head>
+
+<!--- Body --->
+<body
+	x-data="{ dark: document.documentElement.getAttribute( 'data-theme' ) === 'dark', navOpen: window.matchMedia( '(min-width: 992px)' ).matches ? ( localStorage.getItem( 'bxsites-nav-open' ) !== null ? localStorage.getItem( 'bxsites-nav-open' ) === 'true' : true ) : false }"
+	x-init="$watch( 'dark', v => { document.documentElement.setAttribute( 'data-theme', v ? 'dark' : 'light' ); localStorage.setItem( 'bxsites-theme', v ? 'dark' : 'light' ) } ); $watch( 'navOpen', v => { if ( window.matchMedia( '(min-width: 992px)' ).matches ) localStorage.setItem( 'bxsites-nav-open', v ) } )">
+	<!--- Navigation bar --->
+	<nav class="navbar navbar-expand-lg brand-navbar">
+		<div class="container-fluid navbar-row">
+			<!--- Navbar toggler button --->
+			<button
+				class="navbar-toggler"
+				type="button"
+				@click="navOpen = !navOpen"
+				:aria-expanded="navOpen.toString()"
+				aria-controls="bxsites-sidebar"
+				aria-label="#encodeForHTML( variables.strings.toggleNavigation )#">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+
+			<!--- Brand mark --->
+			<a class="navbar-brand brand-mark" href="#variables.basePath#">#renderBrandMark()#</a>
+
+			<!--- Navbar controls --->
+			<div class="navbar-controls">
+				<!--- Search --->
+				<bx:if variables.searchEnabled>
+					<bx:include template="#variables.themeDir#/search.bxm">
+				</bx:if>
+
+				<!--- Version switcher --->
+				<bx:if variables.versions.len() gt 1>
+					#renderVersionSwitcher( variables.versions, variables.currentVersion )#
+				</bx:if>
+
+				<!--- Locale dropdown --->
+				<bx:if variables.locales.len() gt 1>
+					#renderLocaleDropdown( variables.locales, variables.currentLocale )#
+				</bx:if>
+
+				<!--- Repository link --->
+				<bx:if len( variables.repoUrl )>
+					<a
+						class="repo-link"
+						href="#bxsitesUrlAttr( variables.repoUrl )#"
+						target="_blank"
+						rel="noopener noreferrer"
+						aria-label="#encodeForHTML( variables.strings.repository )#"
+						title="#encodeForHTML( variables.strings.repository )#">
+						#bxsitesIcon( "github" )#
+					</a>
+				</bx:if>
+
+				<!--- Theme toggle button --->
+				<button
+					type="button"
+					class="theme-toggle"
+					@click="dark = !dark"
+					aria-label="#encodeForHTML( variables.strings.toggleDarkMode )#">
+					<span x-show="!dark">#bxsitesIcon( "moon" )#</span>
+					<span x-show="dark" x-cloak>#bxsitesIcon( "sun" )#</span>
+				</button>
+			</div>
+			<!--- End of navbar controls --->
+		</div>
+		<!--- End of navbar --->
+	</nav>
+
+	<!--- Main content and sidebar layout --->
+	<div class="container-fluid">
+		<!--- Sidebar and main content row --->
+		<div class="row" :class="{ 'bxsites-nav-collapsed' : !navOpen }">
+			<!--- Sidebar --->
+			<aside class="col-lg-3 col-xl-2 sidebar" id="bxsites-sidebar" x-show="navOpen" x-cloak>
+				#renderNavList( variables.nav )#
+				<a class="bxsites-powered-by" href="https://bxsites.io" target="_blank" rel="noopener noreferrer">
+					#bxsitesIcon( "phosphor:stack" )# <span>Powered by BxSites</span>
+				</a>
+			</aside>
+
+			<!--- Main content --->
+			<main class="col-lg-9 #variables.mainContentClass# content">
+				<!--- bx-sites builds the unreleased docs (plain docs/) at /next/, labelled "Next"; the first version is the released default --->
+				<bx:if variables.currentVersion == "Next" and variables.versions.len() gt 1>
+					<div class="rb-next-banner" role="note">
+						You're reading the docs for the next, unreleased version of RuleBox. For the current release, see the
+						<a href="#bxsitesUrlAttr( variables.versions[ 1 ].url )#">#encodeForHTML( variables.versions[ 1 ].label )# docs</a>.
+					</div>
+				</bx:if>
+				<bx:include template="#variables.themeDir#/#variables.bodyFile#">
+			</main>
+
+			<!--- Table of contents sidebar --->
+			<bx:if variables.tocPosition == 'sticky' and variables.page.toc.len() gt 0>
+				<aside class="col-xl-2 toc-sidebar d-none d-xl-block">
+					#renderToc( variables.page.toc )#
+				</aside>
+			</bx:if>
+		</div>
+		<!--- End of sidebar and main content row --->
+	</div>
+	<!--- End of main content and sidebar layout --->
+
+	<!--- Footer --->
+	<bx:if variables.footerEnabled>
+		<footer class="bxsites-footer">
+			<div class="container-fluid bxsites-footer__inner">
+				<!--- Footer content --->
+				<div class="bxsites-footer__copy">&copy; #year( now() )# #encodeForHTML( variables.siteConfig.name )#</div>
+				<!--- Social links --->
+				<bx:if variables.socialLinks.len() gt 0>
+					<div class="bxsites-footer__social">#renderSocialLinks( variables.socialLinks )#</div>
+				</bx:if>
+				<!--- Footer credit --->
+				<div class="bxsites-footer__credit">Built with <a href="https://bxsites.io" target="_blank" rel="noopener noreferrer">BxSites</a></div>
+			</div>
+		</footer>
+	</bx:if>
+
+	<!--- Scripts --->
+	<script src="#variables.basePath#assets/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+	<script src="#variables.basePath#assets/vendor/highlight/highlight.min.js"></script>
+	<script src="#moduleAssetUrl( 'highlight-boxlang.js' )#"></script>
+	<script>hljs.highlightAll();</script>
+	<script src="#moduleAssetUrl( 'code-lines.js' )#"></script>
+	<script src="#moduleAssetUrl( 'copy-code.js' )#" defer></script>
+	<script src="#moduleAssetUrl( 'admonition-collapse.js' )#" defer></script>
+	<script src="#moduleAssetUrl( 'nav-toggle.js' )#" defer></script>
+	<script src="#moduleAssetUrl( 'toc-collapse.js' )#" defer></script>
+	<script src="#moduleAssetUrl( 'tabs.js' )#" defer></script>
+	<script src="#moduleAssetUrl( 'conditional-content-init.js' )#" defer></script>
+	<script src="#moduleAssetUrl( 'course-progress.js' )#" defer></script>
+	<script src="#moduleAssetUrl( 'prompt-init.js' )#" defer></script>
+	<script src="#moduleAssetUrl( 'contact-form-init.js' )#" defer></script>
+
+	<!--- Page Actions --->
+	<bx:if variables.pageActionsEnabled>
+		<script src="#moduleAssetUrl( 'page-actions-init.js' )#" defer></script>
+	</bx:if>
+
+	<!--- Mermaid --->
+	<bx:if variables.mermaidEnabled>
+		<script src="#variables.basePath#assets/vendor/mermaid/mermaid.min.js"></script>
+		<script src="#moduleAssetUrl( 'mermaid-init.js' )#"></script>
+	</bx:if>
+
+	<!--- Math --->
+	<bx:if variables.mathEnabled>
+		<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+		<script src="#moduleAssetUrl( 'math-init.js' )#"></script>
+	</bx:if>
+
+	<!--- OpenAPI --->
+	<bx:if variables.openapiEnabled>
+		<script src="#variables.basePath#assets/vendor/swagger-ui/swagger-ui-bundle.js"></script>
+		<script src="#moduleAssetUrl( 'openapi-init.js' )#"></script>
+	</bx:if>
+
+	<!--- Image Gallery --->
+	<bx:if variables.imageGalleryEnabled>
+		<script src="#moduleAssetUrl( 'image-gallery-init.js' )#" defer></script>
+	</bx:if>
+
+	<!--- Cloud Content Blocks --->
+	<bx:if variables.contentBlocksEnabled>
+		<script src="#moduleAssetUrl( 'cloud-content-init.js' )#" defer></script>
+	</bx:if>
+
+	<!--- Search (Algolia) --->
+	<bx:if variables.searchEnabled and variables.searchProviderName eq 'algolia'>
+		<script src="https://cdn.jsdelivr.net/npm/@docsearch/js@3"></script>
+		<script>
+			document.addEventListener( "DOMContentLoaded", function () {
+				docsearch( {
+					container : "##bxsites-search-algolia",
+					appId     : "#encodeForJavaScript( variables.searchAlgolia.appId ?: '' )#",
+					apiKey    : "#encodeForJavaScript( variables.searchAlgolia.apiKey ?: '' )#",
+					indexName : "#encodeForJavaScript( variables.searchAlgolia.indexName ?: '' )#",
+					insights  : #( variables.searchAlgolia.insights ?: false ) ? "true" : "false"#
+				} );
+			} );
+		</script>
+	</bx:if>
+
+	<!--- Search (Pagefind) --->
+	<bx:if variables.searchEnabled and variables.searchProviderName eq 'pagefind'>
+		<script src="#variables.basePath#pagefind/pagefind-ui.js"></script>
+		<script>
+			document.addEventListener( "DOMContentLoaded", function () {
+				new PagefindUI( { element : "##bxsites-search-pagefind", showSubResults : true } );
+
+				// Cmd/Ctrl+K - same convention as the local/algolia providers;
+				// PagefindUI doesn't bind this itself, so wire it up here.
+				document.addEventListener( "keydown", function ( evt ) {
+					if ( !( evt.ctrlKey || evt.metaKey ) || evt.key.toLowerCase() !== "k" ) {
+						return;
+					}
+					var input = document.querySelector( "##bxsites-search-pagefind input" );
+					if ( input ) {
+						evt.preventDefault();
+						input.focus();
+					}
+				} );
+			} );
+		</script>
+	</bx:if>
+
+	<!--- Extra JS --->
+	#renderExtraJs( variables.siteConfig.extraJs ?: [] )#
+</body>
+</html>
+</bx:output>

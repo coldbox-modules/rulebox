@@ -1,0 +1,1094 @@
+/**
+* My BDD Test
+*/
+class extends="tests.resources.BaseSpec"{
+
+	function run( testResults, testBox ){
+		// all your suites go here.
+		describe( "A Rule Book", function(){
+
+			it( "can be created", function(){
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+				expect( ruleBook ).toBeclass();
+				expect( ruleBook.getFacts() ).toBeEmpty();
+			});
+
+			it( "can store a given fact", function(){
+				var ruleBook = getInstance( "RuleBook@rulebox" )
+					.given( "name", "luis" );
+				expect( ruleBook.getFacts() ).toHaveKey( "name" );
+			});
+
+			it( "can store multiple facts", function(){
+				var ruleBook = getInstance( "RuleBook@rulebox" )
+					.givenAll( { "name" : "luis" } );
+				expect( ruleBook.getFacts() ).toHaveKey( "name" );
+			});
+
+			it( "can create rules", function(){
+				var rule = getInstance( "RuleBook@rulebox" ).newRule( "my-rule" );
+				expect( rule ).toBeclass();
+				expect( rule.getName() ).toBe( "my-rule" );
+			});
+
+
+			it( "can add a rule when no rules are defined", function(){
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+				var rule = ruleBook
+					.newRule( "my-rule" );
+				ruleBook.addRule( rule );
+
+				expect( ruleBook.getHeadRule() ).toBe( rule );
+				expect( ruleBook.getTailRule() ).toBe( rule );
+			});
+
+			it( "can add multiple rules", function(){
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+				var rule1 = ruleBook.newRule();
+				var rule2 = ruleBook.newRule();
+
+				ruleBook.addRule( rule1 ).addRule( rule2 );
+
+				expect( ruleBook.getHeadRule() ).toBe( rule1 );
+				expect( ruleBook.getTailRule() ).toBe( rule2 );
+			});
+
+
+			it( "executes rules in priority order regardless of insertion order", function(){
+				var executionOrder = [];
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+
+				var ruleA = ruleBook.newRule( "A" ).withPriority( 1 ).then( ( facts ) => { executionOrder.append( "A" ); } );
+				var ruleB = ruleBook.newRule( "B" ).withPriority( 10 ).then( ( facts ) => { executionOrder.append( "B" ); } );
+				var ruleC = ruleBook.newRule( "C" ).withPriority( 5 ).then( ( facts ) => { executionOrder.append( "C" ); } );
+
+				// Added low-to-high insertion order, but priority should drive execution order
+				ruleBook.addRule( ruleA ).addRule( ruleB ).addRule( ruleC );
+
+				ruleBook.run();
+
+				expect( executionOrder.len() ).toBe( 3 );
+				expect( executionOrder[ 1 ] ).toBe( "B" );
+				expect( executionOrder[ 2 ] ).toBe( "C" );
+				expect( executionOrder[ 3 ] ).toBe( "A" );
+			});
+
+			it( "executes same-priority rules in the order they were added", function(){
+				var executionOrder = [];
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+
+				ruleBook.addRule( ruleBook.newRule( "A" ).then( ( facts ) => { executionOrder.append( "A" ); } ) );
+				ruleBook.addRule( ruleBook.newRule( "B" ).then( ( facts ) => { executionOrder.append( "B" ); } ) );
+				ruleBook.addRule( ruleBook.newRule( "C" ).then( ( facts ) => { executionOrder.append( "C" ); } ) );
+
+				ruleBook.run();
+
+				expect( executionOrder.len() ).toBe( 3 );
+				expect( executionOrder[ 1 ] ).toBe( "A" );
+				expect( executionOrder[ 2 ] ).toBe( "B" );
+				expect( executionOrder[ 3 ] ).toBe( "C" );
+			});
+
+			it( "correctly reorders the chain when a higher priority rule is added after lower priority rules", function(){
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+				var ruleA = ruleBook.newRule( "A" );
+				var ruleB = ruleBook.newRule( "B" );
+				var ruleC = ruleBook.newRule( "C" ).withPriority( 100 );
+
+				// A -> B is already linked before the higher priority C is added
+				ruleBook.addRule( ruleA ).addRule( ruleB );
+				ruleBook.addRule( ruleC );
+
+				expect( ruleBook.getHeadRule() ).toBe( ruleC );
+				expect( ruleC.getNextRule() ).toBe( ruleA );
+				expect( ruleA.getNextRule() ).toBe( ruleB );
+				expect( ruleBook.getTailRule() ).toBe( ruleB );
+			});
+
+			it( "moves a rule ahead when its priority is raised after it was added", function(){
+				var executionOrder = [];
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+				var ruleA = ruleBook.newRule( "A" ).then( ( facts ) => { executionOrder.append( "A" ); } );
+				var ruleB = ruleBook.newRule( "B" ).then( ( facts ) => { executionOrder.append( "B" ); } );
+
+				ruleBook.addRule( ruleA ).addRule( ruleB );
+				ruleB.withPriority( 10 );
+
+				expect( ruleBook.getHeadRule() ).toBe( ruleB );
+				expect( ruleB.getNextRule() ).toBe( ruleA );
+				expect( ruleBook.getTailRule() ).toBe( ruleA );
+				expect( isNull( ruleA.getNextRule() ) ).toBeTrue();
+
+				ruleBook.run();
+				expect( executionOrder ).toBe( [ "B", "A" ] );
+			});
+
+			it( "moves a rule behind when its priority is lowered after it was added", function(){
+				var executionOrder = [];
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+				var ruleA = ruleBook.newRule( "A" ).withPriority( 10 ).then( ( facts ) => { executionOrder.append( "A" ); } );
+				var ruleB = ruleBook.newRule( "B" ).withPriority( 5 ).then( ( facts ) => { executionOrder.append( "B" ); } );
+				var ruleC = ruleBook.newRule( "C" ).then( ( facts ) => { executionOrder.append( "C" ); } );
+
+				ruleBook.addRule( ruleA ).addRule( ruleB ).addRule( ruleC );
+				// A -> B -> C. Drop A below everything: B -> C -> A, and A must be the end of the chain
+				ruleA.withPriority( -1 );
+
+				expect( ruleBook.getHeadRule() ).toBe( ruleB );
+				expect( ruleB.getNextRule() ).toBe( ruleC );
+				expect( ruleC.getNextRule() ).toBe( ruleA );
+				expect( ruleBook.getTailRule() ).toBe( ruleA );
+				expect( isNull( ruleA.getNextRule() ) ).toBeTrue();
+
+				ruleBook.run();
+				expect( executionOrder ).toBe( [ "B", "C", "A" ] );
+			});
+
+			it( "keeps insertion order for ties after a priority changes post-addRule", function(){
+				var executionOrder = [];
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+				var rules = [ "A", "B", "C", "D" ].map( ( name ) => {
+					return ruleBook.newRule( name ).then( ( facts ) => { executionOrder.append( name ); } );
+				} );
+				rules.each( ( rule ) => ruleBook.addRule( rule ) );
+
+				// Raise C, then set it back: everything ties at 0 again and must be in insertion order
+				rules[ 3 ].withPriority( 10 );
+				rules[ 3 ].withPriority( 0 );
+				ruleBook.run();
+				expect( executionOrder ).toBe( [ "A", "B", "C", "D" ] );
+
+				// Two rules raised to the same priority keep their insertion order relative to each other
+				executionOrder.clear();
+				rules[ 4 ].withPriority( 7 );
+				rules[ 2 ].withPriority( 7 );
+				ruleBook.run();
+				expect( executionOrder ).toBe( [ "B", "D", "A", "C" ] );
+			});
+
+			it( "reflects a post-addRule priority change in dryRun()", function(){
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+				var ruleA = ruleBook.newRule( "A" );
+				var ruleB = ruleBook.newRule( "B" );
+
+				ruleBook.addRule( ruleA ).addRule( ruleB );
+				expect( ruleBook.dryRun().map( ( entry ) => entry.name ) ).toBe( [ "A", "B" ] );
+
+				ruleB.withPriority( 10 );
+				expect( ruleBook.dryRun().map( ( entry ) => entry.name ) ).toBe( [ "B", "A" ] );
+			});
+
+			it( "can set a priority on a rule that has not been added to a rulebook yet", function(){
+				var rule = getInstance( "RuleBook@rulebox" ).newRule( "A" );
+				expect( rule.withPriority( 5 ) ).toBe( rule );
+				expect( rule.getPriority() ).toBe( 5 );
+			});
+
+			it( "can detect set rules", function(){
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+				expect( ruleBook.hasRules() ).toBeFalse();
+				ruleBook.addRule( ruleBook.newRule() );
+				expect( ruleBook.hasRules() ).toBeTrue();
+			});
+
+
+			it( "can ignore running rules if none are set", function(){
+				var ruleBook = prepareMock( getInstance( "RuleBook@rulebox" ) )
+					.$( "defineRules" )
+					.$( "hasRules", false );
+				ruleBook.run();
+				expect( ruleBook.$once( "defineRules") ).toBeTrue();
+				expect( ruleBook.$times( 2, "hasRules") ).toBeTrue();
+			});
+
+			it( "can run rules", function(){
+				var ruleBook = prepareMock( getInstance( "RuleBook@rulebox" ) );
+				var mockRule = prepareMock( rulebook.newRule() )
+					.$( "run" );
+
+				ruleBook
+					.givenAll( { name: "luis" } )
+						.addRule( mockRule )
+					.run();
+
+				expect( mockRule.$once( "run" ) ).toBeTrue();
+			});
+
+			it( "can be run again with the same facts and produce the same outcome", function(){
+				var runCount = 0;
+				var ruleBook = getInstance( "RuleBook@rulebox" )
+					.given( "name", "luis" );
+				ruleBook.addRule(
+					ruleBook.newRule()
+						.when( ( facts ) => facts.name == "luis" )
+						.then( ( facts ) => {
+							runCount++;
+						} )
+				);
+
+				ruleBook.run();
+				ruleBook.run();
+
+				expect( runCount ).toBe( 2 );
+			});
+
+			it( "resets the rule status audit trail on each run so it never shows stale state from a previous run", function(){
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+				var rule1 = ruleBook.newRule( "maybeStop" )
+					.when( ( facts ) => facts.stop )
+					.then( ( facts ) => {} )
+					.stop();
+				var rule2 = ruleBook.newRule( "second" )
+					.then( ( facts ) => {} );
+
+				ruleBook.addRule( rule1 ).addRule( rule2 );
+
+				// First run: rule1's condition is false, so it does not stop the chain and rule2 executes
+				ruleBook.run( { "stop" : false } );
+				expect( ruleBook.getRuleStatus( "second" ) ).toBe( ruleBook.RULE_STATES.EXECUTED );
+
+				// Second run: rule1's condition is true, so it stops the chain and rule2 is never reached
+				ruleBook.run( { "stop" : true } );
+				expect( ruleBook.getRuleStatus( "second" ) ).toBe( ruleBook.RULE_STATES.REGISTERED );
+			});
+
+			it( "can dry-run and preview which rules would fire without invoking then()", function(){
+				var consumerRan = false;
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+
+				ruleBook.addRule(
+					ruleBook.newRule( "matches" )
+						.when( ( facts ) => facts.name == "luis" )
+						.then( ( facts ) => { consumerRan = true; } )
+				);
+				ruleBook.addRule(
+					ruleBook.newRule( "doesNotMatch" )
+						.when( ( facts ) => facts.name == "someone-else" )
+						.then( ( facts ) => { consumerRan = true; } )
+				);
+
+				var report = ruleBook.dryRun( { "name" : "luis" } );
+
+				expect( report.len() ).toBe( 2 );
+				expect( report[ 1 ].name ).toBe( "matches" );
+				expect( report[ 1 ].wouldExecute ).toBeTrue();
+				expect( report[ 2 ].name ).toBe( "doesNotMatch" );
+				expect( report[ 2 ].wouldExecute ).toBeFalse();
+				expect( consumerRan ).toBeFalse();
+			});
+
+			it( "dry-run stops walking at the first rule that would stop the chain", function(){
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+
+				ruleBook.addRule( ruleBook.newRule( "first" ).stop() );
+				ruleBook.addRule( ruleBook.newRule( "neverReached" ) );
+
+				var report = ruleBook.dryRun();
+
+				expect( report.len() ).toBe( 1 );
+				expect( report[ 1 ].name ).toBe( "first" );
+				expect( report[ 1 ].wouldStop ).toBeTrue();
+			});
+
+			it( "dry-run does not mutate facts, result, or the real audit trail", function(){
+				var ruleBook = getInstance( "RuleBook@rulebox" )
+					.given( "name", "luis" );
+				ruleBook.addRule( ruleBook.newRule( "someRule" ) );
+
+				ruleBook.dryRun( { "age" : 40 } );
+
+				expect( ruleBook.getFacts() ).notToHaveKey( "age" );
+				expect( ruleBook.getResult().isPresent() ).toBeFalse();
+				expect( ruleBook.getRuleStatus( "someRule" ) ).toBe( ruleBook.RULE_STATES.REGISTERED );
+			});
+
+			it( "dry-run returns an empty report when there are no rules", function(){
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+				expect( ruleBook.dryRun() ).toBeEmpty();
+			});
+
+			it( "records a FAILED status and rethrows when a then() consumer throws", function(){
+				var downstreamRan = false;
+				var ruleBook = getInstance( "RuleBook@rulebox" );
+				var badRule = ruleBook.newRule( "boom" )
+					.then( ( facts ) => {
+						throw( type = "TestBoom", message = "Kaboom" );
+					} );
+				var nextRule = ruleBook.newRule( "afterBoom" )
+					.then( ( facts ) => {
+						downstreamRan = true;
+					} );
+
+				ruleBook.addRule( badRule ).addRule( nextRule );
+
+				expect( function(){
+					ruleBook.run();
+				} ).toThrow();
+
+				expect( ruleBook.getRuleStatus( "boom" ) ).toBe( ruleBook.RULE_STATES.FAILED );
+				expect( downstreamRan ).toBeFalse();
+			});
+
+			describe( "clearRules() / reloadRules()", function(){
+
+				it( "clearRules() resets to a rule-less state", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "someRule" ) );
+					expect( ruleBook.hasRules() ).toBeTrue();
+
+					ruleBook.clearRules();
+
+					expect( ruleBook.hasRules() ).toBeFalse();
+					expect( ruleBook.getRuleStatus( "someRule" ) ).toBe( ruleBook.RULE_STATES.NOT_AVAILABLE );
+				});
+
+				it( "clearRules() does not touch registries", function(){
+					var ranAction = false;
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+						.registerAction( "flag", ( facts, result, params ) => { ranAction = true; } );
+					ruleBook.addRule( ruleBook.newRule( "someRule" ) );
+
+					ruleBook.clearRules();
+
+					ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+						{ "name" : "r1", "then" : [ { "action" : "flag" } ] }
+					] ) );
+					ruleBook.run();
+
+					expect( ranAction ).toBeTrue();
+				});
+
+				it( "reloadRules() replaces the rule chain with what the source returns now", function(){
+					var executed = [];
+					var ruleBook = getInstance( "RuleBook@rulebox" )
+						.registerAction( "capture", ( facts, result, params ) => { executed.append( facts.tag ); } )
+						.given( "tag", "v1" );
+
+					ruleBook.loadRules( new tests.resources.InlineRuleSource( [
+						{ "name" : "old", "then" : [ { "action" : "capture" } ] }
+					] ) );
+					expect( ruleBook.hasRules() ).toBeTrue();
+
+					ruleBook.reloadRules( new tests.resources.InlineRuleSource( [
+						{ "name" : "new", "then" : [ { "action" : "capture" } ] }
+					] ) );
+
+					expect( ruleBook.getRuleStatus( "old" ) ).toBe( ruleBook.RULE_STATES.NOT_AVAILABLE );
+					expect( ruleBook.getRuleStatus( "new" ) ).toBe( ruleBook.RULE_STATES.REGISTERED );
+
+					ruleBook.run();
+
+					expect( executed ).toBe( [ "v1" ] );
+				});
+
+				describe( "stale state after clearRules()", function(){
+
+					beforeEach( function( currentSpec ){
+						setup();
+					});
+
+					it( "clearRules() leaves no chain head, tail or status entries and returns the rulebook", function(){
+						var ruleBook = getInstance( "RuleBook@rulebox" );
+						ruleBook.addRule( ruleBook.newRule( "A" ) ).addRule( ruleBook.newRule( "B" ) );
+
+						expect( ruleBook.clearRules() ).toBe( ruleBook );
+
+						expect( ruleBook.getRuleStatusMap() ).toBeEmpty();
+						expect( isNull( ruleBook.getHeadRule() ) ).toBeTrue();
+						expect( isNull( ruleBook.getTailRule() ) ).toBeTrue();
+					});
+
+					it( "clearRules() clears the nextRule link of every removed rule", function(){
+						var ruleBook = getInstance( "RuleBook@rulebox" );
+						var ruleA = ruleBook.newRule( "A" );
+						var ruleB = ruleBook.newRule( "B" );
+						var ruleC = ruleBook.newRule( "C" );
+						ruleBook.addRule( ruleA ).addRule( ruleB ).addRule( ruleC );
+						expect( ruleA.getNextRule() ).toBe( ruleB );
+
+						ruleBook.clearRules();
+
+						expect( isNull( ruleA.getNextRule() ) ).toBeTrue();
+						expect( isNull( ruleB.getNextRule() ) ).toBeTrue();
+						expect( isNull( ruleC.getNextRule() ) ).toBeTrue();
+					});
+
+					it( "a removed rule re-added alone does not run its old chain", function(){
+						var executed = [];
+						var ruleBook = getInstance( "RuleBook@rulebox" );
+						var ruleA = ruleBook.newRule( "A" ).then( ( facts ) => { executed.append( "A" ); } );
+						var ruleB = ruleBook.newRule( "B" ).then( ( facts ) => { executed.append( "B" ); } );
+						ruleBook.addRule( ruleA ).addRule( ruleB );
+
+						ruleBook.clearRules();
+						ruleBook.addRule( ruleA );
+						ruleBook.run();
+
+						expect( executed ).toBe( [ "A" ] );
+						expect( ruleBook.getRuleStatus( "B" ) ).toBe( ruleBook.RULE_STATES.NOT_AVAILABLE );
+					});
+
+					it( "re-adding a subset in a new order runs only the new chain", function(){
+						var executed = [];
+						var ruleBook = getInstance( "RuleBook@rulebox" );
+						// The guard turns a stale-link cycle into a failure instead of endless recursion
+						var capture  = ( name ) => ( facts ) => {
+							executed.append( name );
+							if( executed.len() > 10 ){
+								throw( type: "RuleBookSpec.RunawayChain", message: "Rule chain did not terminate" );
+							}
+						};
+						var ruleA = ruleBook.newRule( "A" ).then( capture( "A" ) );
+						var ruleB = ruleBook.newRule( "B" ).then( capture( "B" ) );
+						var ruleC = ruleBook.newRule( "C" ).then( capture( "C" ) );
+						ruleBook.addRule( ruleA ).addRule( ruleB ).addRule( ruleC );
+
+						ruleBook.clearRules();
+						ruleBook.addRule( ruleC ).addRule( ruleA );
+						ruleBook.run();
+
+						expect( executed ).toBe( [ "C", "A" ] );
+						expect( ruleBook.getRuleStatusMap().keyList().listSort( "text" ) ).toBe( "A,C" );
+					});
+
+					it( "a rule removed from one rulebook runs only the new chain in another", function(){
+						var executed = [];
+						var first    = getInstance( "RuleBook@rulebox" );
+						var second   = getInstance( "RuleBook@rulebox" );
+						var ruleA = first.newRule( "A" ).then( ( facts ) => { executed.append( "A" ); } );
+						var ruleB = first.newRule( "B" ).then( ( facts ) => { executed.append( "B" ); } );
+						first.addRule( ruleA ).addRule( ruleB );
+
+						first.clearRules();
+						second.addRule( ruleA );
+						second.run();
+
+						expect( executed ).toBe( [ "A" ] );
+						expect( ruleA.getRuleBook() ).toBe( second );
+					});
+
+				});
+
+			});
+
+			describe( "duplicate rule names", function(){
+
+				beforeEach( function(){
+					setup();
+				} );
+
+				it( "throws a DuplicateRuleNameException naming the rule when a name is added twice", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "approve" ) );
+
+					var e = {};
+					try{
+						ruleBook.addRule( ruleBook.newRule( "approve" ) );
+					} catch( any ex ){
+						e = ex;
+					}
+
+					expect( e ).toHaveKey( "type" );
+					expect( e.type ).toBe( "RuleBox.DuplicateRuleNameException" );
+					expect( e.message ).toInclude( "approve" );
+				});
+
+				it( "leaves the rulebook untouched when the duplicate is rejected", function(){
+					var ran = [];
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "approve" ).then( ( facts ) => { ran.append( "first" ); } ) );
+
+					expect( function(){
+						ruleBook.addRule( ruleBook.newRule( "approve" ).then( ( facts ) => { ran.append( "second" ); } ) );
+					} ).toThrow( "RuleBox.DuplicateRuleNameException" );
+
+					expect( ruleBook.getRules() ).toHaveLength( 1 );
+
+					ruleBook.run();
+
+					expect( ran ).toBe( [ "first" ] );
+					expect( ruleBook.getRuleStatus( "approve" ) ).toBe( ruleBook.RULE_STATES.EXECUTED );
+				});
+
+				it( "rejects a duplicate defined via the closure form of addRule()", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ( rule ) => { rule.setName( "approve" ); } );
+
+					expect( function(){
+						ruleBook.addRule( ( rule ) => { rule.setName( "approve" ); } );
+					} ).toThrow( "RuleBox.DuplicateRuleNameException" );
+
+					expect( ruleBook.getRules() ).toHaveLength( 1 );
+				});
+
+				it( "treats names as case-insensitive, like the status map keys", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "Approve" ) );
+
+					expect( function(){
+						ruleBook.addRule( ruleBook.newRule( "approve" ) );
+					} ).toThrow( "RuleBox.DuplicateRuleNameException" );
+				});
+
+				it( "keeps one audit entry per distinct rule name", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "approve" ) );
+					ruleBook.addRule( ruleBook.newRule( "reject" ).when( ( facts ) => false ) );
+
+					ruleBook.run();
+
+					expect( ruleBook.getRuleStatusMap().keyArray() ).toHaveLength( 2 );
+					expect( ruleBook.getRuleStatus( "approve" ) ).toBe( ruleBook.RULE_STATES.EXECUTED );
+					expect( ruleBook.getRuleStatus( "reject" ) ).toBe( ruleBook.RULE_STATES.SKIPPED );
+				});
+
+				it( "does not affect unnamed rules, which each get their own audit entry", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule() );
+					ruleBook.addRule( ruleBook.newRule() );
+					ruleBook.addRule( ( rule ) => {} );
+
+					expect( ruleBook.getRules() ).toHaveLength( 3 );
+
+					ruleBook.run();
+
+					expect( ruleBook.getRuleStatusMap().keyArray() ).toHaveLength( 3 );
+				});
+
+				it( "allows the same name in different rulebooks", function(){
+					var first = getInstance( "RuleBook@rulebox" );
+					var second = getInstance( "RuleBook@rulebox" );
+
+					first.addRule( first.newRule( "approve" ) );
+					second.addRule( second.newRule( "approve" ) );
+
+					expect( first.getRules() ).toHaveLength( 1 );
+					expect( second.getRules() ).toHaveLength( 1 );
+				});
+
+				it( "allows a name to be reused after clearRules()", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "approve" ) );
+
+					ruleBook.clearRules();
+					ruleBook.addRule( ruleBook.newRule( "approve" ) );
+
+					expect( ruleBook.getRules() ).toHaveLength( 1 );
+				});
+
+			});
+
+			describe( "rule metrics", function(){
+
+				it( "returns an empty, zero-valued struct for a rule that has never been evaluated", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					var metrics  = ruleBook.getRuleMetrics( "neverRan" );
+
+					expect( metrics.name ).toBe( "neverRan" );
+					expect( metrics.totalEvaluations ).toBe( 0 );
+					expect( metrics.countsByState ).toBeEmpty();
+					expect( metrics.totalDurationMs ).toBe( 0 );
+					expect( metrics ).notToHaveKey( "firstRunAt" );
+					expect( metrics ).notToHaveKey( "lastRunAt" );
+				});
+
+				it( "records an EXECUTED evaluation after a rule fires", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "myRule" ).then( ( facts ) => {} ) );
+
+					ruleBook.run();
+
+					var metrics = ruleBook.getRuleMetrics( "myRule" );
+					expect( metrics.totalEvaluations ).toBe( 1 );
+					expect( metrics.countsByState.EXECUTED ).toBe( 1 );
+					expect( metrics ).toHaveKey( "firstRunAt" );
+					expect( metrics ).toHaveKey( "lastRunAt" );
+				});
+
+				it( "records a SKIPPED evaluation when the predicate fails", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "myRule" ).when( ( facts ) => false ) );
+
+					ruleBook.run();
+
+					expect( ruleBook.getRuleMetrics( "myRule" ).countsByState.SKIPPED ).toBe( 1 );
+				});
+
+				it( "records a FAILED evaluation when a then() consumer throws", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule(
+						ruleBook.newRule( "myRule" ).then( ( facts ) => {
+							throw( type = "TestBoom", message = "Kaboom" );
+						} )
+					);
+
+					expect( function(){ ruleBook.run(); } ).toThrow();
+
+					expect( ruleBook.getRuleMetrics( "myRule" ).countsByState.FAILED ).toBe( 1 );
+				});
+
+				it( "keeps the type and message of the most recent FAILED evaluation as lastError", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule(
+						ruleBook.newRule( "myRule" ).then( ( facts ) => {
+							throw( type = "TestBoom", message = "Kaboom #facts.attempt#" );
+						} )
+					);
+
+					expect( function(){ ruleBook.run( { attempt : 1 } ); } ).toThrow();
+					expect( function(){ ruleBook.run( { attempt : 2 } ); } ).toThrow();
+
+					var lastError = ruleBook.getRuleMetrics( "myRule" ).lastError;
+					expect( lastError.type ).toBe( "TestBoom" );
+					expect( lastError.message ).toBe( "Kaboom 2" );
+					expect( lastError ).toHaveKey( "at" );
+				});
+
+				it( "cuts a long error message down to 500 characters", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule(
+						ruleBook.newRule( "myRule" ).then( ( facts ) => {
+							throw( type = "TestBoom", message = repeatString( "x", 800 ) );
+						} )
+					);
+
+					expect( function(){ ruleBook.run(); } ).toThrow();
+
+					expect( ruleBook.getRuleMetrics( "myRule" ).lastError.message.len() ).toBe( 500 );
+				});
+
+				it( "reports completed and failed counts, completion and error rates and the average duration", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule(
+						ruleBook.newRule( "myRule" ).then( ( facts ) => {
+							if( facts.boom ){
+								throw( type = "TestBoom", message = "Kaboom" );
+							}
+						} )
+					);
+
+					ruleBook.run( { boom : false } );
+					ruleBook.run( { boom : false } );
+					ruleBook.run( { boom : false } );
+					expect( function(){ ruleBook.run( { boom : true } ); } ).toThrow();
+
+					var metrics = ruleBook.getRuleMetrics( "myRule" );
+					expect( metrics.totalEvaluations ).toBe( 4 );
+					expect( metrics.completed ).toBe( 3 );
+					expect( metrics.failed ).toBe( 1 );
+					expect( metrics.completionRate ).toBe( 0.75 );
+					expect( metrics.errorRate ).toBe( 0.25 );
+					expect( metrics.avgDurationMs ).toBe( metrics.totalDurationMs / 4 );
+				});
+
+				it( "counts SKIPPED and STOPPED evaluations as completed", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "skipper" ).when( ( facts ) => false ) );
+					ruleBook.addRule( ruleBook.newRule( "stopper" ).then( ( facts ) => {} ).stop() );
+
+					ruleBook.run();
+
+					expect( ruleBook.getRuleMetrics( "skipper" ).completed ).toBe( 1 );
+					expect( ruleBook.getRuleMetrics( "stopper" ).completed ).toBe( 1 );
+					expect( ruleBook.getRuleMetrics( "stopper" ).completionRate ).toBe( 1 );
+					expect( ruleBook.getRuleMetrics( "stopper" ) ).notToHaveKey( "lastError" );
+				});
+
+				it( "sends the error type and message with a FAILED event to the Rule Visualizer", function(){
+					var metricsStore = getInstance( "InMemoryMetricsStore@rulebox" );
+					metricsStore.reset();
+
+					var ruleBook = getInstance( "RuleBook@rulebox" ).setName( "visualizerFailTest" );
+					ruleBook.addRule(
+						ruleBook.newRule( "myRule" ).then( ( facts ) => {
+							throw( type = "TestBoom", message = "Kaboom" );
+						} )
+					);
+
+					expect( function(){ ruleBook.run(); } ).toThrow();
+
+					var events = metricsStore.queryEvents( filters={ rulebookName: "visualizerFailTest" } );
+					expect( events ).toHaveLength( 1 );
+					expect( events[ 1 ].state ).toBe( ruleBook.RULE_STATES.FAILED );
+					expect( events[ 1 ].errorType ).toBe( "TestBoom" );
+					expect( events[ 1 ].errorMessage ).toBe( "Kaboom" );
+				});
+
+				it( "stores the same error once with a count, and a different error separately", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule(
+						ruleBook.newRule( "myRule" ).then( ( facts ) => {
+							throw( type = "TestBoom", message = "Kaboom #facts.variant#" );
+						} )
+					);
+
+					expect( function(){ ruleBook.run( { variant : "A" } ); } ).toThrow();
+					expect( function(){ ruleBook.run( { variant : "A" } ); } ).toThrow();
+					expect( function(){ ruleBook.run( { variant : "A" } ); } ).toThrow();
+					expect( function(){ ruleBook.run( { variant : "B" } ); } ).toThrow();
+
+					var metrics = ruleBook.getRuleMetrics( "myRule" );
+					expect( metrics.errors ).toHaveLength( 2 );
+					// Most recently seen first
+					expect( metrics.errors[ 1 ].message ).toBe( "Kaboom B" );
+					expect( metrics.errors[ 1 ].count ).toBe( 1 );
+					expect( metrics.errors[ 2 ].message ).toBe( "Kaboom A" );
+					expect( metrics.errors[ 2 ].count ).toBe( 3 );
+					expect( metrics.lastError.fingerprint ).toBe( metrics.errors[ 1 ].fingerprint );
+				});
+
+				it( "keeps the cause chain and trimmed stack traces of an error", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule(
+						ruleBook.newRule( "myRule" ).then( ( facts ) => {
+							try{
+								throw( type = "Bureau.TimeoutException", message = "Bureau did not answer" );
+							} catch( any e ){
+								throw( type = "TestBoom", message = "Scoring failed", object = e );
+							}
+						} )
+					);
+
+					expect( function(){ ruleBook.run(); } ).toThrow();
+
+					var error = ruleBook.getRuleMetrics( "myRule" ).errors[ 1 ];
+					expect( error.causedBy ).toHaveLength( 1 );
+					expect( error.causedBy[ 1 ].type ).toBe( "Bureau.TimeoutException" );
+					expect( error.causedBy[ 1 ].message ).toBe( "Bureau did not answer" );
+					expect( error.stackTrace ).notToBeEmpty();
+					expect( error.stackTrace.len() ).toBeLTE( 10 );
+					expect( error.stackTrace[ 1 ] ).toInclude( "RuleBookSpec.bx:" );
+					expect( error.rawStackTrace ).toInclude( "Scoring failed" );
+					expect( error.rawStackTrace.len() ).toBeLTE( 4000 );
+				});
+
+				it( "starts a rule's errors empty", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+
+					expect( ruleBook.getRuleMetrics( "nope" ).errors ).toBeEmpty();
+				});
+
+				it( "sends the fingerprint, causes and traces with a FAILED event, and the feed keeps only the summary", function(){
+					var bus      = getInstance( "RuleEventBus@rulebox" );
+					var received = [];
+					var token    = bus.subscribe( ( event ) => received.append( event ) );
+					var metricsStore = getInstance( "InMemoryMetricsStore@rulebox" );
+					metricsStore.reset();
+					try{
+						var ruleBook = getInstance( "RuleBook@rulebox" ).setName( "visualizerTraceTest" );
+						ruleBook.addRule(
+							ruleBook.newRule( "myRule" ).then( ( facts ) => {
+								throw( type = "TestBoom", message = "Kaboom" );
+							} )
+						);
+
+						expect( function(){ ruleBook.run(); } ).toThrow();
+
+						var failed = received.filter( ( event ) => event.rulebookName == "visualizerTraceTest" );
+						expect( failed ).toHaveLength( 1 );
+						expect( failed[ 1 ].errorFingerprint ).toBe( ruleBook.getRuleMetrics( "myRule" ).lastError.fingerprint );
+						expect( failed[ 1 ] ).toHaveKey( "errorCausedBy" );
+						expect( failed[ 1 ].errorStackTrace ).notToBeEmpty();
+						expect( failed[ 1 ].errorRawStackTrace ).toInclude( "Kaboom" );
+
+						var stored = metricsStore.queryEvents( filters={ rulebookName: "visualizerTraceTest" } );
+						expect( stored[ 1 ].errorFingerprint ).toBe( failed[ 1 ].errorFingerprint );
+						expect( stored[ 1 ] ).notToHaveKey( "errorStackTrace" );
+						expect( stored[ 1 ] ).notToHaveKey( "errorRawStackTrace" );
+					} finally {
+						bus.unsubscribe( token );
+					}
+				});
+
+				it( "accumulates metrics across multiple run() calls, unlike the status map", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "myRule" ).then( ( facts ) => {} ) );
+
+					ruleBook.run();
+					ruleBook.run();
+					ruleBook.run();
+
+					expect( ruleBook.getRuleMetrics( "myRule" ).totalEvaluations ).toBe( 3 );
+					expect( ruleBook.getRuleMetrics( "myRule" ).countsByState.EXECUTED ).toBe( 3 );
+				});
+
+				it( "dryRun() does not record metrics", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "myRule" ) );
+
+					ruleBook.dryRun();
+
+					expect( ruleBook.getRuleMetrics( "myRule" ).totalEvaluations ).toBe( 0 );
+				});
+
+				it( "resetMetrics() clears accumulated metrics without touching rules", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule( ruleBook.newRule( "myRule" ).then( ( facts ) => {} ) );
+					ruleBook.run();
+					expect( ruleBook.getRuleMetrics( "myRule" ).totalEvaluations ).toBe( 1 );
+
+					ruleBook.resetMetrics();
+
+					expect( ruleBook.getRuleMetrics( "myRule" ).totalEvaluations ).toBe( 0 );
+					expect( ruleBook.hasRules() ).toBeTrue();
+				});
+
+				it( "feeds the Rule Visualizer's event bus on every recorded evaluation", function(){
+					var metricsStore = getInstance( "InMemoryMetricsStore@rulebox" );
+					metricsStore.reset();
+
+					var ruleBook = getInstance( "RuleBook@rulebox" ).setName( "visualizerFeedTest" );
+					ruleBook.addRule( ruleBook.newRule( "myRule" ).then( ( facts ) => {} ) );
+
+					ruleBook.run();
+
+					var events = metricsStore.queryEvents( filters={ rulebookName: "visualizerFeedTest" } );
+					expect( events ).toHaveLength( 1 );
+					expect( events[ 1 ].ruleName ).toBe( "myRule" );
+					expect( events[ 1 ].state ).toBe( ruleBook.RULE_STATES.EXECUTED );
+				});
+
+				it( "completes the run, keeps the rule EXECUTED and counts it once when the event bus throws", function(){
+					var thenRuns  = 0;
+					var publishes = 0;
+					var ruleBook  = getInstance( "RuleBook@rulebox" ).setName( "brokenBusTest" );
+					// A bus whose publish() blows up, e.g. a subscriber lock timeout
+					ruleBook.setEventBus( {
+						publish : function( event ){
+							publishes++;
+							throw( type = "TestBusBoom", message = "Timeout of [5] seconds reached while waiting to acquire lock" );
+						}
+					} );
+					ruleBook.addRule( ruleBook.newRule( "myRule" ).then( ( facts ) => { thenRuns++; } ) );
+
+					ruleBook.run();
+
+					expect( thenRuns ).toBe( 1 );
+					expect( publishes ).toBe( 1 );
+					expect( ruleBook.getRuleStatus( "myRule" ) ).toBe( ruleBook.RULE_STATES.EXECUTED );
+					var metrics = ruleBook.getRuleMetrics( "myRule" );
+					expect( metrics.totalEvaluations ).toBe( 1 );
+					expect( metrics.countsByState.EXECUTED ).toBe( 1 );
+					expect( metrics.countsByState ).notToHaveKey( "FAILED" );
+				});
+
+				it( "keeps a STOPPED rule STOPPED and still halts the chain when the event bus throws", function(){
+					var secondRan = false;
+					var ruleBook  = getInstance( "RuleBook@rulebox" ).setName( "brokenBusStopTest" );
+					ruleBook.setEventBus( {
+						publish : function( event ){
+							throw( type = "TestBusBoom", message = "bus down" );
+						}
+					} );
+					ruleBook.addRule( ruleBook.newRule( "first" ).then( ( facts ) => {} ).stop() );
+					ruleBook.addRule( ruleBook.newRule( "second" ).then( ( facts ) => { secondRan = true; } ) );
+
+					ruleBook.run();
+
+					expect( secondRan ).toBeFalse();
+					expect( ruleBook.getRuleStatus( "first" ) ).toBe( ruleBook.RULE_STATES.STOPPED );
+					expect( ruleBook.getRuleMetrics( "first" ).totalEvaluations ).toBe( 1 );
+				});
+
+				it( "never flips an executed rule to FAILED or records it twice when metric recording throws", function(){
+					var ruleBook = prepareMock( getInstance( "RuleBook@rulebox" ) );
+					ruleBook.$( "recordRuleMetric" ).$throws( type = "TestMetricBoom", message = "metrics down" );
+					ruleBook.addRule( ruleBook.newRule( "myRule" ).then( ( facts ) => {} ) );
+
+					ruleBook.run();
+
+					expect( ruleBook.getRuleStatus( "myRule" ) ).toBe( ruleBook.RULE_STATES.EXECUTED );
+					expect( ruleBook.$once( "recordRuleMetric" ) ).toBeTrue();
+				});
+
+			});
+
+			describe( "result lifecycle across runs", function(){
+
+				beforeEach( function(){
+					setup();
+				});
+
+				it( "does not leak a value from a prior run when there is no default result", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" );
+					ruleBook.addRule(
+						ruleBook.newRule( "setter" )
+							.when( ( facts ) => facts.go )
+							.then( ( facts, result ) => result.setValue( "set" ) )
+					);
+
+					ruleBook.run( { go : true } );
+					expect( ruleBook.getResult().isPresent() ).toBeTrue();
+					expect( ruleBook.getResult().getValue() ).toBe( "set" );
+
+					ruleBook.run( { go : false } );
+					expect( ruleBook.getResult().isPresent() ).toBeFalse();
+					expect( ruleBook.getResult().orElse( "none" ) ).toBe( "none" );
+				});
+
+				it( "returns the default result on a later run when no rule fires", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" ).withDefaultResult( "dflt" );
+					ruleBook.addRule(
+						ruleBook.newRule( "setter" )
+							.when( ( facts ) => facts.go )
+							.then( ( facts, result ) => result.setValue( "set" ) )
+					);
+
+					ruleBook.run( { go : true } );
+					expect( ruleBook.getResult().getValue() ).toBe( "set" );
+
+					ruleBook.run( { go : false } );
+					expect( ruleBook.getResult().isPresent() ).toBeTrue();
+					expect( ruleBook.getResult().getValue() ).toBe( "dflt" );
+				});
+
+				it( "yields the default result on a first run when no rule fires", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" ).withDefaultResult( "dflt" );
+					ruleBook.addRule(
+						ruleBook.newRule( "setter" )
+							.when( ( facts ) => facts.go )
+							.then( ( facts, result ) => result.setValue( "set" ) )
+					);
+
+					ruleBook.run( { go : false } );
+					expect( ruleBook.getResult().getValue() ).toBe( "dflt" );
+				});
+
+				it( "reset() on a Result with no default makes isPresent() false", function(){
+					var result = getInstance( "Result@rulebox" );
+					result.setValue( "something" );
+					expect( result.isPresent() ).toBeTrue();
+
+					expect( result.reset() ).toBe( result );
+
+					expect( result.isPresent() ).toBeFalse();
+					expect( result.orElse( "other" ) ).toBe( "other" );
+				});
+
+				it( "reset() on a Result with a default restores the default", function(){
+					var result = getInstance( "Result@rulebox" ).init( "dflt" );
+					result.setValue( "something" );
+
+					result.reset();
+
+					expect( result.isPresent() ).toBeTrue();
+					expect( result.getValue() ).toBe( "dflt" );
+				});
+
+				it( "isPresent() is true right after init() with a default value", function(){
+					var result = getInstance( "Result@rulebox" ).init( "dflt" );
+
+					expect( result.isPresent() ).toBeTrue();
+					expect( result.getValue() ).toBe( "dflt" );
+				});
+
+				it( "isPresent() is false when nothing has been set or defaulted", function(){
+					var result = getInstance( "Result@rulebox" );
+
+					expect( result.isPresent() ).toBeFalse();
+					expect( isNull( result.getDefaultValue() ) ).toBeTrue();
+					expect( result.orElse( "other" ) ).toBe( "other" );
+					expect( result.orElseGet( () => "supplied" ) ).toBe( "supplied" );
+				});
+
+				it( "treats falsy values as present when set", function(){
+					var falsy = [ 0, "", false, {}, [] ];
+
+					falsy.each( ( candidate ) => {
+						var result = getInstance( "Result@rulebox" );
+						result.setValue( candidate );
+
+						expect( result.isPresent() ).toBeTrue();
+						expect( result.orElse( "other" ) ).toBe( candidate );
+					} );
+				});
+
+				it( "treats falsy values as present when used as a default", function(){
+					var falsy = [ 0, "", false, {}, [] ];
+
+					falsy.each( ( candidate ) => {
+						var result = getInstance( "Result@rulebox" ).init( candidate );
+						expect( result.isPresent() ).toBeTrue();
+						expect( result.orElse( "other" ) ).toBe( candidate );
+
+						result.setValue( "changed" ).reset();
+						expect( result.isPresent() ).toBeTrue();
+						expect( result.orElse( "other" ) ).toBe( candidate );
+					} );
+				});
+
+				it( "does not share a struct default with the caller or with the live value", function(){
+					var source = { count : 1, tags : [ "a" ] };
+					var result = getInstance( "Result@rulebox" ).init( source );
+
+					// Mutating the caller's struct must not change the default
+					source.count = 99;
+					source.tags.append( "b" );
+					result.reset();
+					expect( result.getValue().count ).toBe( 1 );
+					expect( result.getValue().tags ).toHaveLength( 1 );
+
+					// Mutating the live value must not change the default
+					result.getValue().count = 50;
+					result.getValue().tags.append( "z" );
+					result.reset();
+					expect( result.getValue().count ).toBe( 1 );
+					expect( result.getValue().tags ).toHaveLength( 1 );
+				});
+
+				it( "copies the default passed to setDefaultValue()", function(){
+					var source = [ 1, 2 ];
+					var result = getInstance( "Result@rulebox" );
+					result.setDefaultValue( source );
+
+					source.append( 3 );
+					result.reset();
+					expect( result.getValue() ).toBe( [ 1, 2 ] );
+				});
+
+				it( "reset() hands back a fresh copy of the default each time", function(){
+					var result = getInstance( "Result@rulebox" ).init( { items : [] } );
+
+					var first = result.reset().getValue();
+					first.items.append( "x" );
+					var second = result.reset().getValue();
+
+					expect( second.items ).toBeEmpty();
+					expect( first.items ).toHaveLength( 1 );
+				});
+
+				it( "does not leak a mutated struct default into later runs", function(){
+					var ruleBook = getInstance( "RuleBook@rulebox" ).withDefaultResult( { hits : [] } );
+					ruleBook.addRule(
+						ruleBook.newRule( "collector" )
+							.when( ( facts ) => facts.go )
+							.then( ( facts, result ) => result.getValue().hits.append( "hit" ) )
+					);
+
+					ruleBook.run( { go : true } );
+					ruleBook.run( { go : true } );
+					expect( ruleBook.getResult().getValue().hits ).toHaveLength( 1 );
+
+					ruleBook.run( { go : false } );
+					expect( ruleBook.getResult().getValue().hits ).toBeEmpty();
+				});
+
+				it( "does not copy objects or closures used as a default", function(){
+					var fn     = () => "hello";
+					var object = getInstance( "Result@rulebox" ).init( "marker" );
+
+					var withClosure = getInstance( "Result@rulebox" ).init( fn );
+					expect( withClosure.reset().getValue()() ).toBe( "hello" );
+
+					var withObject = getInstance( "Result@rulebox" ).init( object );
+					object.setValue( "changed" );
+					expect( withObject.reset().getValue() ).toBe( object );
+					expect( withObject.getValue().getValue() ).toBe( "changed" );
+				});
+
+			});
+
+		});
+	}
+
+}

@@ -1,0 +1,35 @@
+/**
+ * Loads rule definitions from an in-memory array handed to it directly - no file, no database.
+ *
+ * Used internally when a config-driven rulebook declaration (moduleSettings.rulebox.rulebooks)
+ * supplies its rule definitions as a literal array instead of a file path, but it's a plain
+ * RuleSource like any other - usable directly with loadRules()/reloadRules() too.
+ */
+class{
+
+	/**
+	 * A private deep copy of the array of rule-definition structs
+	 */
+	property name="definitions" type="array";
+
+	/**
+	 * Constructor. Takes a deep copy of the definitions, so the caller mutating its own array
+	 * afterwards cannot change what this source loads.
+	 *
+	 * @definitions An array of rule-definition structs
+	 */
+	InlineRuleSource function init( required array definitions ){
+		variables.definitions = duplicate( arguments.definitions, true )
+		return this
+	}
+
+	/**
+	 * @return A fresh deep copy of the rule-definition structs on every call, so each RuleBook that
+	 *         loads from this source owns its definitions (including any action/predicate `params`
+	 *         structs) and nothing it does to them can leak into another RuleBook.
+	 */
+	array function load(){
+		return duplicate( variables.definitions, true )
+	}
+
+}

@@ -1,0 +1,3 @@
+@hint( "Approves loans from a hint" )
+class extends="rulebox.models.RuleBook"{
+}

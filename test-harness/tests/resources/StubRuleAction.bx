@@ -1,0 +1,21 @@
+/**
+ * A plain object-instance action, used to test RuleBook.registerAction() being handed an object
+ * directly (rather than a closure or a WireBox mapping ID string).
+ */
+class{
+
+	property name="callCount";
+	property name="lastParams";
+
+	function init(){
+		variables.callCount = 0
+		return this
+	}
+
+	void function execute( struct facts, any result, struct params ){
+		variables.callCount++
+		variables.lastParams = arguments.params
+		arguments.result.setValue( "approved-by-object" )
+	}
+
+}

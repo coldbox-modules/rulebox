@@ -1,0 +1,20 @@
+{
+    "datasources":{
+        "coolblog":{
+            "custom":"useUnicode=true&characterEncoding=UTF-8&useLegacyDatetimeCode=true&useSSL=false",
+            "database":"coolblog",
+            "dbdriver":"MySQL",
+            "dsn":"jdbc:mysql://{host}:{port}/{database}",
+            "host":"${DB_HOST}",
+            "password":"${DB_PASSWORD}",
+            "port":"3306",
+            "username":"${DB_USERNAME}"
+        },
+        "rulebox_visualizer":{
+            "driver":"sqlite",
+            "database":"./.database/rulebox_visualizer.db"
+        }
+    },
+    "debuggingEnabled":true,
+    "debuggingReportExecutionTimes":false
+}

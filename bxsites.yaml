@@ -1,0 +1,62 @@
+name: "RuleBox"
+description: "A modern, intuitive, natural-language rules engine for BoxLang and ColdBox applications."
+baseURL: "https://rulebox.coldbox.org/"
+theme:
+    # The custom RuleBox theme lives in docs/.theme (an ejected bootstrap theme
+    # with its own home page); `name` stays bootstrap for its options.
+    name: bootstrap
+    logo: "assets/brand/rulebox-icon-full.svg"
+    favicon: "assets/brand/rulebox-icon-full.svg"
+    options:
+        {
+            # Dark by default; the header toggle still switches, and a visitor's choice is remembered
+            colorMode: dark,
+            navCollapsible: true,
+            navExpandAll: false,
+            tocPosition: sticky,
+        }
+extraCss:
+    - assets/brand.css
+# Absolute, since link previews (Slack, X, LinkedIn) do not resolve relative image URLs
+ogImage: "https://rulebox.coldbox.org/assets/brand/og-image.png"
+imageGallery: true
+search: true
+mcp: true
+pageActions: true
+nav: []
+markdown:
+    enableFootnotes: true
+    enableDefinitionLists: true
+repo:
+    url: "https://github.com/coldbox-modules/rulebox"
+    editUri: "edit/development/docs/"
+social:
+    - url: "https://github.com/coldbox-modules/rulebox"
+      icon: github
+      label: "RuleBox on GitHub"
+    - url: "https://boxteam.ortussolutions.com"
+      icon: slack
+      label: "Slack Community"
+    - url: "https://community.ortussolutions.com/"
+      icon: discourse
+      label: "Community Forum"
+    - url: "https://x.com/TryBoxLang"
+      icon: twitter
+      label: "X (Twitter)"
+    - url: "https://www.youtube.com/@OrtusSolutions"
+      icon: youtube
+      label: "YouTube"
+    - url: "https://www.linkedin.com/company/tryboxlang"
+      icon: linkedin
+      label: "LinkedIn"
+    - url: "https://www.facebook.com/tryboxlang/"
+      icon: facebook
+      label: "Facebook"
+    - url: "https://www.patreon.com/ortussolutions"
+      icon: patreon
+      label: "Patreon"
+footer: true
+lastUpdated: true
+mermaid: true
+versions:
+    default: "2.0.0"

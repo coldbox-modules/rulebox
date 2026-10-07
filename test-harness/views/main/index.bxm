@@ -1,0 +1,35 @@
+<bx:output>
+<main class="container" style="max-width: 900px; margin: 2rem auto; padding: 0 1rem; font-family: system-ui, sans-serif; color: ##20242a">
+	<h1>RuleBox Test Harness</h1>
+	<p>Run the test suite or generate activity for the visualizer.</p>
+	<nav aria-label="Test harness">
+		<a href="/tests/runner.bxm">Run Tests</a>
+		<span aria-hidden="true"> | </span>
+		<a href="#prc.visualizerLink#">Open Visualizer</a>
+	</nav>
+
+	<section style="margin-top: 2rem; padding: 1rem; border: 1px solid ##cbd5e1; border-radius: 6px">
+		<h2 style="margin-top: 0">Demo Rule Runner</h2>
+		<p>
+			Status: <strong>#prc.demoRunnerActive ? 'Running' : 'Stopped'#</strong>
+			&middot; #numberFormat( prc.demoRunnerRuns )# runs
+			<bx:if len( prc.demoRunnerLastRun )>
+				&middot; last run #dateTimeFormat( prc.demoRunnerLastRun, "yyyy-mm-dd HH:nn:ss" )#
+			</bx:if>
+		</p>
+		<div style="display: flex; flex-wrap: wrap; gap: .75rem; align-items: center">
+			<bx:if prc.demoRunnerActive>
+				<form method="post" action="#prc.demoRunnerStopLink#">
+					<button type="submit">Stop runner</button>
+				</form>
+			<bx:else>
+				<form method="post" action="#prc.demoRunnerStartLink#">
+					<button type="submit">Start runner</button>
+				</form>
+			</bx:if>
+			<a href="#prc.demoRunnerLoadLink#">Load sample data once (resets metrics)</a>
+		</div>
+		<p style="margin-bottom: 0; color: ##64748b">When started, one representative rule runs every five seconds.</p>
+	</section>
+</main>
+</bx:output>

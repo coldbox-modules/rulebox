@@ -1,0 +1,21 @@
+/**
+ * A rule source backed by an in-memory array of rule-definition structs, handed straight to it - used
+ * to exercise RuleBook.loadRules() without needing a JSON/YAML file or a database.
+ */
+class{
+
+	property name="definitions" type="array";
+
+	/**
+	 * @definitions An array of rule-definition structs
+	 */
+	InlineRuleSource function init( required array definitions ){
+		variables.definitions = arguments.definitions
+		return this
+	}
+
+	array function load(){
+		return variables.definitions
+	}
+
+}

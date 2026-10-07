@@ -1,0 +1,49 @@
+class{
+	function configure(){
+		if( !structKeyExists( application, "ruleboxDemoRunner" ) ){
+			application.ruleboxDemoRunner = {
+				active: false,
+				runs  : 0,
+				lastRun: ""
+			}
+		}
+
+		variables.demoScenarios = [
+			{ rulebook: "shippingrates", facts: { orderTotal: 125, region: "US" } },
+			{ rulebook: "loanapproval", facts: { creditScore: 630 } },
+			{ rulebook: "seasonalpromo", facts: {} },
+			{ rulebook: "testconvention", facts: {} }
+		]
+		variables.scenarioIndex = 0
+
+		task( "rulebox-visualizer-demo" )
+			.call( () => runDemoScenario() )
+			.every( 5, "seconds" )
+			.withNoOverlaps()
+	}
+
+	function runDemoScenario(){
+		var shouldRun = false
+		var scenario  = {}
+		lock name="ruleboxDemoRunnerState" type="exclusive" timeout=5 throwOnTimeout=true {
+			if( application.ruleboxDemoRunner.active ){
+				variables.scenarioIndex = ( variables.scenarioIndex % variables.demoScenarios.len() ) + 1
+				scenario = variables.demoScenarios[ variables.scenarioIndex ]
+				application.ruleboxDemoRunner.runs++
+				shouldRun = true
+			}
+		}
+
+		if( !shouldRun ){
+			return
+		}
+
+		try{
+			getInstance( "RuleBookRegistry@rulebox" ).getRuleBook( scenario.rulebook ).run( scenario.facts )
+		} finally{
+			lock name="ruleboxDemoRunnerState" type="exclusive" timeout=5 throwOnTimeout=true {
+				application.ruleboxDemoRunner.lastRun = now()
+			}
+		}
+	}
+}

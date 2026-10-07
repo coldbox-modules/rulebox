@@ -1,0 +1,18 @@
+/**
+ * The optional contract for a class-based action registered via RuleBook.registerAction().
+ *
+ * Implementing this interface is not required - registerAction() duck-types on the presence of
+ * an execute() method - but it gives you a documented contract and IDE support.
+ */
+interface{
+
+	/**
+	 * Execute this action.
+	 *
+	 * @facts The facts struct for this rule invocation
+	 * @result The RuleBook's Result object
+	 * @params The params struct from the rule definition's `then` entry, if any
+	 */
+	void function execute( struct facts, any result, struct params )
+
+}

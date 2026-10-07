@@ -1,0 +1,1180 @@
+import rulebox.models.metrics.RuleHealth;
+
+/**
+ * A RuleBook object that stores all the rules to execute in a given context against given facts.
+ */
+class{
+
+	/**
+	 * ---------------------------------------------
+	 * DI Injections
+	 * ---------------------------------------------
+	 */
+
+	@inject( "wirebox" )
+	property name="wirebox";
+
+	@inject( "logbox:logger:{this}" )
+	property name="logger";
+
+	@inject( "RuleEventBus@rulebox" )
+	property name="eventBus";
+
+	/**
+	 * ---------------------------------------------
+	 * Properties
+	 * ---------------------------------------------
+	 */
+
+	/**
+	 * The facts structure for this rulebook
+	 */
+	property name="facts" type="struct";
+
+	/**
+	 * The name of this rulebook, else defaults to empty.
+	 */
+	property name="name" type="string" default="";
+
+	/**
+	 * What this rulebook decides, set with withDescription() (or a rule file's or config's
+	 * description). getDescription() falls back to the class's hint when it is empty.
+	 */
+	property name="description" type="string";
+
+	/**
+	 * The description read from a RuleBook subclass's @description or @hint annotation or its
+	 * docblock, resolved once on first use. Null until then.
+	 */
+	property name="classDescription" type="string";
+
+	/**
+	 * The result object, where a rulebook can keep track of result across the rule chain
+	 */
+	property name="result" type="Result";
+
+	/**
+	 * The default result value, if expressed using the `withDefaultValue()`
+	 */
+	property name="defaultResult" type="any";
+
+	/**
+	 * Head rule
+	 */
+	property name="headRule" type="any";
+
+	/**
+	 * Tail End rule
+	 */
+	property name="tailRule" type="any";
+
+	/**
+	 * A struct that tracks the states of the rules defined in this rulebook
+	 */
+	property name="ruleStatusMap" type="struct";
+
+	/**
+	 * The rules registered in this rulebook, in the order they were added via addRule(). This is the
+	 * source of truth used to rebuild the head/tail execution chain whenever a rule's priority matters.
+	 */
+	property name="rules" type="array";
+
+	/**
+	 * Named actions registered via registerAction(), used to resolve `then` entries loaded via loadRules()
+	 */
+	property name="actionRegistry" type="struct";
+
+	/**
+	 * Named predicates registered via registerPredicate(), used to resolve `when`/`except` references
+	 * loaded via loadRules()
+	 */
+	property name="predicateRegistry" type="struct";
+
+	/**
+	 * Per-rule execution metrics, keyed by rule name. Unlike ruleStatusMap, this accumulates across
+	 * every run() call on this instance rather than resetting - see getRuleMetrics()/resetMetrics()
+	 */
+	property name="ruleMetricsMap" type="struct";
+
+	/**
+	 * Compiles the condition trees of externally-defined rules into predicates
+	 */
+	property name="conditionEvaluator";
+
+	/**
+	 * The facts this rulebook declares, keyed by name in declaration order: FactDefinition objects
+	 * built with fact() in defineFacts(), or with withFacts() and rule-source envelopes
+	 */
+	property name="factDefinitions" type="struct";
+
+	/**
+	 * Whether defineFacts() has run on this instance. It runs once, the first time the facts are needed.
+	 */
+	property name="factsDefined" type="boolean";
+
+	/**
+	 * Whether run() and dryRun() check the facts against the declarations: defaults applied, required
+	 * facts, types and allowed values checked. Off by default; see enforceFacts() and strictFacts().
+	 */
+	property name="factsEnforced" type="boolean";
+
+	/**
+	 * Whether enforcing also rejects facts the rulebook did not declare. Set by strictFacts() or
+	 * enforceFacts( strict = true ).
+	 */
+	property name="factsStrict" type="boolean";
+
+	// Static lookup map for rule states, and the keys fact declarations and rule-source envelopes accept
+	static{
+		FACT_KEYS     = [ "type", "required", "default", "description", "example", "values" ]
+		ENVELOPE_KEYS = [ "rules", "description", "facts", "enforceFacts", "strictFacts" ]
+		RULE_STATES = {
+			NOT_AVAILABLE 	= "NOT_AVAILABLE",
+			EXECUTED      	= "EXECUTED",
+			SKIPPED       	= "SKIPPED",
+			REGISTERED 	  	= "REGISTERED",
+			STOPPED 		= "STOPPED",
+			FAILED 			= "FAILED"
+		}
+	}
+
+	/**
+	 * Constructor
+	 *
+	 * @name A name to give this rulebook, else defaults to empty
+	 */
+	RuleBook function init( name="" ){
+		variables.facts 			= {}
+		variables.name 				= arguments.name
+		variables.description 		= ""
+		variables.result 			= new Result()
+		variables.ruleStatusMap 	= {}
+		variables.rules 			= []
+		variables.actionRegistry 	= {}
+		variables.predicateRegistry = {}
+		variables.ruleMetricsMap 	= {}
+		variables.conditionEvaluator = new ConditionEvaluator()
+		variables.factDefinitions 	= [:]
+		variables.factsDefined 		= false
+		variables.factsEnforced 	= false
+		variables.factsStrict 		= false
+
+		// Expose the static rule states enum on the instance for external access
+		this.RULE_STATES = static.RULE_STATES
+
+		return this
+	}
+
+	/**
+	 * The withDefaultResult method allows a default result value to be specified.
+	 * When using the DSL syntax to chain calls, this method should be the first one specified.
+	 *
+	 * @result The initial value of the stored result
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function withDefaultResult( required result ){
+		variables.defaultResult = arguments.result
+		variables.result.setDefaultValue( arguments.result )
+		variables.result.reset()
+		return this
+	}
+
+	/**
+	 * Describe what this rulebook decides, for documentation and the Rule Visualizer. It has no effect
+	 * on how the rulebook runs, and it wins over the class's hint.
+	 *
+	 * @description What the rulebook decides, in a sentence or two
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function withDescription( required string description ){
+		variables.description = trim( arguments.description )
+		return this
+	}
+
+	/**
+	 * What this rulebook decides: the description given with withDescription(), a rule file or config,
+	 * else the hint of a RuleBook subclass, read from its @description or @hint annotation or else its
+	 * docblock. A plain RuleBook (from the Builder or the registry) without a description returns "".
+	 *
+	 * @return The description, or "" when there is none
+	 */
+	string function getDescription(){
+		if( len( variables.description ) ){
+			return variables.description
+		}
+		if( isNull( variables.classDescription ) ){
+			variables.classDescription = static.hintOf( getMetadata( this ) )
+		}
+		return variables.classDescription
+	}
+
+	/**
+	 * The hint a RuleBook subclass declares: its @description or @hint annotation (or attribute), else
+	 * its docblock, with line breaks folded into spaces. RuleBook itself extends nothing, so its own
+	 * docblock is never returned for a plain RuleBook.
+	 *
+	 * @metadata The class metadata, from getMetadata()
+	 *
+	 * @return The hint, or "" when the class is RuleBook itself or declares none
+	 */
+	private static string function hintOf( required struct metadata ){
+		if( isNull( arguments.metadata.extends ) || arguments.metadata.extends.isEmpty() ){
+			return ""
+		}
+		var annotations   = arguments.metadata.annotations ?: {}
+		var documentation = arguments.metadata.documentation ?: {}
+		for( var hint in [ annotations.description ?: "", annotations.hint ?: "", documentation.description ?: "", documentation.hint ?: "" ] ){
+			if( isSimpleValue( hint ) && len( trim( hint ) ) ){
+				return trim( reReplace( hint, "\s*
+\s*", " ", "all" ) )
+			}
+		}
+		return ""
+	}
+
+	/**
+	 * Called to define rules in a rulebook, you would usually overwrite this method in your own class
+	 * that extends: rulebox.models.RuleBook.
+	 */
+	void function defineRules(){
+		// This method is meant to be overwritten in your own RuleBook class that extends this one.
+	}
+
+	/**
+	 * Called to declare the facts this rulebook takes, with fact( name ). Override it in your own class
+	 * that extends rulebox.models.RuleBook. It runs once per instance, the first time the facts are
+	 * needed (run(), dryRun(), getFactDefinitions(), validateFacts(), ...), so WireBox injections are
+	 * available. Call enforceFacts() or strictFacts() here to make every instance check its facts.
+	 */
+	void function defineFacts(){
+		// This method is meant to be overwritten in your own RuleBook class that extends this one.
+	}
+
+	/**
+	 * Declare a fact this rulebook takes, and describe it with the returned definition's builder
+	 * methods: fact( "creditScore" ).type( "numeric" ).required().description( "..." ).example( 680 ).
+	 * Declaring the same name again returns the existing definition, so it can be refined.
+	 *
+	 * @name The fact's name, as it appears in the facts struct
+	 *
+	 * @return The FactDefinition, to describe the fact with chained calls
+	 */
+	FactDefinition function fact( required string name ){
+		ensureFactsDefined()
+		var factName = trim( arguments.name )
+		if( !variables.factDefinitions.keyExists( factName ) ){
+			variables.factDefinitions[ factName ] = new FactDefinition( factName )
+		}
+		return variables.factDefinitions[ factName ]
+	}
+
+	/**
+	 * Declare facts from data, the same shape rule files and config use:
+	 * { creditScore : { type : "numeric", required : true, default : 0, description : "", example : 680, values : [] } }.
+	 * Every key of a declaration is optional. Every declaration is checked before any is applied, so an
+	 * invalid one declares nothing.
+	 *
+	 * @facts A struct of fact name to declaration struct
+	 *
+	 * @throws RuleBox.InvalidFactDefinitionException For a declaration that is not a struct, an unknown key, an unknown type, or values that are not an array
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function withFacts( required struct facts ){
+		ensureFactsDefined()
+
+		for( var name, spec in arguments.facts ){
+			if( isNull( spec ) || !isStruct( spec ) ){
+				throwInvalidFactDefinition( name, "its declaration must be a struct of #static.FACT_KEYS.toList( ', ' )#" )
+			}
+			var unknown = spec.keyArray().filter( ( key ) => !static.FACT_KEYS.findNoCase( key ) )
+			if( unknown.len() ){
+				throwInvalidFactDefinition( name, "it has unknown keys [#unknown.toList( ', ' )#]; a fact declares #static.FACT_KEYS.toList( ', ' )#" )
+			}
+			if( spec.keyExists( "required" ) && !isBoolean( spec.required ?: "" ) ){
+				throwInvalidFactDefinition( name, "'required' must be true or false" )
+			}
+			if( spec.keyExists( "values" ) && !isArray( spec.values ?: "" ) ){
+				throwInvalidFactDefinition( name, "'values' must be an array" )
+			}
+			// Checks the type name too, so a bad one fails before anything is declared
+			new FactDefinition( name ).type( spec.type ?: "any" )
+		}
+
+		for( var name, spec in arguments.facts ){
+			var definition = fact( name )
+			if( spec.keyExists( "type" ) ){
+				definition.type( spec.type )
+			}
+			if( spec.keyExists( "required" ) ){
+				definition.required( spec.required )
+			}
+			if( spec.keyExists( "default" ) ){
+				definition.defaultValue( spec[ "default" ] ?: null )
+			}
+			if( spec.keyExists( "description" ) ){
+				definition.description( spec.description ?: "" )
+			}
+			if( spec.keyExists( "example" ) && !isNull( spec.example ) ){
+				definition.example( spec.example )
+			}
+			if( spec.keyExists( "values" ) ){
+				definition.values( spec.values )
+			}
+		}
+
+		return this
+	}
+
+	/**
+	 * Make run() and dryRun() check their facts against the declared facts: missing optional facts get
+	 * their defaults, then a missing required fact, a value of the wrong type or a value outside a
+	 * fact's values throws RuleBox.InvalidFactsException, listing every problem. Without this, the
+	 * declarations only describe the rulebook. Call it in defineFacts() to enforce on every instance,
+	 * or on an instance before run().
+	 *
+	 * @strict Also reject facts the rulebook did not declare (same as strictFacts())
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function enforceFacts( boolean strict = false ){
+		ensureFactsDefined()
+		variables.factsEnforced = true
+		variables.factsStrict   = arguments.strict
+		return this
+	}
+
+	/**
+	 * Enforce the declared facts and also reject any fact the rulebook did not declare. The same as
+	 * enforceFacts( strict = true ).
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function strictFacts(){
+		return enforceFacts( strict = true )
+	}
+
+	/**
+	 * Whether run() and dryRun() check their facts against the declared facts. Runs defineFacts() first,
+	 * so a class that enforces there reports it.
+	 *
+	 * @return true after enforceFacts() or strictFacts()
+	 */
+	boolean function getFactsEnforced(){
+		ensureFactsDefined()
+		return variables.factsEnforced
+	}
+
+	/**
+	 * Whether enforcing also rejects undeclared facts. Runs defineFacts() first, like getFactsEnforced().
+	 *
+	 * @return true after strictFacts() or enforceFacts( strict = true )
+	 */
+	boolean function getFactsStrict(){
+		ensureFactsDefined()
+		return variables.factsStrict
+	}
+
+	/**
+	 * The facts this rulebook declares, in declaration order, for documentation, a UI or tests
+	 *
+	 * @return An array of { name, type, required, description, and default, example and values when set }
+	 */
+	array function getFactDefinitions(){
+		ensureFactsDefined()
+		var definitions = []
+		for( var name, definition in variables.factDefinitions ){
+			definitions.append( definition.getDefinition().copy() )
+		}
+		return definitions
+	}
+
+	/**
+	 * Check facts against the declared facts without running anything or throwing, whether or not this
+	 * rulebook enforces its facts. Defaults are applied to a copy first, as enforcement would. Undeclared
+	 * facts are only reported when the rulebook is strict. Messages never include fact values.
+	 *
+	 * @facts The facts to check
+	 *
+	 * @return The problems found, each as { fact, problem, message }, where problem is "missing", "type",
+	 *         "value" or "undeclared". Empty when the facts are valid.
+	 */
+	array function validateFacts( struct facts = {} ){
+		ensureFactsDefined()
+		var checked = arguments.facts.copy()
+		applyFactDefaults( checked )
+
+		var problems = []
+		for( var name, definition in variables.factDefinitions ){
+			problems.append( definition.check( checked ), true )
+		}
+
+		if( variables.factsStrict ){
+			var declared = variables.factDefinitions.keyList( ", " )
+			for( var name in arguments.facts.keyArray() ){
+				if( !variables.factDefinitions.keyExists( name ) ){
+					problems.append( [
+						"fact"    : name,
+						"problem" : "undeclared",
+						"message" : "Undeclared fact [#name#]. This rulebook takes: #len( declared ) ? declared : 'no facts'#."
+					] )
+				}
+			}
+		}
+
+		return problems
+	}
+
+	/**
+	 * Run defineFacts() once per instance. The flag is set first, so fact() calls made inside it don't recurse.
+	 */
+	private void function ensureFactsDefined(){
+		if( variables.factsDefined ){
+			return
+		}
+		variables.factsDefined = true
+		defineFacts()
+	}
+
+	/**
+	 * Give every declared fact that has a default and is missing (or null) its default, in place
+	 *
+	 * @facts The facts to fill in
+	 */
+	private void function applyFactDefaults( required struct facts ){
+		for( var name, definition in variables.factDefinitions ){
+			if( definition.getHasDefault() && isNull( arguments.facts[ name ] ) ){
+				arguments.facts[ name ] = definition.getDefaultValue()
+			}
+		}
+	}
+
+	/**
+	 * When this rulebook enforces its facts, apply the defaults to the facts in place and throw if they
+	 * are invalid. A no-op otherwise.
+	 *
+	 * @facts The facts of the run, changed in place by the defaults
+	 *
+	 * @throws RuleBox.InvalidFactsException When enforcing and any fact is missing, of the wrong type, not allowed or undeclared (strict)
+	 */
+	private void function enforceDeclaredFacts( required struct facts ){
+		if( !variables.factsEnforced ){
+			return
+		}
+		applyFactDefaults( arguments.facts )
+		var problems = validateFacts( arguments.facts )
+		if( problems.isEmpty() ){
+			return
+		}
+		throw(
+			type         = "RuleBox.InvalidFactsException",
+			message      = "RuleBook [#variables.name#] was given invalid facts: #problems.map( ( p ) => p.message ).toList( ' ' )#",
+			detail       = "Declared facts: #variables.factDefinitions.keyList( ', ' )#. The problems are in extendedInfo, as JSON.",
+			extendedInfo = jsonSerialize( problems )
+		)
+	}
+
+	/**
+	 * Throw the exception used for an invalid fact declaration
+	 *
+	 * @name The fact's name
+	 * @problem What is wrong, phrased to follow "Invalid declaration for fact 'x': "
+	 */
+	private void function throwInvalidFactDefinition( required string name, required string problem ){
+		throw(
+			type    = "RuleBox.InvalidFactDefinitionException",
+			message = "Invalid declaration for fact '#arguments.name#': #arguments.problem#."
+		)
+	}
+
+	/**
+	 * The given() method accepts a key/value pair as a Fact for this RuleBook.
+	 * The facts passed in will also be applied to all rules added to this RuleBook.
+	 *
+	 * @name The unique name of the fact
+	 * @value The value of the fact
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function given( required name, required value ){
+		variables.facts[ arguments.name ] = arguments.value
+		return this
+	}
+
+	/**
+	 * The givenAll() method accepts all the Facts for this RuleBook.
+	 * The facts passed in will also be applied to all rules added to this RuleBook.
+	 *
+	 * @facts The structure of facts to store
+	 * @overwrite Overwrite facts if they exist already, defaults to true
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function givenAll( required struct facts, boolean overwrite=true ){
+		structAppend( variables.facts, arguments.facts, arguments.overwrite )
+		return this
+	}
+
+	/**
+	 * Shortcut to create a new rule
+	 *
+	 * @name The name of the rule, else empty.
+	 *
+	 * @return A new Rule instance
+	 */
+	Rule function newRule( string name ){
+		return wirebox.getInstance( name: "Rule@rulebox", initArguments: arguments )
+	}
+
+	/**
+	 * Add a rule to the rule book. You can pass in a closure/lambda that represents the rule or an actual Rule object.
+	 *
+	 * Rules execute in priority order (highest `withPriority()` value first); rules sharing the same
+	 * priority execute in the order they were added here. Adding a rule re-derives the entire
+	 * execution chain, and so does calling `withPriority()` on a rule that is already added, so priorities
+	 * can be set on rules in any order before or after they are added.
+	 *
+	 * Rule names must be unique within a RuleBook, since the audit trail and the metrics are keyed by
+	 * name. Adding a named rule whose name is already taken (names are case-insensitive) throws a
+	 * `RuleBox.DuplicateRuleNameException`. Rules without an explicit name get a UUID and never collide.
+	 *
+	 * @rule A rule object or a closure/lambda that will represent the rule.
+	 *
+	 * @throws RuleBox.DuplicateRuleNameException If a rule with the same name was already added
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function addRule( required rule ){
+
+		// Determine closure or object?
+		if( isClosure( arguments.rule ) || isCustomFunction( arguments.rule ) ){
+			var targetRule = newRule()
+			arguments.rule( targetRule )
+			// Clean it now that it built
+			arguments.rule = targetRule
+		}
+
+		// Reject a name already registered in this rulebook, before touching any state
+		if( len( arguments.rule.getName() ) && variables.ruleStatusMap.keyExists( arguments.rule.getName() ) ){
+			throwDuplicateRuleName( arguments.rule.getName() )
+		}
+
+		// Link the rule book
+		arguments.rule.setRuleBook( this )
+		// Track it's status
+		variables.ruleStatusMap[ arguments.rule.getName() ] = static.RULE_STATES.REGISTERED
+
+		// Track insertion order and re-derive the priority-ordered execution chain
+		variables.rules.append( arguments.rule )
+		linkRuleChain()
+
+		return this
+	}
+
+	/**
+	 * Throw the exception used whenever a rule name is registered twice in this RuleBook
+	 *
+	 * @name The duplicated rule name
+	 */
+	private void function throwDuplicateRuleName( required string name ){
+		throw(
+			type    = "RuleBox.DuplicateRuleNameException",
+			message = "A rule named '#arguments.name#' already exists in this RuleBook.",
+			detail  = "Rule names must be unique within a RuleBook, as the rule status map and metrics are keyed by name. Give the rule a different name, or leave the name off."
+		)
+	}
+
+	/**
+	 * Remove every rule from this RuleBook, resetting it to a rule-less state - as if freshly
+	 * constructed. Each removed rule also has its nextRule link cleared, so a rule that is re-added
+	 * here or to another RuleBook is linked only by its new chain. Registries
+	 * (registerAction()/registerPredicate()) and rule metrics are untouched.
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function clearRules(){
+		// Break the old chain so removed rules can't carry stale links into a new one
+		variables.rules.each( ( rule ) => rule.clearNextRule() )
+		variables.rules 		= []
+		variables.ruleStatusMap = {}
+		structDelete( variables, "headRule" )
+		structDelete( variables, "tailRule" )
+		return this
+	}
+
+	/**
+	 * Manually reload this RuleBook's rules from a source: clearRules() followed by loadRules( source ).
+	 * Use this to pick up rule changes from a JSON/YAML file or a database table without restarting -
+	 * call it whenever you decide it's time, e.g. from a scheduled task or an admin action. RuleBox does
+	 * not watch a rule source for changes on its own.
+	 *
+	 * @source An object exposing array function load()
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function reloadRules( required any source ){
+		clearRules()
+		return loadRules( arguments.source )
+	}
+
+	/**
+	 * Re-derive this RuleBook's execution chain from the rules' current priorities. A Rule calls this
+	 * automatically when `withPriority()` changes the priority of a rule already attached to this
+	 * RuleBook, so you normally never need to call it yourself.
+	 *
+	 * Ordering is highest priority first; rules sharing a priority keep the order they were added in.
+	 * A RuleBook with no rules is left untouched.
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function relinkRules(){
+		if( variables.rules.len() ){
+			linkRuleChain()
+		}
+		return this
+	}
+
+	/**
+	 * Rebuilds the head/tail rule execution chain from `variables.rules`, ordering rules by priority
+	 * (highest first) and, for rules sharing the same priority, by the order they were added.
+	 */
+	private void function linkRuleChain(){
+		// Pair each rule with its insertion index so priority ties keep insertion order
+		var indexed = []
+		variables.rules.each( ( rule, index ) => {
+			indexed.append( { rule: rule, index: index } )
+		} )
+
+		indexed.sort( ( a, b ) => {
+			if( a.rule.getPriority() != b.rule.getPriority() ){
+				return b.rule.getPriority() - a.rule.getPriority()
+			}
+			return a.index - b.index
+		} )
+
+		// Relink every rule's nextRule pointer to reflect the new order. The final rule in the new
+		// order must have its pointer cleared: it may have been mid-chain before this call (e.g. its
+		// priority was lowered after addRule()), and a stale pointer would loop or repeat rules.
+		variables.headRule = indexed[ 1 ].rule
+		variables.tailRule = indexed[ indexed.len() ].rule
+		for( var i = 1; i < indexed.len(); i++ ){
+			indexed[ i ].rule.setNextRule( indexed[ i + 1 ].rule )
+		}
+		variables.tailRule.clearNextRule()
+	}
+
+	/**
+	 * Register a named action that a rule definition loaded via loadRules() can reference from its
+	 * `then` entries (`{ "action": "name", "params": {...} }`).
+	 *
+	 * Accepts three forms:
+	 * - A closure/lambda: `( facts, result, params ) => { ... }`
+	 * - An object instance with an `execute( facts, result, params )` method
+	 * - A WireBox mapping ID string (e.g. "MyActionService@myModule"), resolved via getInstance() now
+	 *
+	 * @name The name rule definitions will reference this action by
+	 * @action A closure/lambda, an object with execute(), or a WireBox mapping ID string
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function registerAction( required string name, required any action ){
+		variables.actionRegistry[ arguments.name ] = resolveRegistryValue( arguments.action )
+		return this
+	}
+
+	/**
+	 * Register a named predicate that a rule definition loaded via loadRules() can reference from its
+	 * `when`/`except` (`{ "predicate": "name", "params": {...} }`), for logic too complex for the
+	 * condition-tree grammar.
+	 *
+	 * Accepts three forms:
+	 * - A closure/lambda: `( facts, params ) => boolean`
+	 * - An object instance with a `test( facts, params )` method
+	 * - A WireBox mapping ID string (e.g. "MyPredicateService@myModule"), resolved via getInstance() now
+	 *
+	 * @name The name rule definitions will reference this predicate by
+	 * @predicate A closure/lambda, an object with test(), or a WireBox mapping ID string
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function registerPredicate( required string name, required any predicate ){
+		variables.predicateRegistry[ arguments.name ] = resolveRegistryValue( arguments.predicate )
+		return this
+	}
+
+	/**
+	 * If `value` is a plain string, treat it as a WireBox mapping ID and resolve it now. Otherwise
+	 * (a closure, lambda, or object instance) return it untouched.
+	 */
+	private any function resolveRegistryValue( required any value ){
+		if( isSimpleValue( arguments.value ) ){
+			return wirebox.getInstance( arguments.value )
+		}
+		return arguments.value
+	}
+
+	/**
+	 * Load externally-defined rules from a rule source (e.g. JSONRuleSource, YAMLRuleSource,
+	 * DBRuleSource, or any object exposing a `load()` method that returns an array of rule-definition
+	 * structs) and addRule() each one. Register any named actions/predicates the definitions reference
+	 * via registerAction()/registerPredicate() before calling this.
+	 *
+	 * Named definitions must be unique within the source and must not clash with a rule already in this
+	 * RuleBook; otherwise a RuleBox.DuplicateRuleNameException is thrown before any rule is added.
+	 *
+	 * Each definition struct may contain: name, priority, activeFrom, activeUntil, when, except, then,
+	 * stop, using. See the "Externalized Rules" guide for the full schema.
+	 *
+	 * `load()` may also return an envelope struct, { rules, facts, enforceFacts, strictFacts }: `rules`
+	 * is the array of definitions, `facts` declares facts as withFacts() does, and `enforceFacts` /
+	 * `strictFacts` turn on enforceFacts() / strictFacts(). They are applied only once every rule built.
+	 *
+	 * Every definition is validated as it is built (condition-tree shape, operators, operand types and
+	 * activeFrom/activeUntil dates), and a malformed one throws RuleBox.InvalidRuleDefinitionException
+	 * naming the rule and the offending path. All definitions are built before any is added, so if any
+	 * definition fails to validate or resolve, no rule from this source is added to the book.
+	 *
+	 * @source An object exposing array function load()
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function loadRules( required any source ){
+		var builtRules = []
+
+		// Duplicate names are rejected up front, then every definition is validated and built
+		// before the book is touched
+		var loaded = loadDefinitions( arguments.source )
+		for( var def, index in loaded.rules ){
+			ConditionValidator::validate( def, index )
+
+			var rule = def.keyExists( "name" ) ? newRule( def.name ) : newRule()
+
+			if( def.keyExists( "priority" ) ){
+				rule.withPriority( def.priority )
+			}
+
+			if( len( def.description ?: "" ) ){
+				rule.withDescription( def.description )
+			}
+
+			if( def.keyExists( "activeFrom" ) || def.keyExists( "activeUntil" ) ){
+				rule.active(
+					def.activeFrom ?: null,
+					def.activeUntil ?: null
+				)
+			}
+
+			rule.when( resolveCondition( def.when ?: null ) )
+
+			if( def.keyExists( "except" ) ){
+				rule.except( resolveCondition( def.except ) )
+			}
+
+			var factNames = def.using ?: []
+			// A comma-delimited string is accepted too: trim each name and drop empty ones
+			if( isSimpleValue( factNames ) ){
+				factNames = listToArray( factNames )
+					.map( ( name ) => trim( name ) )
+					.filter( ( name ) => len( name ) )
+			}
+
+			for( var actionClosure in resolveActions( def.then ?: [] ) ){
+				// using() pegs to the *next* then() call only, so re-apply it before each one
+				if( !factNames.isEmpty() ){
+					rule.using( factNames )
+				}
+				rule.then( actionClosure )
+			}
+
+			if( def.keyExists( "stop" ) && def.stop ){
+				rule.stop()
+			}
+
+			builtRules.append( rule )
+		}
+
+		// Only now that every definition built cleanly do we touch the book: the envelope's description
+		// and facts first, since withFacts() checks every declaration before applying any
+		if( len( loaded.description ) ){
+			withDescription( loaded.description )
+		}
+		if( !isNull( loaded.facts ) ){
+			withFacts( loaded.facts )
+		}
+		if( loaded.strictFacts ){
+			strictFacts()
+		} else if( loaded.enforceFacts ){
+			enforceFacts()
+		}
+		builtRules.each( ( builtRule ) => addRule( builtRule ) )
+
+		return this
+	}
+
+	/**
+	 * Load the rule definitions from a source, unwrapping an envelope, and verify that no named
+	 * definition repeats a name or clashes with a rule already in this RuleBook. This runs before any
+	 * rule is added, so an exception from loadRules() leaves the book unchanged.
+	 *
+	 * @source An object exposing a load() method that returns an array of definitions or an envelope struct
+	 *
+	 * @throws RuleBox.DuplicateRuleNameException If two definitions, or a definition and an existing rule, share a name
+	 * @throws RuleBox.InvalidRuleDefinitionException If the envelope is malformed
+	 *
+	 * @return { rules, description, facts (null when absent), enforceFacts, strictFacts }
+	 */
+	private struct function loadDefinitions( required any source ){
+		var loaded   = arguments.source.load()
+		var envelope = {
+			rules        : loaded,
+			description  : "",
+			facts        : null,
+			enforceFacts : false,
+			strictFacts  : false
+		}
+
+		if( isStruct( loaded ) ){
+			var unknown = loaded.keyArray().filter( ( key ) => !static.ENVELOPE_KEYS.findNoCase( key ) )
+			if( unknown.len() ){
+				throwInvalidEnvelope( "it has unknown keys [#unknown.toList( ', ' )#]" )
+			}
+			if( isNull( loaded.rules ) || !isArray( loaded.rules ) ){
+				throwInvalidEnvelope( "its 'rules' must be an array of rule definitions" )
+			}
+			if( loaded.keyExists( "description" ) && !isSimpleValue( loaded.description ?: [] ) ){
+				throwInvalidEnvelope( "its 'description' must be a string" )
+			}
+			if( loaded.keyExists( "facts" ) && ( isNull( loaded.facts ) || !isStruct( loaded.facts ) ) ){
+				throwInvalidEnvelope( "its 'facts' must be a struct of fact name to declaration" )
+			}
+			for( var flag in [ "enforceFacts", "strictFacts" ] ){
+				if( loaded.keyExists( flag ) && !isBoolean( loaded[ flag ] ?: "" ) ){
+					throwInvalidEnvelope( "its '#flag#' must be true or false" )
+				}
+			}
+			envelope.rules        = loaded.rules
+			envelope.description  = loaded.description ?: ""
+			envelope.facts        = loaded.facts ?: null
+			envelope.enforceFacts = loaded.enforceFacts ?: false
+			envelope.strictFacts  = loaded.strictFacts ?: false
+		} else if( !isArray( loaded ) ){
+			throwInvalidEnvelope( "load() must return an array of rule definitions or a struct { rules, description, facts, enforceFacts, strictFacts }" )
+		}
+
+		var definitions = envelope.rules
+		var seen        = {}
+
+		for( var def in definitions ){
+			if( !isStruct( def ) || !def.keyExists( "name" ) || !isSimpleValue( def.name ) || !len( def.name ) ){
+				continue
+			}
+			if( seen.keyExists( def.name ) || variables.ruleStatusMap.keyExists( def.name ) ){
+				throwDuplicateRuleName( def.name )
+			}
+			seen[ def.name ] = true
+		}
+
+		return envelope
+	}
+
+	/**
+	 * Throw the exception used for a rule source whose envelope is malformed
+	 *
+	 * @problem What is wrong, phrased to follow "Invalid rule source: "
+	 */
+	private void function throwInvalidEnvelope( required string problem ){
+		throw(
+			type    = "RuleBox.InvalidRuleDefinitionException",
+			message = "Invalid rule source: #arguments.problem#.",
+			detail  = "A rule source returns an array of rule definitions, or a struct { rules, facts, enforceFacts, strictFacts }."
+		)
+	}
+
+	/**
+	 * Resolve a `when`/`except` node into a ( facts ) => boolean closure: either a compiled
+	 * condition-tree (a struct without a "predicate" key), a registered predicate reference
+	 * (`{ "predicate": "name", "params": {...} }`), or "always true" if the node is null.
+	 */
+	private any function resolveCondition( any node ){
+		if( isNull( arguments.node ) ){
+			return () => true
+		}
+
+		if( isStruct( arguments.node ) && arguments.node.keyExists( "predicate" ) ){
+			var name   = arguments.node.predicate
+			var params = arguments.node.params ?: {}
+
+			if( !variables.predicateRegistry.keyExists( name ) ){
+				throw(
+					type    = "RuleBox.UnregisteredPredicateException",
+					message = "No predicate registered under the name '#name#'.",
+					detail  = "Register it first via registerPredicate() before calling loadRules()."
+				)
+			}
+
+			var registered = variables.predicateRegistry[ name ]
+			return ( facts ) => {
+				if( isClosure( registered ) || isCustomFunction( registered ) ){
+					return registered( facts, params )
+				}
+				return registered.test( facts, params )
+			}
+		}
+
+		return variables.conditionEvaluator.compile( arguments.node )
+	}
+
+	/**
+	 * Resolve an array of `then` entries (`{ "action": "name", "params": {...} }`) into an array of
+	 * ( facts, result ) => void closures, ready to be handed to Rule.then().
+	 */
+	private array function resolveActions( required array actions ){
+		return arguments.actions.map( ( actionDef ) => {
+			var name   = actionDef.action
+			var params = actionDef.params ?: {}
+
+			if( !variables.actionRegistry.keyExists( name ) ){
+				throw(
+					type    = "RuleBox.UnregisteredActionException",
+					message = "No action registered under the name '#name#'.",
+					detail  = "Register it first via registerAction() before calling loadRules()."
+				)
+			}
+
+			var registered = variables.actionRegistry[ name ]
+			return ( facts, result ) => {
+				if( isClosure( registered ) || isCustomFunction( registered ) ){
+					registered( facts, result, params )
+				} else {
+					registered.execute( facts, result, params )
+				}
+			}
+		} )
+	}
+
+	/**
+	 * Run the rules in this rule book against the registered facts or passed facts
+	 *
+	 * @facts A structure of name-value pairs representing the facts in this rulebook
+	 * @overwrite Overwrite the facts if they exist or not, defaults to true
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function run( struct facts={}, boolean overwrite=true ){
+		// Process Facts
+		this.givenAll( argumentCollection=arguments )
+		// Check them against the declared facts, when this rulebook enforces them
+		ensureFactsDefined()
+		enforceDeclaredFacts( variables.facts )
+		// Reset the result for this run, just in case it was left over from a prior run
+		// Unconditionally: `ifPresent()` would skip the very cases that need it (no default, or default not yet applied)
+		variables.result.reset()
+
+		// Verify if rules are loaded? If not, load them via the `defineRules()` call.
+		if( !hasRules() ){
+			// Load up the rules
+			defineRules()
+			// If still no rules, then exit out
+			if( !hasRules() ){
+				logger.info( "Cannot run a RuleBook (#variables.name#) that has no rules. See ya!" )
+				return this
+			}
+		}
+
+		// Reset the audit trail so it reflects only this invocation, not a prior one
+		variables.ruleStatusMap.keyArray().each( ( name ) => {
+			variables.ruleStatusMap[ name ] = static.RULE_STATES.REGISTERED
+		} )
+
+		// run the chain with the given facts and passed result object
+		variables.headRule
+			.setResult( variables.result )
+			.run( variables.facts )
+
+		return this
+	}
+
+	/**
+	 * Walk the rule chain evaluating each rule's `when()`/`except()` conditions against the given
+	 * facts, without invoking any `then()` consumers or mutating any state: no facts are merged into
+	 * the sticky fact store, no result is touched, and the real audit trail (`getRuleStatusMap()`) is
+	 * left untouched. Useful for previewing what a real `run()` would do.
+	 *
+	 * The walk stops at the same point a real `run()` would stop: the first rule whose condition
+	 * passes and has `stop()` set. Rules after that point are never reached, so they aren't reported
+	 * either - identical to how they'd never appear in the audit trail as anything but `REGISTERED`.
+	 *
+	 * @facts A structure of name-value pairs representing the facts to evaluate against
+	 *
+	 * @return An array of structs, one per rule reached in execution order: { name, description, wouldExecute, wouldStop }
+	 */
+	array function dryRun( struct facts={} ){
+		var report = []
+
+		// Verify if rules are loaded? If not, load them via the `defineRules()` call.
+		if( !hasRules() ){
+			defineRules()
+			if( !hasRules() ){
+				return report
+			}
+		}
+
+		// Build an evaluation-only fact set: sticky facts + the facts passed here, without mutating either
+		var evaluationFacts = variables.facts.copy()
+		structAppend( evaluationFacts, arguments.facts, true )
+		ensureFactsDefined()
+		enforceDeclaredFacts( evaluationFacts )
+
+		var currentRule = variables.headRule
+		while( !isNull( currentRule ) ){
+			var ruleReport = currentRule.dryRun( evaluationFacts )
+			report.append( ruleReport )
+
+			if( ruleReport.wouldStop ){
+				break
+			}
+
+			currentRule = currentRule.getNextRule()
+		}
+
+		return report
+	}
+
+	/**
+	 * Verify if we have any rules in this rulebook
+	 */
+	boolean function hasRules(){
+		return !isNull( variables.headRule )
+	}
+
+	/**
+	 * Get the status of a run rule, if the rule doesn't exist it will return a NOT_AVAILABLE status
+	 *
+	 * @name The name of the rule
+	 */
+	string function getRuleStatus( required name ){
+		return variables.ruleStatusMap[ arguments.name ] ?: static.RULE_STATES.NOT_AVAILABLE
+	}
+
+	/**
+	 * Get the execution metrics for a single rule, meant to be dashboard-ready: plain, JSON-serializable
+	 * structs. If the rule has never been evaluated (or doesn't exist), an empty-but-shaped metrics
+	 * struct is returned rather than throwing - `totalEvaluations` will be `0`.
+	 *
+	 * Unlike the status map, metrics accumulate across every run() call on this instance - call
+	 * resetMetrics() to clear them.
+	 *
+	 * @name The name of the rule
+	 *
+	 * @return { name, totalEvaluations, countsByState, totalDurationMs, minDurationMs, maxDurationMs, lastDurationMs,
+	 *         completed, failed, completionRate, errorRate, avgDurationMs, errors, firstRunAt?, lastRunAt?, lastError? }.
+	 *         completed counts EXECUTED, SKIPPED and STOPPED evaluations, failed counts FAILED ones, the rates are
+	 *         fractions from 0 to 1, and lastError is { type, message, at, fingerprint } for the most recent FAILED
+	 *         evaluation. errors lists the rule's distinct errors, most recently seen first, each stored once with a
+	 *         count: { fingerprint, type, message, causedBy, stackTrace, rawStackTrace, count, firstAt, lastAt }
+	 *         (see RuleHealth::errorOf() and RuleHealth::foldError()).
+	 */
+	struct function getRuleMetrics( required string name ){
+		return variables.ruleMetricsMap[ arguments.name ] ?: newMetricsEntry( arguments.name )
+	}
+
+	/**
+	 * Clear all accumulated rule metrics on this instance back to empty - e.g. from a dashboard's
+	 * "reset stats" action. Does not touch rules, registries, or the status map.
+	 *
+	 * @return This RuleBook instance, to allow for chaining of calls
+	 */
+	RuleBook function resetMetrics(){
+		variables.ruleMetricsMap = {}
+		return this
+	}
+
+	/**
+	 * Record one rule evaluation's outcome into its accumulated metrics. Called once per rule per run()
+	 * from Rule.run(), with the same final state written to the status map.
+	 *
+	 * @name The name of the rule that was evaluated
+	 * @state The final RULE_STATES this evaluation ended in (EXECUTED, SKIPPED, STOPPED, or FAILED)
+	 * @durationMs How long the evaluation took, in milliseconds
+	 * @error The exception a FAILED evaluation threw. It becomes the rule's lastError and is counted in its errors.
+	 */
+	void function recordRuleMetric( required string name, required string state, required numeric durationMs, any error ){
+		if( !variables.ruleMetricsMap.keyExists( arguments.name ) ){
+			variables.ruleMetricsMap[ arguments.name ] = newMetricsEntry( arguments.name )
+		}
+
+		var metric = variables.ruleMetricsMap[ arguments.name ]
+
+		metric.countsByState[ arguments.state ] = ( metric.countsByState[ arguments.state ] ?: 0 ) + 1
+		metric.minDurationMs  = ( metric.totalEvaluations == 0 ) ? arguments.durationMs : min( metric.minDurationMs, arguments.durationMs )
+		metric.maxDurationMs  = ( metric.totalEvaluations == 0 ) ? arguments.durationMs : max( metric.maxDurationMs, arguments.durationMs )
+		metric.totalDurationMs += arguments.durationMs
+		metric.lastDurationMs = arguments.durationMs
+		metric.lastRunAt      = now()
+		if( !metric.keyExists( "firstRunAt" ) ){
+			metric.firstRunAt = metric.lastRunAt
+		}
+		metric.totalEvaluations++
+		metric.append( RuleHealth::of( metric.countsByState, metric.totalEvaluations, metric.totalDurationMs ) )
+
+		var errorInfo = null
+		if( arguments.state == static.RULE_STATES.FAILED && !isNull( arguments.error ) ){
+			errorInfo = RuleHealth::errorOf( arguments.error )
+			RuleHealth::foldError( metric.errors, errorInfo, metric.lastRunAt )
+			metric.lastError = {
+				"type"        : errorInfo.type,
+				"message"     : errorInfo.message,
+				"at"          : metric.lastRunAt,
+				"fingerprint" : errorInfo.fingerprint
+			}
+		}
+
+		// Feeds the Rule Visualizer (dashboard, metrics, live tracker). A cheap no-op unless
+		// moduleSettings.rulebox.visualizer.enabled is true - see RuleEventBus@rulebox.
+		// Metrics must never fail or double-count a business rule, so a broken event bus is logged and swallowed.
+		try{
+			var event = {
+				rulebookName : variables.name,
+				ruleName     : arguments.name,
+				state        : arguments.state,
+				durationMs   : arguments.durationMs,
+				timestamp    : dateTimeFormat( metric.lastRunAt, "yyyy-MM-dd'T'HH:mm:ss" )
+			}
+			if( !isNull( errorInfo ) ){
+				event.errorType          = errorInfo.type
+				event.errorMessage       = errorInfo.message
+				event.errorFingerprint   = errorInfo.fingerprint
+				event.errorCausedBy      = errorInfo.causedBy
+				event.errorStackTrace    = errorInfo.stackTrace
+				event.errorRawStackTrace = errorInfo.rawStackTrace
+			}
+			variables.eventBus.publish( event )
+		} catch( any e ){
+			logger.warn( "RuleBox could not publish the metric event for rule [#arguments.name#] in rulebook [#variables.name#]: #e.message#" )
+		}
+	}
+
+	/**
+	 * Build an empty, zero-valued metrics struct for a rule that hasn't been evaluated yet
+	 */
+	private struct function newMetricsEntry( required string name ){
+		return {
+			"name"             : arguments.name,
+			"totalEvaluations" : 0,
+			"countsByState"    : {},
+			"totalDurationMs"  : 0,
+			"minDurationMs"    : 0,
+			"maxDurationMs"    : 0,
+			"lastDurationMs"   : 0,
+			"completed"        : 0,
+			"failed"           : 0,
+			"completionRate"   : 0,
+			"errorRate"        : 0,
+			"avgDurationMs"    : 0,
+			"errors"           : []
+		}
+	}
+
+}

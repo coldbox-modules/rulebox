@@ -1,0 +1,333 @@
+/**
+ * Default-of-last-resort IMetricsStore: keeps metrics in memory. Nothing is persisted across a
+ * restart. Useful for tests, or for apps that only care about the visualizer's live tracker and don't
+ * need historical metrics to survive a redeploy.
+ *
+ * Summaries (queryRuleBookSummary/queryRuleMetrics) come from exact running aggregates per rulebook and
+ * per rule that are never evicted. Only the recent-activity feed behind queryEvents() is bounded, and
+ * that bound is per rulebook so a busy rulebook cannot push a quiet one out of the feed.
+ *
+ * Swap it in via moduleSettings.rulebox.visualizer.metricsStore = "InMemoryMetricsStore@rulebox".
+ */
+@singleton
+@threadsafe
+class implements="IMetricsStore"{
+
+	/**
+	 * Recent events for the activity feed and queryEvents(), keyed by rulebook name. Each value is an
+	 * array (oldest first) of { seq, event } wrappers, capped at maxEventsPerRulebook. "seq" is a
+	 * monotonically increasing sequence number used to order events across rulebooks.
+	 */
+	property name="eventsByRulebook" type="struct";
+
+	/**
+	 * Exact running aggregates, keyed by rulebook name. Updated on every recordEvent() and never evicted,
+	 * so summaries stay correct no matter how many events have rolled out of the feed. Each value is
+	 * { totals, rules } where totals and rules[ ruleName ] share the shape
+	 * { totalEvaluations, countsByState, totalDurationMs, minDurationMs, maxDurationMs, lastRunAt }. A rule's
+	 * aggregate also keeps lastError and errors, its distinct errors (see RuleHealth::foldError()).
+	 */
+	property name="aggregatesByRulebook" type="struct";
+
+	/**
+	 * Max recent events retained per rulebook for queryEvents(). Aggregates are NOT affected by this cap.
+	 */
+	property name="maxEventsPerRulebook" type="numeric" default="1000";
+
+	/**
+	 * The last sequence number handed out. Incremented for every recorded event so events from
+	 * different rulebooks can be ordered newest first.
+	 */
+	property name="sequence" type="numeric";
+
+	/**
+	 * Fields of a FAILED event that are kept once per distinct error, never in the event feed
+	 */
+	static {
+		ERROR_DETAIL_FIELDS = [ "errorCausedBy", "errorStackTrace", "errorRawStackTrace" ]
+	}
+
+	/**
+	 * Constructor: an empty store
+	 *
+	 * @return This store
+	 */
+	function init(){
+		variables.eventsByRulebook = {}
+		variables.aggregatesByRulebook = {}
+		variables.sequence = 0
+		return this
+	}
+
+	/**
+	 * Persist one rule-evaluation event: append it to its rulebook's feed (capped at
+	 * maxEventsPerRulebook) and fold it into the running aggregates. A FAILED event's error is stored
+	 * once per distinct error in the rule's aggregate; the feed keeps only its type, message and
+	 * fingerprint, never another copy of the stack trace.
+	 *
+	 * @event { rulebookName, ruleName, state, durationMs, timestamp }, plus the error fields on FAILED
+	 */
+	void function recordEvent( required struct event ){
+		lock name="rulebox_inmemory_metrics" type="exclusive" timeout="5"{
+			var rulebookName = arguments.event.rulebookName
+			var stored = arguments.event.copy()
+			for( var heavy in static.ERROR_DETAIL_FIELDS ){
+				stored.delete( heavy )
+			}
+
+			// Recent-activity feed, bounded per rulebook
+			variables.sequence++
+			if( !variables.eventsByRulebook.keyExists( rulebookName ) ){
+				variables.eventsByRulebook[ rulebookName ] = []
+			}
+			var feed = variables.eventsByRulebook[ rulebookName ]
+			feed.append( { seq: variables.sequence, event: stored } )
+			while( feed.len() > variables.maxEventsPerRulebook ){
+				feed.deleteAt( 1 )
+			}
+
+			// Exact aggregates, never evicted
+			if( !variables.aggregatesByRulebook.keyExists( rulebookName ) ){
+				variables.aggregatesByRulebook[ rulebookName ] = { totals: newAggregate(), rules: {} }
+			}
+			var aggregates = variables.aggregatesByRulebook[ rulebookName ]
+			if( !aggregates.rules.keyExists( stored.ruleName ) ){
+				aggregates.rules[ stored.ruleName ] = newAggregate()
+			}
+			accumulate( aggregates.totals, stored )
+			accumulate( aggregates.rules[ stored.ruleName ], stored )
+			if( stored.state == "FAILED" && stored.keyExists( "errorFingerprint" ) ){
+				RuleHealth::foldError( aggregates.rules[ stored.ruleName ].errors, errorOfEvent( arguments.event ), stored.timestamp )
+			}
+		}
+	}
+
+	/**
+	 * Return recorded events, newest first.
+	 *
+	 * @filters Optional filters: { rulebookName }
+	 * @limit Max rows to return
+	 *
+	 * @return An array of { rulebookName, ruleName, state, durationMs, timestamp } structs
+	 */
+	array function queryEvents( struct filters={}, numeric limit=50 ){
+		var requestedFilters = arguments.filters
+		var maxRows = arguments.limit
+		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
+			var candidates = []
+			if( requestedFilters.keyExists( "rulebookName" ) ){
+				if( variables.eventsByRulebook.keyExists( requestedFilters.rulebookName ) ){
+					candidates = lastEntries( variables.eventsByRulebook[ requestedFilters.rulebookName ], maxRows )
+				}
+			} else {
+				// Only the newest maxRows of each rulebook can make the overall newest maxRows
+				for( var name, events in variables.eventsByRulebook ){
+					candidates.append( lastEntries( events, maxRows ), true )
+				}
+			}
+			// Newest first, by sequence number rather than by timestamp string
+			candidates.sort( ( a, b ) => a.seq == b.seq ? 0 : ( a.seq > b.seq ? -1 : 1 ) )
+			if( candidates.len() > maxRows ){
+				candidates = candidates.slice( 1, maxRows )
+			}
+			return candidates.map( ( entry ) => entry.event )
+		}
+	}
+
+	/**
+	 * Aggregated stats for one rulebook across all its recorded rules.
+	 *
+	 * @rulebookName The rulebook to summarize
+	 *
+	 * @return { rulebookName, totalEvaluations, countsByState, avgDurationMs, totalDurationMs,
+	 *         completed, failed, completionRate, errorRate }
+	 */
+	struct function queryRuleBookSummary( required string rulebookName ){
+		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
+			var aggregate = variables.aggregatesByRulebook.keyExists( arguments.rulebookName )
+				? variables.aggregatesByRulebook[ arguments.rulebookName ].totals
+				: newAggregate()
+			return summarize( aggregate, { rulebookName: arguments.rulebookName } )
+		}
+	}
+
+	/**
+	 * Aggregated stats for a single rule within a rulebook.
+	 *
+	 * @rulebookName The rule's owning rulebook
+	 * @ruleName The rule to summarize
+	 *
+	 * @return { rulebookName, ruleName, totalEvaluations, countsByState, avgDurationMs, minDurationMs, maxDurationMs,
+	 *         lastRunAt, completed, failed, completionRate, errorRate, lastError? }
+	 */
+	struct function queryRuleMetrics( required string rulebookName, required string ruleName ){
+		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
+			var aggregate = variables.aggregatesByRulebook[ arguments.rulebookName ].rules[ arguments.ruleName ] ?: newAggregate()
+			return ruleSummary( arguments.rulebookName, arguments.ruleName, aggregate )
+		}
+	}
+
+	/**
+	 * Aggregated stats for every rule of a rulebook that has at least one recorded event.
+	 *
+	 * @rulebookName The rulebook whose rules to summarize
+	 *
+	 * @return An array of queryRuleMetrics() structs, one per rule
+	 */
+	array function queryAllRuleMetrics( required string rulebookName ){
+		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
+			var rules = variables.aggregatesByRulebook[ arguments.rulebookName ].rules ?: {}
+			var list  = []
+			for( var ruleName, aggregate in rules ){
+				list.append( ruleSummary( arguments.rulebookName, ruleName, aggregate ) )
+			}
+			return list
+		}
+	}
+
+	/**
+	 * A rule's distinct errors, most recently seen first. Each is stored once with a count.
+	 *
+	 * @rulebookName The rule's owning rulebook
+	 * @ruleName The rule
+	 * @limit Max errors to return
+	 *
+	 * @return An array of { fingerprint, type, message, causedBy, stackTrace, rawStackTrace, count, firstAt, lastAt }
+	 */
+	array function queryRuleErrors( required string rulebookName, required string ruleName, numeric limit=10 ){
+		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
+			var errors = variables.aggregatesByRulebook[ arguments.rulebookName ].rules[ arguments.ruleName ].errors ?: []
+			return duplicate( errors.len() > arguments.limit ? errors.slice( 1, arguments.limit ) : errors )
+		}
+	}
+
+	/**
+	 * Every distinct rulebook name that has at least one recorded event.
+	 *
+	 * @return An array of rulebook names
+	 */
+	array function queryRuleBookNames(){
+		lock name="rulebox_inmemory_metrics" type="readOnly" timeout="5"{
+			return variables.aggregatesByRulebook.keyArray()
+		}
+	}
+
+	/**
+	 * Clear every recorded event and aggregate.
+	 */
+	void function reset(){
+		lock name="rulebox_inmemory_metrics" type="exclusive" timeout="5"{
+			variables.eventsByRulebook = {}
+			variables.aggregatesByRulebook = {}
+		}
+	}
+
+	/**
+	 * An empty running aggregate. minDurationMs/maxDurationMs stay 0 until the first event arrives.
+	 */
+	private struct function newAggregate(){
+		return {
+			totalEvaluations : 0,
+			countsByState    : {},
+			totalDurationMs  : 0,
+			minDurationMs    : 0,
+			maxDurationMs    : 0,
+			lastRunAt        : "",
+			errors           : []
+		}
+	}
+
+	/**
+	 * Fold one event into a running aggregate. Caller holds the exclusive lock.
+	 */
+	private void function accumulate( required struct aggregate, required struct event ){
+		var agg = arguments.aggregate
+		var duration = arguments.event.durationMs
+		var state = arguments.event.state
+		if( agg.totalEvaluations == 0 ){
+			agg.minDurationMs = duration
+			agg.maxDurationMs = duration
+		} else {
+			agg.minDurationMs = min( agg.minDurationMs, duration )
+			agg.maxDurationMs = max( agg.maxDurationMs, duration )
+		}
+		agg.totalEvaluations++
+		agg.totalDurationMs += duration
+		agg.countsByState[ state ] = ( agg.countsByState[ state ] ?: 0 ) + 1
+		agg.lastRunAt = arguments.event.timestamp
+		if( state == "FAILED" && arguments.event.keyExists( "errorType" ) ){
+			agg.lastError = {
+				"type"        : arguments.event.errorType,
+				"message"     : arguments.event.errorMessage ?: "",
+				"at"          : arguments.event.timestamp,
+				"fingerprint" : arguments.event.errorFingerprint ?: ""
+			}
+		}
+	}
+
+	/**
+	 * Rebuild a RuleHealth::errorOf() struct from a FAILED event's error fields
+	 *
+	 * @event The FAILED event
+	 *
+	 * @return { fingerprint, type, message, causedBy, stackTrace, rawStackTrace }
+	 */
+	private struct function errorOfEvent( required struct event ){
+		return {
+			"fingerprint"   : arguments.event.errorFingerprint,
+			"type"          : arguments.event.errorType ?: "",
+			"message"       : arguments.event.errorMessage ?: "",
+			"causedBy"      : duplicate( arguments.event.errorCausedBy ?: [] ),
+			"stackTrace"    : duplicate( arguments.event.errorStackTrace ?: [] ),
+			"rawStackTrace" : arguments.event.errorRawStackTrace ?: ""
+		}
+	}
+
+	/**
+	 * The last "count" entries of a feed (still oldest first). Always returns a new array.
+	 */
+	private array function lastEntries( required array feed, required numeric count ){
+		return arguments.feed.len() > arguments.count
+			? arguments.feed.slice( arguments.feed.len() - arguments.count + 1, arguments.count )
+			: arguments.feed.slice( 1 )
+	}
+
+	/**
+	 * Shared shaping for queryRuleBookSummary() and the rule summaries: counts, total and average
+	 * duration, and the RuleHealth figures. Copies countsByState so callers can't mutate the live aggregate.
+	 *
+	 * @aggregate The running aggregate to summarize
+	 * @identity The keys that name what is summarized ({ rulebookName } or { rulebookName, ruleName })
+	 *
+	 * @return The summary struct
+	 */
+	private struct function summarize( required struct aggregate, required struct identity ){
+		var summary = arguments.identity.copy()
+		summary[ "totalEvaluations" ] = arguments.aggregate.totalEvaluations
+		summary[ "countsByState" ]    = arguments.aggregate.countsByState.copy()
+		summary[ "totalDurationMs" ]  = arguments.aggregate.totalDurationMs
+		summary.append( RuleHealth::of( arguments.aggregate.countsByState, arguments.aggregate.totalEvaluations, arguments.aggregate.totalDurationMs ) )
+		return summary
+	}
+
+	/**
+	 * One rule's summary: summarize() plus its min/max duration, last run and last error.
+	 *
+	 * @rulebookName The rule's owning rulebook
+	 * @ruleName The rule
+	 * @aggregate The rule's running aggregate
+	 *
+	 * @return A queryRuleMetrics() struct
+	 */
+	private struct function ruleSummary( required string rulebookName, required string ruleName, required struct aggregate ){
+		var summary = summarize( arguments.aggregate, { rulebookName: arguments.rulebookName, ruleName: arguments.ruleName } )
+		summary[ "minDurationMs" ] = arguments.aggregate.minDurationMs
+		summary[ "maxDurationMs" ] = arguments.aggregate.maxDurationMs
+		summary[ "lastRunAt" ]     = arguments.aggregate.lastRunAt
+		if( arguments.aggregate.keyExists( "lastError" ) ){
+			summary[ "lastError" ] = arguments.aggregate.lastError.copy()
+		}
+		return summary
+	}
+
+}

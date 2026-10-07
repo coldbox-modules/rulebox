@@ -1,0 +1,49 @@
+/**
+ * Loads rule definitions from a JSON file.
+ */
+class{
+
+	/**
+	 * Path to the JSON file containing an array of rule definitions, or an envelope { rules, facts, enforceFacts, strictFacts }
+	 */
+	property name="filePath" type="string";
+
+	/**
+	 * Constructor
+	 *
+	 * @filePath Absolute or resolvable path to a JSON file containing an array of rule definitions, or an envelope { rules, facts, enforceFacts, strictFacts }
+	 */
+	JSONRuleSource function init( required string filePath ){
+		variables.filePath = arguments.filePath
+		return this
+	}
+
+	/**
+	 * @throws RuleBox.RuleSourceParseException If the file is not valid JSON. The message names the file
+	 *         and the parse position only - never the file's content.
+	 *
+	 * @return An array of rule-definition structs, or the envelope struct as written in the file
+	 */
+	any function load(){
+		var content = fileRead( variables.filePath )
+		try{
+			return jsonDeserialize( content )
+		} catch( any e ){
+			// Deliberately NOT rethrowing/including e.message: the parser echoes the file's content
+			var position = ""
+			try{
+				var located = ( e.getCause().getMessage() ?: "" ).reMatch( "line:\s*\d+,\s*column:\s*\d+" )
+				if( located.len() ){
+					position = " (#located.last()#)"
+				}
+			} catch( any ignored ){
+				// position is best-effort only
+			}
+			throw(
+				type    = "RuleBox.RuleSourceParseException",
+				message = "Could not parse the JSON rule file [#variables.filePath#]#position#."
+			)
+		}
+	}
+
+}

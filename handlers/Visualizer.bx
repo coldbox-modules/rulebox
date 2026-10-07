@@ -1,0 +1,390 @@
+import rulebox.models.metrics.RuleHealth;
+
+/**
+ * The Rule Visualizer admin UI: a dashboard, per-rulebook chain visualization, a dry-run
+ * playground, metrics/stats, and a live SSE tracker.
+ *
+ * Entirely inert unless moduleSettings.rulebox.visualizer.enabled is true - every action here
+ * 404s while it's off. RuleBox does not secure these routes itself; wrap
+ * "/rulebox-visualizer" (or your own cbSecurity rule) once you enable it.
+ */
+class{
+
+	@inject( "coldbox:moduleSettings:rulebox" )
+	property name="settings" type="struct";
+
+	@inject( "wirebox" )
+	property name="wirebox";
+
+	@inject( "RuleBookRegistry@rulebox" )
+	property name="registry";
+
+	@inject( "RuleEventBus@rulebox" )
+	property name="eventBus";
+
+	@inject( "LiveStreams@rulebox" )
+	property name="liveStreams";
+
+	@inject( "logbox:logger:{this}" )
+	property name="logger";
+
+	this.layout = "Visualizer"
+
+	/**
+	 * ColdBox's per-action HTTP method whitelist. runDryRun evaluates user-defined predicates with
+	 * caller-chosen facts, so it must not be triggerable by a plain link/image GET (CSRF).
+	 * A disallowed method is routed to onInvalidHTTPMethod() below.
+	 */
+	this.allowedMethods = { runDryRun : "POST" }
+
+	/**
+	 * Runs before every action in this handler: 404s the whole visualizer while it's disabled, and
+	 * seeds prc with the settings the shared layout needs (sidebar datasource badge).
+	 */
+	function preHandler( event, rc, prc, action, eventArguments ){
+		if( !variables.settings.visualizer.enabled ){
+			event.renderData(
+				type       = "json",
+				data       = { error: "The Rule Visualizer is disabled. Enable it via moduleSettings.rulebox.visualizer.enabled." },
+				statusCode = 404
+			)
+			event.noExecution()
+			return
+		}
+		prc.visualizerSettings = variables.settings.visualizer
+		prc.rulebookNames      = registry.getRuleBookNames()
+
+		// Every layout/view link goes through this one helper so the module routes stay the single
+		// source of truth. The dashboard is the entry point itself (/rulebox-visualizer); the rest
+		// are one segment deeper (/rulebox-visualizer/chain, /rulebox-visualizer/live, ...).
+		prc.vizLink = ( required string target ) => event.buildLink( target == "index" ? "rulebox-visualizer" : "rulebox-visualizer/#target#" )
+
+		// this.layout is not reliably picked up as a handler convention in every environment
+		// this module runs in (seen in this repo's own test-harness) - setting it explicitly at
+		// request time is the documented, always-supported way to select a module layout.
+		event.setLayout( name="Visualizer", module="rulebox" )
+
+		// ColdBox's implicit view discovery (used when no view is explicitly set) resolves the
+		// view name correctly but always resets the view's *module* to "" - so a module's own
+		// view never gets found unless something sets it explicitly first. Matches the same
+		// {event-name-without-module-prefix} convention ColdBox's own discovery would compute.
+		event.setView( view="visualizer/#arguments.action#", module="rulebox" )
+	}
+
+	/**
+	 * Dashboard: every declared rulebook with its rule count and evaluation summary, the rules that
+	 * fail most and the slowest rules across all of them, plus a recent-activity feed.
+	 */
+	function index( event, rc, prc ){
+		var store = getMetricsStore()
+		var names = registry.getRuleBookNames()
+
+		// A declared rulebook (bad file path, unregistered action, ...) failing to build shouldn't
+		// take the whole dashboard down with it - report it inline instead.
+		prc.rulebooks = names.map( ( name ) => {
+			var summary = store.queryRuleBookSummary( name )
+			summary[ "description" ] = ""
+			try{
+				var ruleBook = registry.getRuleBook( name )
+				summary[ "ruleCount" ]   = ruleBook.getRules().len()
+				summary[ "description" ] = ruleBook.getDescription()
+			} catch( any e ){
+				summary[ "ruleCount" ] = 0
+				summary[ "loadError" ] = e.message
+			}
+			return summary
+		} )
+		var ruleMetrics = []
+		for( var name in names ){
+			ruleMetrics.append( store.queryAllRuleMetrics( name ), true )
+		}
+		prc.problemRules = RuleHealth::problemRules( ruleMetrics )
+		prc.slowestRules = RuleHealth::slowestRules( ruleMetrics )
+		prc.recentEvents = store.queryEvents( limit=10 )
+		prc.totalRuleBooks = names.len()
+		prc.totalRules     = prc.rulebooks.reduce( ( sum, rb ) => sum + rb.ruleCount, 0 )
+		prc.totalEvaluations = prc.rulebooks.reduce( ( sum, rb ) => sum + rb.totalEvaluations, 0 )
+	}
+
+	/**
+	 * Rule chain visualizer for one rulebook (rc.name), in real execution order.
+	 */
+	function chain( event, rc, prc ){
+		param rc.name = ""
+
+		var rulebookNames = registry.getRuleBookNames()
+		if( !rc.name.len() && !rulebookNames.isEmpty() ){
+			rc.name = rulebookNames[ 1 ]
+		}
+
+		if( !rc.name.len() || !rulebookNames.contains( rc.name ) ){
+			event.renderData( data={ error: "Unknown rulebook '#rc.name#'." }, statusCode=404, type="json" )
+			return
+		}
+
+		var store    = getMetricsStore()
+
+		prc.rulebookName   = rc.name
+		prc.rulebookNames  = rulebookNames
+		prc.chain          = []
+		prc.chainLoadError = ""
+		prc.description    = ""
+		prc.facts          = []
+		prc.factsEnforced  = false
+		prc.factsStrict    = false
+
+		try{
+			var ruleBook = registry.getRuleBook( rc.name )
+			prc.chain         = walkChain( ruleBook )
+			prc.description   = ruleBook.getDescription()
+			prc.facts         = ruleBook.getFactDefinitions()
+			prc.factsEnforced = ruleBook.getFactsEnforced()
+			prc.factsStrict   = ruleBook.getFactsStrict()
+		} catch( any e ){
+			prc.chainLoadError = e.message
+		}
+
+		prc.chain.each( ( node ) => {
+			node[ "metrics" ] = store.queryRuleMetrics( rc.name, node.name )
+		} )
+	}
+
+	/**
+	 * Dry-run playground shell (rc.name is optional - the view lets you pick a rulebook).
+	 */
+	function dryrun( event, rc, prc ){
+		prc.rulebookNames = registry.getRuleBookNames()
+	}
+
+	/**
+	 * JSON action backing the dry-run playground: POST { name, facts } -> RuleBook.dryRun() report.
+	 *
+	 * POST only (see this.allowedMethods). Answers 400 when rc.facts is not a JSON object, or when the
+	 * rulebook enforces its facts and they are invalid (with { error, problems }, the problems naming the
+	 * facts but never their values), 404 for an unknown rulebook and 422 when a rule's predicate throws
+	 * while evaluating the supplied facts - always with a generic message; the details are logged
+	 * server-side, never returned.
+	 */
+	function runDryRun( event, rc, prc ){
+		param rc.name = ""
+
+		if( !rc.name.len() || !registry.getRuleBookNames().contains( rc.name ) ){
+			event.renderData( data={ error: "Unknown rulebook '#rc.name#'." }, statusCode=404, type="json" )
+			return
+		}
+
+		// No facts at all means "no facts"
+		var facts = rc.facts ?: {}
+		if( isSimpleValue( facts ) ){
+			try{
+				facts = jsonDeserialize( facts )
+			} catch( any e ){
+				facts = null
+			}
+		}
+
+		if( isNull( facts ) || !isStruct( facts ) ){
+			event.renderData( data={ error: "'facts' must be a JSON object." }, statusCode=400, type="json" )
+			return
+		}
+
+		var ruleBook = registry.getRuleBook( rc.name )
+
+		try{
+			var report = ruleBook.dryRun( facts )
+		} catch( "RuleBox.InvalidFactsException" e ){
+			event.renderData(
+				data       = { error: "The facts are not valid for rulebook '#rc.name#'.", problems: jsonDeserialize( e.extendedInfo ) },
+				statusCode = 400,
+				type       = "json"
+			)
+			return
+		} catch( any e ){
+			variables.logger?.error(
+				"Dry run of rulebook '#rc.name#' failed: #e.message#",
+				{ type: e.type, detail: e.detail }
+			)
+			event.renderData(
+				data       = { error: "The dry run of rulebook '#rc.name#' failed: a rule could not be evaluated with the supplied facts." },
+				statusCode = 422,
+				type       = "json"
+			)
+			return
+		}
+
+		event.renderData( data=report, type="json" )
+	}
+
+	/**
+	 * ColdBox calls this (instead of throwing a 500) when an action's this.allowedMethods whitelist
+	 * rejects the request's HTTP method.
+	 */
+	function onInvalidHTTPMethod( event, rc, prc, faultAction, eventArguments ){
+		// Same gate as preHandler(), which does not run for a rejected method: a disabled
+		// visualizer must keep 404ing rather than reveal that the action exists.
+		if( !variables.settings.visualizer.enabled ){
+			event.renderData( data={ error: "The Rule Visualizer is disabled." }, statusCode=404, type="json" )
+			return
+		}
+		event.setHTTPHeader( name="Allow", value="POST" )
+		event.renderData(
+			data       = { error: "Method not allowed: this action only accepts POST." },
+			statusCode = 405,
+			type       = "json"
+		)
+	}
+
+	/**
+	 * JSON action backing the dry run form: rulebook rc.name's description and the facts it declares, as
+	 * { name, description, enforced, strict, facts }, facts in declaration order (see
+	 * RuleBook.getFactDefinitions()).
+	 * Answers 404 for an unknown rulebook and 422 when it cannot be loaded.
+	 */
+	function apiFacts( event, rc, prc ){
+		param rc.name = ""
+
+		if( !rc.name.len() || !registry.getRuleBookNames().contains( rc.name ) ){
+			event.renderData( data={ error: "Unknown rulebook '#rc.name#'." }, statusCode=404, type="json" )
+			return
+		}
+
+		try{
+			var ruleBook = registry.getRuleBook( rc.name )
+			var data     = {
+				"name"        : rc.name,
+				"description" : ruleBook.getDescription(),
+				"enforced"    : ruleBook.getFactsEnforced(),
+				"strict"      : ruleBook.getFactsStrict(),
+				"facts"       : ruleBook.getFactDefinitions()
+			}
+		} catch( any e ){
+			variables.logger?.error( "Loading rulebook '#rc.name#' failed: #e.message#", { type: e.type, detail: e.detail } )
+			event.renderData( data={ error: "The rulebook '#rc.name#' could not be loaded." }, statusCode=422, type="json" )
+			return
+		}
+
+		event.renderData( data=data, type="json" )
+	}
+
+	/**
+	 * Metrics/stats dashboard shell. rc.name preselects a rulebook and rc.rule opens that rule's errors.
+	 */
+	function metrics( event, rc, prc ){
+		param rc.name = ""
+		param rc.rule = ""
+		prc.rulebookNames = registry.getRuleBookNames()
+		prc.selectedName  = prc.rulebookNames.contains( rc.name ) ? rc.name : ""
+		prc.selectedRule  = prc.selectedName.len() ? rc.rule : ""
+	}
+
+	/**
+	 * JSON action backing the metrics dashboard: rc.name -> the rulebook summary plus "rules", the
+	 * queryRuleMetrics() struct of every rule that has run; no rc.name -> recent events.
+	 */
+	function apiMetrics( event, rc, prc ){
+		param rc.name = ""
+		var store = getMetricsStore()
+
+		if( rc.name.len() ){
+			var summary = store.queryRuleBookSummary( rc.name )
+			summary[ "rules" ] = store.queryAllRuleMetrics( rc.name )
+			event.renderData( data=summary, type="json" )
+			return
+		}
+
+		event.renderData( data=store.queryEvents( limit=100 ), type="json" )
+	}
+
+	/**
+	 * JSON action backing the Metrics screen's error panel: the distinct errors of rule rc.rule in
+	 * rulebook rc.name, most recently seen first, each with its count, cause chain and trimmed traces.
+	 * Answers 404 for an unknown rulebook.
+	 */
+	function apiRuleErrors( event, rc, prc ){
+		param rc.name = ""
+		param rc.rule = ""
+
+		if( !rc.name.len() || !registry.getRuleBookNames().contains( rc.name ) ){
+			event.renderData( data={ error: "Unknown rulebook '#rc.name#'." }, statusCode=404, type="json" )
+			return
+		}
+
+		event.renderData( data=getMetricsStore().queryRuleErrors( rc.name, rc.rule ), type="json" )
+	}
+
+	/**
+	 * Live tracker shell - opens an EventSource against stream().
+	 */
+	function live( event, rc, prc ){
+	}
+
+	/**
+	 * SSE stream of every rule-evaluation event, as it happens, across all rulebooks.
+	 */
+	function stream( event, rc, prc ){
+		// Slot accounting, the bounded per-stream queue and the subscribe/unsubscribe pairing live
+		// in LiveStreams; serve() releases the slot and unsubscribes even if SSE() itself throws.
+		var served = variables.liveStreams.serve(
+			bus        : variables.eventBus,
+			maxStreams : variables.settings.visualizer.maxStreams,
+			opener     : ( queue ) => {
+				SSE(
+					callback: ( emitter ) => {
+						while( !emitter.isClosed() ){
+							var evt = queue.poll( 1000, createObject( "java", "java.util.concurrent.TimeUnit" ).MILLISECONDS )
+							if( !isNull( evt ) ){
+								emitter.send( evt, "rule" )
+							}
+						}
+					},
+					async: true,
+					keepAliveInterval: 15000,
+					timeout: 0
+				)
+			}
+		)
+
+		if( !served ){
+			event.renderData(
+				type       = "json",
+				data       = { "error": "Too many live tracker connections" },
+				statusCode = 503
+			)
+		}
+	}
+
+	/**
+	 * Resolve the configured metrics store fresh each call - cheap (WireBox singleton lookup) and
+	 * keeps the handler correct even if the setting changes between requests.
+	 */
+	private any function getMetricsStore(){
+		return wirebox.getInstance( variables.settings.visualizer.metricsStore )
+	}
+
+	/**
+	 * Walk a RuleBook's real execution chain (head -> nextRule...), returning display-ready structs.
+	 */
+	private array function walkChain( required ruleBook ){
+		var out = []
+
+		if( !arguments.ruleBook.hasRules() ){
+			return out
+		}
+
+		var current = arguments.ruleBook.getHeadRule()
+		while( !isNull( current ) ){
+			out.append( {
+				"name"        : current.getName(),
+				"description" : current.getDescription(),
+				"priority"    : current.getPriority(),
+				"stops"       : current.getCurrentState() == current.STATES.STOP,
+				"activeFrom"  : isNull( current.getActiveFrom() ) ? "" : dateTimeFormat( current.getActiveFrom(), "yyyy-MM-dd'T'HH:mm:ss" ),
+				"activeUntil" : isNull( current.getActiveUntil() ) ? "" : dateTimeFormat( current.getActiveUntil(), "yyyy-MM-dd'T'HH:mm:ss" )
+			} )
+			current = current.getNextRule()
+		}
+
+		return out
+	}
+
+}

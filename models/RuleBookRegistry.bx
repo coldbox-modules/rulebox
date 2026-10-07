@@ -1,0 +1,387 @@
+/**
+ * Builds and hands out config-declared RuleBooks by name, so you don't have to hand-wire
+ * registerAction()/registerPredicate()/loadRules() yourself for every rulebook your app defines.
+ *
+ * Rulebooks are declared in moduleSettings.rulebox.rulebooks, and/or auto-discovered from
+ * *.json/*.yaml/*.yml files dropped in the convention folder (default "config/rulebox"). See the
+ * "Externalized Rule Definitions" guide for the full settings shape.
+ *
+ * getRuleBook() always builds and returns a FRESH RuleBook instance - never a shared/cached one -
+ * so this registry stays safe to use from a singleton or across concurrent requests: nothing here
+ * holds facts or run-time state, only the recipe to build one. That includes inline definitions:
+ * the registry keeps its own private copy of each declaration, and every RuleBook it builds gets
+ * an independent deep copy of the rule definitions, so mutating a rule's `params` (or anything else
+ * in a definition) in one RuleBook never leaks into another or back into the stored declaration.
+ */
+@singleton
+@threadsafe
+class{
+
+	@inject( "wirebox" )
+	property name="wirebox";
+
+	@inject( "coldbox:moduleSettings:rulebox" )
+	property name="settings" type="struct";
+
+	/**
+	 * Normalized rulebook definitions, keyed by declared name:
+	 * { source, actions, predicates, description, facts, enforceFacts, strictFacts }
+	 */
+	property name="definitions" type="struct";
+
+	/**
+	 * Discover and normalize every declared rulebook once the settings are injected
+	 */
+	function onDIComplete(){
+		reload()
+	}
+
+	/**
+	 * Re-scan moduleSettings.rulebox.rulebooks and the convention folder, replacing the current
+	 * set of known rulebook definitions. Call this to pick up config/file changes without
+	 * restarting - e.g. from a scheduled task or an admin action.
+	 *
+	 * @return This registry instance, to allow for chaining of calls
+	 */
+	RuleBookRegistry function reload(){
+		var discovered = discoverConventionRuleBooks()
+
+		var configuredRuleBooks = variables.settings.rulebooks ?: {}
+		for( var name, configured in configuredRuleBooks ){
+			if( isNull( configured ) ){
+				throwInvalidDeclaration( name, "the declaration is null" )
+			}
+			discovered[ name ] = normalizeDefinition( name, configured, discovered[ name ] ?: {} )
+		}
+
+		variables.definitions = discovered
+		return this
+	}
+
+	/**
+	 * Every currently-declared rulebook name - from moduleSettings.rulebox.rulebooks and/or
+	 * convention-discovered files, as of the last reload(). Useful for a dashboard/admin UI that
+	 * wants to list all declared rulebooks, not just the ones that have been run.
+	 */
+	array function getRuleBookNames(){
+		return variables.definitions.keyArray()
+	}
+
+	/**
+	 * Build and return a fresh, fully-configured RuleBook for the given declared name - registries
+	 * populated, rules loaded. A new instance every call, with its own independent copy of the rule
+	 * definitions: safe to call from anywhere, concurrently.
+	 *
+	 * @name The rulebook's declared name
+	 *
+	 * @return A ready-to-use RuleBook instance
+	 */
+	RuleBook function getRuleBook( required string name ){
+		if( !variables.definitions.keyExists( arguments.name ) ){
+			throw(
+				type    = "RuleBox.UnknownRuleBookException",
+				message = "No rulebook is declared under the name '#arguments.name#'.",
+				detail  = "Declared names: #variables.definitions.keyArray().toList()#. Check moduleSettings.rulebox.rulebooks or your convention folder."
+			)
+		}
+
+		var def      = variables.definitions[ arguments.name ]
+		var ruleBook = wirebox.getInstance( name: "RuleBook@rulebox", initArguments: { name: arguments.name } )
+
+		for( var actionName, action in def.actions ){
+			ruleBook.registerAction( actionName, action )
+		}
+		for( var predicateName, predicate in def.predicates ){
+			ruleBook.registerPredicate( predicateName, predicate )
+		}
+
+		// Nothing is cached: every call re-reads the source file / re-runs the SQL, by design
+		ruleBook.loadRules( resolveSource( def.source ) )
+
+		// A description in config wins over the source file's
+		if( len( def.description ) ){
+			ruleBook.withDescription( def.description )
+		}
+
+		// Facts declared in config layer on top of any the source file declares
+		if( !def.facts.isEmpty() ){
+			ruleBook.withFacts( def.facts )
+		}
+		if( def.strictFacts ){
+			ruleBook.strictFacts()
+		} else if( def.enforceFacts ){
+			ruleBook.enforceFacts()
+		}
+
+		return ruleBook
+	}
+
+	/**
+	 * Auto-discover rule files in the convention folder. Only regular files with a .json, .yaml
+	 * or .yml extension (matched case-insensitively) count; directories and dotfiles are ignored.
+	 * The declared name is the filename without its extension.
+	 *
+	 * @throws RuleBox.DuplicateRuleBookException when two files map to the same rulebook name
+	 *         (e.g. a.json and a.yaml) - explicit beats silent precedence.
+	 */
+	private struct function discoverConventionRuleBooks(){
+		var found          = {}
+		var sources        = {}
+		var conventionPath = variables.settings.conventionPath ?: "config/rulebox"
+		var expandedPath   = toAppPath( conventionPath )
+
+		if( !directoryExists( expandedPath ) ){
+			return found
+		}
+
+		// Files only, sorted so duplicate reporting is deterministic across filesystems
+		var filePaths = directoryList( expandedPath, false, "path", "", "name", "file" )
+		filePaths.sort( "textNoCase" )
+
+		for( var filePath in filePaths ){
+			var fileName = getFileFromPath( filePath )
+
+			if( fileName.left( 1 ) == "." || !fileName.reFindNoCase( "\.(json|ya?ml)$" ) ){
+				continue
+			}
+
+			var name = fileName.reReplaceNoCase( "\.(json|ya?ml)$", "" )
+
+			if( found.keyExists( name ) ){
+				throw(
+					type    = "RuleBox.DuplicateRuleBookException",
+					message = "Two convention files map to the rulebook name '#name#': '#getFileFromPath( sources[ name ] )#' and '#fileName#'.",
+					detail  = "Rulebook names are the filename without its extension, so each name may only have one file in '#expandedPath#'. Remove or rename one of: #sources[ name ]#, #filePath#"
+				)
+			}
+
+			sources[ name ] = filePath
+			found[ name ]   = {
+				source       : filePath,
+				actions      : {},
+				predicates   : {},
+				description  : "",
+				facts        : {},
+				enforceFacts : false,
+				strictFacts  : false
+			}
+		}
+
+		return found
+	}
+
+	/**
+	 * Merge a moduleSettings.rulebox.rulebooks[ name ] entry onto whatever the convention scan
+	 * already found for that name (an explicit entry can override/add a source and layers on
+	 * actions/predicates, which convention discovery alone can never supply).
+	 *
+	 * The entry can be:
+	 * - a string:  a rule-source file path (JSON/YAML inferred from extension)
+	 * - an array:  inline rule-definition structs
+	 * - a struct:  { source: <string|array|{type:"db",...}>, actions: {...}, predicates: {...},
+	 *              description: "...", facts: {...}, enforceFacts: boolean, strictFacts: boolean }
+	 *
+	 * Anything else - or an entry that ends up with no usable source - throws a typed
+	 * RuleBox.InvalidRuleBookDeclarationException naming the rulebook, so a bad declaration fails
+	 * when the registry is built/reloaded rather than obscurely at the first getRuleBook().
+	 */
+	private struct function normalizeDefinition( required string name, required any entry, required struct existing ){
+		var normalized = {
+			source       : existing.source ?: "",
+			actions      : existing.actions ?: {},
+			predicates   : existing.predicates ?: {},
+			description  : existing.description ?: "",
+			facts        : existing.facts ?: {},
+			enforceFacts : existing.enforceFacts ?: false,
+			strictFacts  : existing.strictFacts ?: false
+		}
+
+		if( isStruct( arguments.entry ) ){
+			if( arguments.entry.keyExists( "source" ) ){
+				if( isNull( arguments.entry.source ) ){
+					throwInvalidDeclaration( arguments.name, "its 'source' is null" )
+				}
+				normalized.source = arguments.entry.source
+			}
+			for( var key in [ "actions", "predicates" ] ){
+				if( arguments.entry.keyExists( key ) ){
+					if( isNull( arguments.entry[ key ] ) || !isStruct( arguments.entry[ key ] ) ){
+						throwInvalidDeclaration( arguments.name, "'#key#' must be a struct of name => mapping ID" )
+					}
+					normalized[ key ] = arguments.entry[ key ]
+				}
+			}
+			if( arguments.entry.keyExists( "description" ) ){
+				if( isNull( arguments.entry.description ) || !isSimpleValue( arguments.entry.description ) ){
+					throwInvalidDeclaration( arguments.name, "'description' must be a string" )
+				}
+				normalized.description = trim( arguments.entry.description )
+			}
+			if( arguments.entry.keyExists( "facts" ) ){
+				if( isNull( arguments.entry.facts ) || !isStruct( arguments.entry.facts ) ){
+					throwInvalidDeclaration( arguments.name, "'facts' must be a struct of fact name => declaration" )
+				}
+				normalized.facts = arguments.entry.facts
+			}
+			for( var flag in [ "enforceFacts", "strictFacts" ] ){
+				if( arguments.entry.keyExists( flag ) ){
+					if( !isBoolean( arguments.entry[ flag ] ?: "" ) ){
+						throwInvalidDeclaration( arguments.name, "'#flag#' must be true or false" )
+					}
+					normalized[ flag ] = arguments.entry[ flag ]
+				}
+			}
+		} else {
+			// A bare string (path) or array (inline definitions) IS the source
+			normalized.source = arguments.entry
+		}
+
+		validateSource( arguments.name, normalized.source )
+
+		// Snapshot what we store, so later edits to the caller's settings can't change a declaration.
+		// Inline definitions are plain data and get a deep copy. The actions/predicates maps and a
+		// struct source get a shallow copy only: their values can be closures or objects, which must
+		// never be duplicated.
+		if( isArray( normalized.source ) ){
+			normalized.source = duplicate( normalized.source, true )
+		} else if( isStruct( normalized.source ) ){
+			normalized.source = duplicate( normalized.source, false )
+		}
+		normalized.actions    = duplicate( normalized.actions, false )
+		normalized.predicates = duplicate( normalized.predicates, false )
+		// Fact declarations are plain data
+		normalized.facts      = duplicate( normalized.facts, true )
+
+		return normalized
+	}
+
+	/**
+	 * Check a declaration's source is a non-blank path string, an array of inline definition
+	 * structs, or a struct (db descriptor - its contents are validated when the book is built).
+	 * A string path is also resolved here, so one that escapes the app root fails fast.
+	 */
+	private void function validateSource( required string name, required any source ){
+		if( isSimpleValue( arguments.source ) ){
+			if( !len( trim( arguments.source ) ) ){
+				throwInvalidDeclaration( arguments.name, "it has no source (blank path); declare a 'source' or drop a file named '#arguments.name#.json' in the convention folder" )
+			}
+			toAppPath( arguments.source )
+		} else if( isArray( arguments.source ) ){
+			for( var definition in arguments.source ){
+				if( isNull( definition ) || !isStruct( definition ) ){
+					throwInvalidDeclaration( arguments.name, "inline rule definitions must all be structs" )
+				}
+			}
+		} else if( !isStruct( arguments.source ) ){
+			throwInvalidDeclaration( arguments.name, "its source must be a path string, an array of rule definitions, or a struct" )
+		}
+	}
+
+	/**
+	 * Throw the exception every declaration check uses, naming the rulebook and the problem.
+	 *
+	 * @name The declared rulebook name
+	 * @problem What is wrong with the declaration, phrased to follow "Invalid declaration for rulebook 'x': "
+	 *
+	 * @throws RuleBox.InvalidRuleBookDeclarationException Always
+	 */
+	private void function throwInvalidDeclaration( required string name, required string problem ){
+		throw(
+			type    = "RuleBox.InvalidRuleBookDeclarationException",
+			message = "Invalid declaration for rulebook '#arguments.name#': #arguments.problem#.",
+			detail  = "Declare it under moduleSettings.rulebox.rulebooks.#arguments.name# as a source file path, an array of inline rule definitions, or a struct { source, actions, predicates, description, facts, enforceFacts, strictFacts }."
+		)
+	}
+
+	/**
+	 * Resolve a definition's `source` value into a real rule source object.
+	 */
+	private any function resolveSource( required any source ){
+		if( isSimpleValue( arguments.source ) ){
+			var path = toAppPath( arguments.source )
+			if( path.reFindNoCase( "\.ya?ml$" ) ){
+				return wirebox.getInstance( name: "YAMLRuleSource@rulebox", initArguments: { filePath: path } )
+			}
+			return wirebox.getInstance( name: "JSONRuleSource@rulebox", initArguments: { filePath: path } )
+		}
+
+		if( isArray( arguments.source ) ){
+			// InlineRuleSource takes its own deep copy and hands out another on every load(), so the
+			// stored declaration is never shared with a RuleBook
+			return wirebox.getInstance( name: "InlineRuleSource@rulebox", initArguments: { definitions: arguments.source } )
+		}
+
+		if( isStruct( arguments.source ) && arguments.source.keyExists( "type" ) && arguments.source.type == "db" ){
+			var dbArgs = {}
+			for( var key, value in arguments.source ){
+				if( key != "type" ){
+					dbArgs[ key ] = value
+				}
+			}
+			return wirebox.getInstance( name: "DBRuleSource@rulebox", initArguments: dbArgs )
+		}
+
+		throw(
+			type    = "RuleBox.InvalidRuleBookSourceException",
+			message = "Could not resolve a rulebook source.",
+			detail  = "Received: #jsonSerialize( arguments.source )#"
+		)
+	}
+
+	/**
+	 * Resolve a configured path (e.g. "config/rulebox" or "config/rules/credit.json") to an
+	 * absolute one, so config authors never need to call expandPath() themselves.
+	 *
+	 * Rule: Windows drive ("C:\x", "C:/x") and UNC ("\\host\x", "//host/x") paths are used as
+	 * given, as is a "/..." path that exists on disk as written and is not found under the app
+	 * root. Everything else is relative to the app root - `.`/`..` are normalised lexically and a
+	 * path that climbs out of the root throws RuleBox.InvalidRuleBookPathException.
+	 */
+	private string function toAppPath( required string relativePath ){
+		var raw = arguments.relativePath.trim()
+
+		if( !raw.len() ){
+			throw( type = "RuleBox.InvalidRuleBookPathException", message = "A rulebook path cannot be blank." )
+		}
+
+		// Windows drive-letter or UNC path: absolute as given, never re-rooted or mangled
+		if( raw.reFind( "^([A-Za-z]:[\\/]|\\\\|//)" ) ){
+			return raw
+		}
+
+		var kept    = []
+		var hasDots = false
+		for( var segment in raw.replace( "\", "/", "all" ).listToArray( "/" ) ){
+			if( segment == "." ){
+				continue
+			}
+			if( segment == ".." ){
+				hasDots = true
+				if( !kept.len() ){
+					throw(
+						type    = "RuleBox.InvalidRuleBookPathException",
+						message = "The rulebook path '#raw#' resolves outside the application root.",
+						detail  = "Relative paths must stay inside the application root; use an absolute path to reach files elsewhere."
+					)
+				}
+				kept.deleteAt( kept.len() )
+			} else {
+				kept.append( segment )
+			}
+		}
+
+		var resolved = expandPath( "/" ).replace( "\", "/", "all" ).reReplace( "/+$", "" ) & "/" & kept.toList( "/" )
+
+		// A leading "/" is app-relative if that exists; otherwise a real absolute path on disk
+		if(
+			raw.left( 1 ) == "/" && !hasDots
+			&& !fileExists( resolved ) && !directoryExists( resolved )
+			&& ( fileExists( raw ) || directoryExists( raw ) )
+		){
+			return raw
+		}
+
+		return resolved
+	}
+
+}

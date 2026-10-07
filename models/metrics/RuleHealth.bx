@@ -1,0 +1,244 @@
+/**
+ * Turns a rule's evaluation counts into health figures: how many evaluations completed, how many
+ * failed, the completion and error rates, and the average duration. RuleBook's own metrics and every
+ * IMetricsStore report these the same way, so this is the one place the arithmetic lives.
+ *
+ * It also turns a caught exception into the error details RuleBox keeps (errorOf()), and keeps a
+ * rule's distinct errors deduplicated with a count (foldError()).
+ *
+ * A stateless static helper: call RuleHealth::of( countsByState, totalEvaluations, totalDurationMs ).
+ */
+class{
+
+	/**
+	 * Limits shared by everything that records rule health
+	 */
+	static {
+		// The longest error message kept for a FAILED evaluation (and for each cause), in characters
+		MAX_ERROR_MESSAGE_LENGTH = 500
+		// How many BoxLang stack frames are kept per error
+		MAX_STACK_FRAMES = 10
+		// How deep the "caused by" chain is followed
+		MAX_CAUSE_DEPTH = 5
+		// The longest raw Java stack trace kept per error, in characters
+		MAX_RAW_TRACE_LENGTH = 4000
+		// How many distinct errors a rule keeps; the least recently seen one is dropped beyond this
+		MAX_DISTINCT_ERRORS = 10
+	}
+
+	/**
+	 * Health figures for a set of evaluation counts. A completed evaluation is one that ended without
+	 * throwing (EXECUTED, SKIPPED or STOPPED); a failed one threw (FAILED). Rates are fractions from 0
+	 * to 1 and are 0 when there are no evaluations yet.
+	 *
+	 * @countsByState Evaluation counts keyed by RULE_STATES name
+	 * @totalEvaluations All evaluations counted
+	 * @totalDurationMs The summed duration of those evaluations, in milliseconds
+	 *
+	 * @return { completed, failed, completionRate, errorRate, avgDurationMs }
+	 */
+	static struct function of( required struct countsByState, required numeric totalEvaluations, required numeric totalDurationMs ){
+		var failed    = arguments.countsByState.FAILED ?: 0
+		var completed = ( arguments.countsByState.EXECUTED ?: 0 )
+			+ ( arguments.countsByState.SKIPPED ?: 0 )
+			+ ( arguments.countsByState.STOPPED ?: 0 )
+		var total     = arguments.totalEvaluations
+
+		return {
+			"completed"      : completed,
+			"failed"         : failed,
+			"completionRate" : total == 0 ? 0 : completed / total,
+			"errorRate"      : total == 0 ? 0 : failed / total,
+			"avgDurationMs"  : total == 0 ? 0 : arguments.totalDurationMs / total
+		}
+	}
+
+	/**
+	 * The rules that failed at least once, worst first: highest error rate, then most failures, then
+	 * most recently failed.
+	 *
+	 * @ruleMetrics IMetricsStore.queryRuleMetrics() structs, from any number of rulebooks
+	 * @limit How many to return
+	 *
+	 * @return At most limit of those structs
+	 */
+	static array function problemRules( required array ruleMetrics, numeric limit=5 ){
+		var ranked = arguments.ruleMetrics.filter( ( metrics ) => metrics.failed > 0 )
+		ranked.sort( ( a, b ) => {
+			if( a.errorRate != b.errorRate ){
+				return a.errorRate > b.errorRate ? -1 : 1
+			}
+			if( a.failed != b.failed ){
+				return a.failed > b.failed ? -1 : 1
+			}
+			return compare( b.lastError.at ?: "", a.lastError.at ?: "" )
+		} )
+		return static.firstOf( ranked, arguments.limit )
+	}
+
+	/**
+	 * The slowest rules that have run, slowest first: highest average duration, then highest maximum.
+	 *
+	 * @ruleMetrics IMetricsStore.queryRuleMetrics() structs, from any number of rulebooks
+	 * @limit How many to return
+	 *
+	 * @return At most limit of those structs
+	 */
+	static array function slowestRules( required array ruleMetrics, numeric limit=5 ){
+		var ranked = arguments.ruleMetrics.filter( ( metrics ) => metrics.totalEvaluations > 0 )
+		ranked.sort( ( a, b ) => {
+			if( a.avgDurationMs != b.avgDurationMs ){
+				return a.avgDurationMs > b.avgDurationMs ? -1 : 1
+			}
+			return a.maxDurationMs == b.maxDurationMs ? 0 : ( a.maxDurationMs > b.maxDurationMs ? -1 : 1 )
+		} )
+		return static.firstOf( ranked, arguments.limit )
+	}
+
+	/**
+	 * The first count items of an array, or all of them when there are fewer
+	 *
+	 * @items The array
+	 * @count How many to keep
+	 *
+	 * @return A new array
+	 */
+	private static array function firstOf( required array items, required numeric count ){
+		return arguments.items.len() > arguments.count ? arguments.items.slice( 1, arguments.count ) : arguments.items
+	}
+
+	/**
+	 * The error details kept for a FAILED evaluation, all trimmed:
+	 * - type (the Java class name for a Java exception) and message (cut to MAX_ERROR_MESSAGE_LENGTH characters)
+	 * - causedBy: the exception's cause chain, up to MAX_CAUSE_DEPTH deep, as { type, message }
+	 * - stackTrace: the BoxLang frames (your code only), up to MAX_STACK_FRAMES, as "function() template:line"
+	 * - rawStackTrace: the Java stack trace, cut to MAX_RAW_TRACE_LENGTH characters
+	 * - fingerprint: a hash of the type, message, causes and the rule's own frames: the frames thrown
+	 *   from before RuleBox's Rule.run(). Two failures with the same fingerprint are the same error, and
+	 *   foldError() counts them as one, whichever handler or request ran the rulebook.
+	 *
+	 * @error The caught exception
+	 *
+	 * @return { fingerprint, type, message, causedBy, stackTrace, rawStackTrace }
+	 */
+	static struct function errorOf( required any error ){
+		// A Java exception (a NumberFormatException, say) has no BoxLang type, so name it by its class
+		var type       = len( arguments.error.type ?: "" ) ? arguments.error.type : ( arguments.error.class?.getName() ?: "" )
+		var message    = static.trimText( arguments.error.message ?: "", static.MAX_ERROR_MESSAGE_LENGTH )
+		var context    = arguments.error.tagContext ?: []
+		var frames     = static.firstOf( static.formatFrames( context ), static.MAX_STACK_FRAMES )
+		var causedBy   = static.causesOf( arguments.error )
+		var causeLines = causedBy.map( ( cause ) => cause.type & ": " & cause.message )
+		var ownFrames  = static.firstOf( static.formatFrames( static.ruleOwnFrames( context ) ), static.MAX_STACK_FRAMES )
+		return {
+			"fingerprint"   : hash( [ type, message, ownFrames.toList( char( 10 ) ), causeLines.toList( char( 10 ) ) ].toList( char( 30 ) ) ),
+			"type"          : type,
+			"message"       : message,
+			"causedBy"      : causedBy,
+			"stackTrace"    : frames,
+			"rawStackTrace" : static.trimText( arguments.error.stackTrace ?: "", static.MAX_RAW_TRACE_LENGTH )
+		}
+	}
+
+	/**
+	 * Count one occurrence of an error in a rule's list of distinct errors. The same fingerprint is
+	 * never added twice: a repeat bumps its count and lastAt and moves it to the front. A new error goes
+	 * to the front, and the least recently seen one is dropped once there are more than
+	 * MAX_DISTINCT_ERRORS.
+	 *
+	 * @errors The rule's distinct errors, most recently seen first. Changed in place.
+	 * @error An errorOf() struct
+	 * @at When this occurrence happened
+	 *
+	 * @return The stored entry: the errorOf() fields plus { count, firstAt, lastAt }
+	 */
+	static struct function foldError( required array errors, required struct error, required any at ){
+		var entry = null
+		for( var existing, index in arguments.errors ){
+			if( existing.fingerprint == arguments.error.fingerprint ){
+				entry = existing
+				arguments.errors.deleteAt( index )
+				break
+			}
+		}
+		if( isNull( entry ) ){
+			entry = arguments.error.copy().append( { "count" : 0, "firstAt" : arguments.at } )
+		}
+		entry.count++
+		entry.lastAt = arguments.at
+		arguments.errors.prepend( entry )
+		while( arguments.errors.len() > static.MAX_DISTINCT_ERRORS ){
+			arguments.errors.deleteAt( arguments.errors.len() )
+		}
+		return entry
+	}
+
+	/**
+	 * BoxLang tag context frames as "function() template:line" (or "template:line" outside a function)
+	 *
+	 * @context Tag context frames, innermost first
+	 *
+	 * @return One string per frame
+	 */
+	private static array function formatFrames( required array context ){
+		return arguments.context.map( ( frame ) => {
+			var where = ( frame.template ?: "" ) & ":" & ( frame.line ?: "" )
+			return len( frame.function ?: "" ) ? frame.function & "() " & where : where
+		} )
+	}
+
+	/**
+	 * The frames of a rule's own code: everything thrown from before RuleBox's Rule.bx, which ran the
+	 * rule. The frames after it (RuleBook.run() and whatever called it) are left out, so the same
+	 * failure counts as one error from any caller. Without a Rule.bx frame, every frame counts.
+	 *
+	 * @context Tag context frames, innermost first
+	 *
+	 * @return The frames before the first Rule.bx frame
+	 */
+	private static array function ruleOwnFrames( required array context ){
+		var ruleTemplate = ( getDirectoryFromPath( getCurrentTemplatePath() ).reReplace( "metrics[\\/]$", "" ) & "Rule.bx" ).replace( "\", "/", "all" )
+		for( var frame, index in arguments.context ){
+			if( ( frame.template ?: "" ).replace( "\", "/", "all" ) == ruleTemplate ){
+				return index == 1 ? [] : arguments.context.slice( 1, index - 1 )
+			}
+		}
+		return arguments.context
+	}
+
+	/**
+	 * The "caused by" chain of an exception. A cause is a BoxLang exception struct, or a Java Throwable
+	 * when the error came from Java.
+	 *
+	 * @error The caught exception
+	 *
+	 * @return At most MAX_CAUSE_DEPTH { type, message } structs, outermost first
+	 */
+	private static array function causesOf( required any error ){
+		var causes  = []
+		var current = arguments.error.cause ?: null
+		while( !isNull( current ) && causes.len() < static.MAX_CAUSE_DEPTH ){
+			if( isStruct( current ) ){
+				causes.append( { "type" : current.type ?: "", "message" : static.trimText( current.message ?: "", static.MAX_ERROR_MESSAGE_LENGTH ) } )
+				current = current.cause ?: null
+			} else {
+				causes.append( { "type" : current.getClass().getName(), "message" : static.trimText( current.getMessage() ?: "", static.MAX_ERROR_MESSAGE_LENGTH ) } )
+				current = current.getCause()
+			}
+		}
+		return causes
+	}
+
+	/**
+	 * A string cut to a maximum length
+	 *
+	 * @text The string
+	 * @maxLength The most characters to keep
+	 *
+	 * @return The string, or its first maxLength characters
+	 */
+	private static string function trimText( required string text, required numeric maxLength ){
+		return arguments.text.len() > arguments.maxLength ? arguments.text.left( arguments.maxLength ) : arguments.text
+	}
+
+}

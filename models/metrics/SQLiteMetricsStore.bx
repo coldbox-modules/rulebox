@@ -1,0 +1,711 @@
+/**
+ * Opt-in persistent IMetricsStore for the Rule Visualizer: persists rule-evaluation events to a
+ * SQLite table via the bx-sqlite module, so metrics/stats survive a restart. (The default store is
+ * InMemoryMetricsStore@rulebox; point visualizer.metricsStore at "SQLiteMetricsStore@rulebox" to opt in.)
+ *
+ * Requires the bx-sqlite BoxLang module and a datasource registered under
+ * moduleSettings.rulebox.visualizer.datasourceName (default "rulebox_visualizer"). Neither is
+ * installed/declared by RuleBox itself - see the "Rule Visualizer" guide for setup.
+ *
+ * Hardening:
+ * - Circuit breaker: after visualizer.circuitBreakerThreshold (5) consecutive failures the store
+ *   stops touching the database for visualizer.circuitBreakerCooldownSeconds (60), logging ONE error
+ *   when it opens and one info line when it recovers. While open, recordEvent() is a cheap no-op.
+ * - Schema: a failed schema create is remembered and re-attempted by the next recordEvent().
+ *   An index on (rulebookName, ruleName, id) backs the per-rule metrics queries. A table created by
+ *   an older RuleBox gets the errorType/errorMessage/errorFingerprint columns added in place on startup.
+ * - Errors: each distinct error of a rule is ONE row in rulebox_errors (keyed by its fingerprint) with a
+ *   count; a repeat is an upsert that bumps the count. Event rows carry only the fingerprint, never the
+ *   trace. A rule keeps its RuleHealth MAX_DISTINCT_ERRORS most recently seen errors.
+ * - Retention: visualizer.retentionDays (30) and visualizer.maxStoredEvents (100000) are enforced
+ *   by a cheap DELETE every pruneEvery (500) inserts - never on every insert. 0 disables either.
+ * - recordEvent() still performs a synchronous INSERT on the calling thread (a documented trade-off).
+ *
+ * Swap this out entirely via moduleSettings.rulebox.visualizer.metricsStore.
+ */
+@singleton
+@threadsafe
+class implements="IMetricsStore"{
+
+	@inject( "coldbox:moduleSettings:rulebox" )
+	property name="settings" type="struct";
+
+	@inject( "logbox:logger:{this}" )
+	property name="logger";
+
+	/**
+	 * The datasource events are written to, read from visualizer.datasourceName in onDIComplete()
+	 */
+	property name="datasourceName" type="string";
+
+	/**
+	 * Consecutive failures that open the circuit, from visualizer.circuitBreakerThreshold
+	 */
+	property name="breakerThreshold" type="numeric" default="5";
+
+	/**
+	 * How long the circuit stays open before a trial insert, in milliseconds, from
+	 * visualizer.circuitBreakerCooldownSeconds
+	 */
+	property name="breakerCooldownMs" type="numeric" default="60000";
+
+	/**
+	 * Prune events older than this many days, from visualizer.retentionDays. 0 disables it.
+	 */
+	property name="retentionDays" type="numeric" default="30";
+
+	/**
+	 * Keep at most this many rows, from visualizer.maxStoredEvents. 0 disables it.
+	 */
+	property name="maxStoredEvents" type="numeric" default="100000";
+
+	/**
+	 * Run the retention DELETE once per this many successful inserts
+	 */
+	property name="pruneEvery" type="numeric" default="500";
+
+	/**
+	 * Has the events table and its index been created? A failed create is retried by the next recordEvent().
+	 */
+	property name="schemaReady" type="boolean" default="false";
+
+	/**
+	 * Failures in a row since the last successful database call
+	 */
+	property name="consecutiveFailures" type="numeric" default="0";
+
+	/**
+	 * Is the circuit open (tripped and not yet recovered)?
+	 */
+	property name="circuitOpen" type="boolean" default="false";
+
+	/**
+	 * When the circuit opened, or when the last trial was claimed, in milliseconds
+	 */
+	property name="circuitOpenedAt" type="numeric" default="0";
+
+	/**
+	 * Successful inserts since the last retention prune
+	 */
+	property name="insertsSincePrune" type="numeric" default="0";
+
+	/**
+	 * The message of the most recent database failure
+	 */
+	property name="lastError" type="string" default="";
+
+	/**
+	 * Executes SQL: ( sql, params, options ) => result. Null means queryExecute() against the configured
+	 * datasource. Set it with setSqlRunner() to unit-test the breaker and retention logic.
+	 */
+	property name="sqlRunner" type="function";
+
+	/**
+	 * The circuit breaker's clock: () => epoch milliseconds. Null means getTickCount(). Set it with
+	 * setClock() to unit-test the cool-down.
+	 */
+	property name="clock" type="function";
+
+	/**
+	 * Read the visualizer settings (already filled and validated by ModuleConfig) and create the schema
+	 *
+	 * @return This store
+	 */
+	function onDIComplete(){
+		var viz = variables.settings.visualizer
+		variables.datasourceName    = viz.datasourceName
+		variables.breakerThreshold  = viz.circuitBreakerThreshold
+		variables.breakerCooldownMs = viz.circuitBreakerCooldownSeconds * 1000
+		variables.retentionDays     = viz.retentionDays
+		variables.maxStoredEvents   = viz.maxStoredEvents
+		ensureSchema( true )
+		return this
+	}
+
+	/**
+	 * May we touch the database right now? Always true while closed. While open it is false until the
+	 * cool-down elapses, then true for exactly one caller (which becomes the trial) per cool-down.
+	 */
+	boolean function canAttempt(){
+		if( !variables.circuitOpen ){
+			return true
+		}
+		var allowed = false
+		lock name="rulebox_sqlite_store_state" type="exclusive" timeout="5"{
+			var now = nowMillis()
+			if( variables.circuitOpen && ( now - variables.circuitOpenedAt ) >= variables.breakerCooldownMs ){
+				// Claim the trial; others stay shut out until the next cool-down or until we close it
+				variables.circuitOpenedAt = now
+				allowed = true
+			} else {
+				allowed = !variables.circuitOpen
+			}
+		}
+		return allowed
+	}
+
+	/**
+	 * Count one failure; opens the circuit (logging ONE error) at the threshold.
+	 */
+	void function recordFailure( required string message ){
+		lock name="rulebox_sqlite_store_state" type="exclusive" timeout="5"{
+			variables.consecutiveFailures++
+			variables.lastError = arguments.message
+			if( variables.circuitOpen ){
+				// A failed trial: stay open for another cool-down, quietly
+				variables.circuitOpenedAt = nowMillis()
+			} else if( variables.consecutiveFailures >= variables.breakerThreshold ){
+				variables.circuitOpen     = true
+				variables.circuitOpenedAt = nowMillis()
+				logger.error(
+					"RuleBox SQLiteMetricsStore: #variables.consecutiveFailures# consecutive failures on datasource '#variables.datasourceName#'; pausing metric persistence for #variables.breakerCooldownMs / 1000# seconds (live broadcast is unaffected). Last error: #arguments.message#"
+				)
+			} else {
+				logger.debug( "RuleBox SQLiteMetricsStore failure #variables.consecutiveFailures#/#variables.breakerThreshold#: #arguments.message#" )
+			}
+		}
+	}
+
+	/**
+	 * Reset the failure count; closes the circuit (logging one info line) if it was open.
+	 */
+	void function recordSuccess(){
+		if( variables.consecutiveFailures == 0 && !variables.circuitOpen ){
+			return
+		}
+		lock name="rulebox_sqlite_store_state" type="exclusive" timeout="5"{
+			var wasOpen = variables.circuitOpen
+			variables.consecutiveFailures = 0
+			variables.circuitOpen         = false
+			variables.lastError           = ""
+			if( wasOpen ){
+				logger.info( "RuleBox SQLiteMetricsStore recovered on datasource '#variables.datasourceName#'; resuming metric persistence." )
+			}
+		}
+	}
+
+	/**
+	 * Count one successful insert and report whether the retention prune is due (every pruneEvery
+	 * inserts). Always false when both retention limits are disabled.
+	 */
+	boolean function shouldPrune(){
+		if( variables.retentionDays <= 0 && variables.maxStoredEvents <= 0 ){
+			return false
+		}
+		var due = false
+		lock name="rulebox_sqlite_store_state" type="exclusive" timeout="5"{
+			variables.insertsSincePrune++
+			if( variables.insertsSincePrune >= variables.pruneEvery ){
+				variables.insertsSincePrune = 0
+				due = true
+			}
+		}
+		return due
+	}
+
+	/**
+	 * The DDL ensureSchema() runs: the events table, the index backing the per-rule metrics queries,
+	 * and the distinct-errors table.
+	 *
+	 * @return An array of SQL statements
+	 */
+	array function getSchemaStatements(){
+		return [
+			"
+			CREATE TABLE IF NOT EXISTS rulebox_events (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				rulebookName TEXT NOT NULL,
+				ruleName TEXT NOT NULL,
+				state TEXT NOT NULL,
+				durationMs REAL NOT NULL,
+				timestamp TEXT NOT NULL,
+				errorType TEXT,
+				errorMessage TEXT,
+				errorFingerprint TEXT
+			)
+			",
+			"CREATE INDEX IF NOT EXISTS idx_rulebox_events_rule ON rulebox_events ( rulebookName, ruleName, id )",
+			"
+			CREATE TABLE IF NOT EXISTS rulebox_errors (
+				rulebookName TEXT NOT NULL,
+				ruleName TEXT NOT NULL,
+				fingerprint TEXT NOT NULL,
+				errorType TEXT NOT NULL,
+				errorMessage TEXT,
+				causedBy TEXT,
+				stackTrace TEXT,
+				rawStackTrace TEXT,
+				occurrences INTEGER NOT NULL,
+				firstAt TEXT NOT NULL,
+				lastAt TEXT NOT NULL,
+				PRIMARY KEY ( rulebookName, ruleName, fingerprint )
+			)
+			"
+		]
+	}
+
+	/**
+	 * The ALTERs that bring a table created by an older RuleBox up to date: one per error column it lacks.
+	 *
+	 * @existingColumns The column names the table has now
+	 *
+	 * @return An array of SQL statements, empty when nothing is missing
+	 */
+	array function buildUpgradeStatements( required array existingColumns ){
+		var have = arguments.existingColumns.map( ( name ) => lCase( name ) )
+		return [ "errorType", "errorMessage", "errorFingerprint" ]
+			.filter( ( column ) => !have.contains( lCase( column ) ) )
+			.map( ( column ) => "ALTER TABLE rulebox_events ADD COLUMN #column# TEXT" )
+	}
+
+	/**
+	 * The retention DELETEs for the configured limits, as [ { sql, params } ].
+	 *
+	 * @asOf The reference "now" for retentionDays (injectable for tests)
+	 */
+	array function buildPruneStatements( date asOf=now() ){
+		var statements = []
+		if( variables.maxStoredEvents > 0 ){
+			// ids only grow, so "everything older than the newest N ids" is a cheap primary-key range delete
+			statements.append( {
+				sql    : "DELETE FROM rulebox_events WHERE id <= ( SELECT MAX( id ) FROM rulebox_events ) - :maxEvents",
+				params : { maxEvents: { value: variables.maxStoredEvents, cfsqltype: "integer" } }
+			} )
+		}
+		if( variables.retentionDays > 0 ){
+			var cutoff = dateTimeFormat( dateAdd( "d", -variables.retentionDays, arguments.asOf ), "yyyy-MM-dd'T'HH:mm:ss" )
+			statements.append( {
+				sql    : "DELETE FROM rulebox_events WHERE timestamp < :cutoff",
+				params : { cutoff: { value: cutoff, cfsqltype: "varchar" } }
+			} )
+			statements.append( {
+				sql    : "DELETE FROM rulebox_errors WHERE lastAt < :cutoff",
+				params : { cutoff: { value: cutoff, cfsqltype: "varchar" } }
+			} )
+		}
+		return statements
+	}
+
+	/**
+	 * The statements that count one FAILED event's error: an upsert that inserts the error the first time
+	 * its fingerprint is seen for the rule and only bumps occurrences and lastAt after that, then a DELETE
+	 * that keeps the rule's RuleHealth MAX_DISTINCT_ERRORS most recently seen errors.
+	 *
+	 * @event A FAILED event with the error fields
+	 *
+	 * @return An array of { sql, params }
+	 */
+	array function buildErrorStatements( required struct event ){
+		var rule = {
+			rulebookName : { value: arguments.event.rulebookName, cfsqltype: "varchar" },
+			ruleName     : { value: arguments.event.ruleName, cfsqltype: "varchar" }
+		}
+		return [
+			{
+				sql    : "
+					INSERT INTO rulebox_errors ( rulebookName, ruleName, fingerprint, errorType, errorMessage, causedBy, stackTrace, rawStackTrace, occurrences, firstAt, lastAt )
+					VALUES ( :rulebookName, :ruleName, :fingerprint, :errorType, :errorMessage, :causedBy, :stackTrace, :rawStackTrace, 1, :at, :at )
+					ON CONFLICT ( rulebookName, ruleName, fingerprint ) DO UPDATE SET occurrences = occurrences + 1, lastAt = excluded.lastAt
+				",
+				params : rule.copy().append( {
+					fingerprint   : { value: arguments.event.errorFingerprint, cfsqltype: "varchar" },
+					errorType     : { value: arguments.event.errorType ?: "", cfsqltype: "varchar" },
+					errorMessage  : { value: arguments.event.errorMessage ?: "", cfsqltype: "varchar" },
+					causedBy      : { value: jsonSerialize( arguments.event.errorCausedBy ?: [] ), cfsqltype: "varchar" },
+					stackTrace    : { value: jsonSerialize( arguments.event.errorStackTrace ?: [] ), cfsqltype: "varchar" },
+					rawStackTrace : { value: arguments.event.errorRawStackTrace ?: "", cfsqltype: "varchar" },
+					at            : { value: arguments.event.timestamp, cfsqltype: "varchar" }
+				} )
+			},
+			{
+				sql    : "
+					DELETE FROM rulebox_errors
+					WHERE rulebookName = :rulebookName AND ruleName = :ruleName AND fingerprint NOT IN (
+						SELECT fingerprint FROM rulebox_errors
+						WHERE rulebookName = :rulebookName AND ruleName = :ruleName
+						ORDER BY lastAt DESC, rowid DESC LIMIT :keep
+					)
+				",
+				params : rule.copy().append( { keep: { value: RuleHealth::MAX_DISTINCT_ERRORS, cfsqltype: "integer" } } )
+			}
+		]
+	}
+
+	/**
+	 * Run the retention DELETEs. A prune failure is logged but never trips the breaker.
+	 */
+	void function prune(){
+		try{
+			var statements = buildPruneStatements()
+			for( var stmt in statements ){
+				runSql( stmt.sql, stmt.params )
+			}
+		} catch( any e ){
+			logger.warn( "RuleBox SQLiteMetricsStore could not prune old events: #e.message# #e.detail#" )
+		}
+	}
+
+	/**
+	 * Create the table/index if needed. A failure is remembered (schemaReady=false) and counts toward
+	 * the breaker; recordEvent() re-attempts it before inserting.
+	 *
+	 * @initial True from onDIComplete(): log a warning (later retries stay quiet until the breaker opens)
+	 */
+	private boolean function ensureSchema( boolean initial=false ){
+		try{
+			var statements = getSchemaStatements()
+			for( var sql in statements ){
+				runSql( sql )
+			}
+			var columns = runSql( "SELECT name FROM pragma_table_info( 'rulebox_events' )", {}, { returnType: "array" } ) ?: []
+			for( var sql in buildUpgradeStatements( columns.map( ( row ) => row.name ) ) ){
+				runSql( sql )
+			}
+			variables.schemaReady = true
+			return true
+		} catch( any e ){
+			variables.schemaReady = false
+			var msg = "#e.message# #e.detail#"
+			if( arguments.initial ){
+				logger.warn(
+					"RuleBox visualizer could not create/verify its SQLite schema on datasource '#variables.datasourceName#'; will retry when the next event is recorded. Is the bx-sqlite module installed and is that datasource registered? #msg#"
+				)
+			}
+			recordFailure( msg )
+			return false
+		}
+	}
+
+	/**
+	 * Persist one rule-evaluation event. A no-op while the circuit is open.
+	 *
+	 * @event { rulebookName, ruleName, state, durationMs, timestamp }, plus the RuleHealth::errorOf() fields
+	 *        as errorType, errorMessage, errorFingerprint, errorCausedBy, errorStackTrace, errorRawStackTrace on FAILED
+	 */
+	void function recordEvent( required struct event ){
+		if( !canAttempt() ){
+			return
+		}
+
+		if( !variables.schemaReady && !ensureSchema() ){
+			return
+		}
+
+		try{
+			runSql(
+				"INSERT INTO rulebox_events ( rulebookName, ruleName, state, durationMs, timestamp, errorType, errorMessage, errorFingerprint ) VALUES ( :rulebookName, :ruleName, :state, :durationMs, :timestamp, :errorType, :errorMessage, :errorFingerprint )",
+				{
+					rulebookName : { value: arguments.event.rulebookName, cfsqltype: "varchar" },
+					ruleName     : { value: arguments.event.ruleName, cfsqltype: "varchar" },
+					state        : { value: arguments.event.state, cfsqltype: "varchar" },
+					durationMs   : { value: arguments.event.durationMs, cfsqltype: "double" },
+					timestamp    : { value: arguments.event.timestamp, cfsqltype: "varchar" },
+					errorType    : { value: arguments.event.errorType ?: "", cfsqltype: "varchar", null: isNull( arguments.event.errorType ) },
+					errorMessage : { value: arguments.event.errorMessage ?: "", cfsqltype: "varchar", null: isNull( arguments.event.errorMessage ) },
+					errorFingerprint : { value: arguments.event.errorFingerprint ?: "", cfsqltype: "varchar", null: isNull( arguments.event.errorFingerprint ) }
+				}
+			)
+			if( arguments.event.state == "FAILED" && !isNull( arguments.event.errorFingerprint ) ){
+				for( var stmt in buildErrorStatements( arguments.event ) ){
+					runSql( stmt.sql, stmt.params )
+				}
+			}
+		} catch( any e ){
+			recordFailure( "#e.message# #e.detail#" )
+			return
+		}
+
+		recordSuccess()
+		if( shouldPrune() ){
+			prune()
+		}
+	}
+
+	/**
+	 * The current time in milliseconds, from the injected clock when there is one.
+	 */
+	private numeric function nowMillis(){
+		return isNull( variables.clock ) ? getTickCount() : variables.clock()
+	}
+
+	/**
+	 * Execute SQL through the injected runner when there is one, else queryExecute() on the configured datasource.
+	 *
+	 * @sql The SQL statement
+	 * @params Query parameters
+	 * @options Extra queryExecute options, such as returnType (the datasource is always the configured one)
+	 *
+	 * @return The query result, or whatever the injected runner returns
+	 */
+	private any function runSql( required string sql, struct params={}, struct options={} ){
+		if( !isNull( variables.sqlRunner ) ){
+			return variables.sqlRunner( arguments.sql, arguments.params, arguments.options )
+		}
+		var queryOptions = arguments.options.copy()
+		queryOptions[ "datasource" ] = variables.datasourceName
+		return queryExecute( arguments.sql, arguments.params, queryOptions )
+	}
+
+	/**
+	 * Return recorded events, newest first.
+	 *
+	 * @filters Optional filters: { rulebookName }
+	 * @limit Max rows to return
+	 *
+	 * @return An array of { rulebookName, ruleName, state, durationMs, timestamp } structs, plus
+	 *         { errorType, errorMessage, errorFingerprint } on FAILED events
+	 */
+	array function queryEvents( struct filters={}, numeric limit=50 ){
+		var whereClause = arguments.filters.keyExists( "rulebookName" ) ? "WHERE rulebookName = :rulebookName" : ""
+		var params = { limit: { value: arguments.limit, cfsqltype: "integer" } }
+		if( arguments.filters.keyExists( "rulebookName" ) ){
+			params[ "rulebookName" ] = { value: arguments.filters.rulebookName, cfsqltype: "varchar" }
+		}
+
+		var events = queryExecute(
+			"SELECT rulebookName, ruleName, state, durationMs, timestamp, errorType, errorMessage, errorFingerprint FROM rulebox_events #whereClause# ORDER BY id DESC LIMIT :limit",
+			params,
+			{ datasource: variables.datasourceName, returnType: "array" }
+		)
+
+		// Only FAILED events carry the error fields, as in every other store
+		for( var event in events ){
+			if( !len( event.errorType ?: "" ) ){
+				event.delete( "errorType" )
+				event.delete( "errorMessage" )
+				event.delete( "errorFingerprint" )
+			}
+		}
+		return events
+	}
+
+	/**
+	 * Aggregated stats for one rulebook across all its recorded rules.
+	 *
+	 * @rulebookName The rulebook to summarize
+	 *
+	 * @return { rulebookName, totalEvaluations, countsByState, avgDurationMs, totalDurationMs,
+	 *         completed, failed, completionRate, errorRate }
+	 */
+	struct function queryRuleBookSummary( required string rulebookName ){
+		var q = queryExecute(
+			"
+			SELECT state, COUNT(*) AS eventCount, SUM(durationMs) AS totalDurationMs
+			FROM rulebox_events
+			WHERE rulebookName = :rulebookName
+			GROUP BY state
+			",
+			{ rulebookName: { value: arguments.rulebookName, cfsqltype: "varchar" } },
+			{ datasource: variables.datasourceName, returnType: "array" }
+		)
+
+		return aggregate( q, { rulebookName: arguments.rulebookName } )
+	}
+
+	/**
+	 * Aggregated stats for a single rule within a rulebook.
+	 *
+	 * @rulebookName The rule's owning rulebook
+	 * @ruleName The rule to summarize
+	 *
+	 * @return { rulebookName, ruleName, totalEvaluations, countsByState, avgDurationMs, minDurationMs, maxDurationMs,
+	 *         lastRunAt, completed, failed, completionRate, errorRate, lastError? }
+	 */
+	struct function queryRuleMetrics( required string rulebookName, required string ruleName ){
+		var summaries = ruleSummaries( arguments.rulebookName, arguments.ruleName )
+		return summaries[ arguments.ruleName ] ?: ruleSummary( arguments.rulebookName, arguments.ruleName, [] )
+	}
+
+	/**
+	 * Aggregated stats for every rule of a rulebook that has at least one recorded event.
+	 *
+	 * @rulebookName The rulebook whose rules to summarize
+	 *
+	 * @return An array of queryRuleMetrics() structs, one per rule
+	 */
+	array function queryAllRuleMetrics( required string rulebookName ){
+		return ruleSummaries( arguments.rulebookName ).valueArray()
+	}
+
+	/**
+	 * A rule's distinct errors, most recently seen first. Each is one row with a count.
+	 *
+	 * @rulebookName The rule's owning rulebook
+	 * @ruleName The rule
+	 * @limit Max errors to return
+	 *
+	 * @return An array of { fingerprint, type, message, causedBy, stackTrace, rawStackTrace, count, firstAt, lastAt }
+	 */
+	array function queryRuleErrors( required string rulebookName, required string ruleName, numeric limit=10 ){
+		var rows = queryExecute(
+			"
+			SELECT fingerprint, errorType, errorMessage, causedBy, stackTrace, rawStackTrace, occurrences, firstAt, lastAt
+			FROM rulebox_errors
+			WHERE rulebookName = :rulebookName AND ruleName = :ruleName
+			ORDER BY lastAt DESC, rowid DESC
+			LIMIT :limit
+			",
+			{
+				rulebookName : { value: arguments.rulebookName, cfsqltype: "varchar" },
+				ruleName     : { value: arguments.ruleName, cfsqltype: "varchar" },
+				limit        : { value: arguments.limit, cfsqltype: "integer" }
+			},
+			{ datasource: variables.datasourceName, returnType: "array" }
+		)
+		return rows.map( ( row ) => {
+			return {
+				"fingerprint"   : row.fingerprint,
+				"type"          : row.errorType,
+				"message"       : row.errorMessage ?: "",
+				"causedBy"      : len( row.causedBy ?: "" ) ? jsonDeserialize( row.causedBy ) : [],
+				"stackTrace"    : len( row.stackTrace ?: "" ) ? jsonDeserialize( row.stackTrace ) : [],
+				"rawStackTrace" : row.rawStackTrace ?: "",
+				"count"         : row.occurrences,
+				"firstAt"       : row.firstAt,
+				"lastAt"        : row.lastAt
+			}
+		} )
+	}
+
+	/**
+	 * Every distinct rulebook name that has at least one recorded event.
+	 *
+	 * @return An array of rulebook names
+	 */
+	array function queryRuleBookNames(){
+		var q = queryExecute(
+			"SELECT DISTINCT rulebookName FROM rulebox_events ORDER BY rulebookName",
+			{},
+			{ datasource: variables.datasourceName, returnType: "array" }
+		)
+		return q.map( ( row ) => row.rulebookName )
+	}
+
+	/**
+	 * Clear every recorded event.
+	 */
+	void function reset(){
+		queryExecute( "DELETE FROM rulebox_events", {}, { datasource: variables.datasourceName } )
+		queryExecute( "DELETE FROM rulebox_errors", {}, { datasource: variables.datasourceName } )
+	}
+
+	/**
+	 * Per-rule summaries for a rulebook in three grouped queries (counts and durations by state, the last
+	 * run, the last FAILED evaluation with an error), all served by the (rulebookName, ruleName, id) index.
+	 *
+	 * @rulebookName The rulebook whose rules to summarize
+	 * @ruleName Only this rule, or every rule when empty
+	 *
+	 * @return queryRuleMetrics() structs keyed by rule name
+	 */
+	private struct function ruleSummaries( required string rulebookName, string ruleName="" ){
+		var ruleFilter = len( arguments.ruleName ) ? "AND ruleName = :ruleName" : ""
+		var params = { rulebookName: { value: arguments.rulebookName, cfsqltype: "varchar" } }
+		if( len( arguments.ruleName ) ){
+			params[ "ruleName" ] = { value: arguments.ruleName, cfsqltype: "varchar" }
+		}
+		var options = { datasource: variables.datasourceName, returnType: "array" }
+
+		var stateRows = queryExecute(
+			"
+			SELECT ruleName, state, COUNT(*) AS eventCount, SUM(durationMs) AS totalDurationMs, MIN(durationMs) AS minDurationMs, MAX(durationMs) AS maxDurationMs
+			FROM rulebox_events
+			WHERE rulebookName = :rulebookName #ruleFilter#
+			GROUP BY ruleName, state
+			",
+			params,
+			options
+		)
+		var lastRuns = queryExecute(
+			"
+			SELECT e.ruleName, e.timestamp
+			FROM rulebox_events e
+			JOIN ( SELECT MAX(id) AS lastId FROM rulebox_events WHERE rulebookName = :rulebookName #ruleFilter# GROUP BY ruleName ) newest ON e.id = newest.lastId
+			",
+			params,
+			options
+		)
+		var lastErrors = queryExecute(
+			"
+			SELECT e.ruleName, e.errorType, e.errorMessage, e.errorFingerprint, e.timestamp
+			FROM rulebox_events e
+			JOIN (
+				SELECT MAX(id) AS lastId FROM rulebox_events
+				WHERE rulebookName = :rulebookName #ruleFilter# AND state = 'FAILED' AND errorType IS NOT NULL
+				GROUP BY ruleName
+			) newest ON e.id = newest.lastId
+			",
+			params,
+			options
+		)
+
+		var rowsByRule = {}
+		for( var row in stateRows ){
+			rowsByRule[ row.ruleName ] = rowsByRule[ row.ruleName ] ?: []
+			rowsByRule[ row.ruleName ].append( row )
+		}
+		var summaries = {}
+		for( var name, rows in rowsByRule ){
+			summaries[ name ] = ruleSummary( arguments.rulebookName, name, rows )
+		}
+		// An event recorded between these queries can name a rule the first query didn't see; skip it
+		for( var row in lastRuns ){
+			if( summaries.keyExists( row.ruleName ) ){
+				summaries[ row.ruleName ].lastRunAt = row.timestamp
+			}
+		}
+		for( var row in lastErrors ){
+			if( summaries.keyExists( row.ruleName ) ){
+				summaries[ row.ruleName ].lastError = { "type": row.errorType, "message": row.errorMessage ?: "", "at": row.timestamp, "fingerprint": row.errorFingerprint ?: "" }
+			}
+		}
+		return summaries
+	}
+
+	/**
+	 * One rule's summary from its { state, eventCount, totalDurationMs, minDurationMs, maxDurationMs } rows.
+	 * lastRunAt starts empty and lastError absent; ruleSummaries() fills them in.
+	 *
+	 * @rulebookName The rule's owning rulebook
+	 * @ruleName The rule
+	 * @rows The rule's grouped rows, one per state (empty for a rule with no events)
+	 *
+	 * @return A queryRuleMetrics() struct
+	 */
+	private struct function ruleSummary( required string rulebookName, required string ruleName, required array rows ){
+		var summary = aggregate( arguments.rows, { rulebookName: arguments.rulebookName, ruleName: arguments.ruleName } )
+		summary[ "minDurationMs" ] = arguments.rows.isEmpty() ? 0 : arguments.rows.map( ( row ) => row.minDurationMs ).min()
+		summary[ "maxDurationMs" ] = arguments.rows.isEmpty() ? 0 : arguments.rows.map( ( row ) => row.maxDurationMs ).max()
+		summary[ "lastRunAt" ]     = ""
+		return summary
+	}
+
+	/**
+	 * Turn a { state, eventCount, totalDurationMs } grouped result set into the shared summary shape:
+	 * the counts, the total duration and the RuleHealth figures.
+	 *
+	 * @rows The grouped rows, one per state
+	 * @identity The keys that name what is summarized ({ rulebookName } or { rulebookName, ruleName })
+	 *
+	 * @return The summary struct
+	 */
+	private struct function aggregate( required array rows, required struct identity ){
+		var countsByState   = {}
+		var totalEvaluations = 0
+		var totalDurationMs  = 0
+
+		arguments.rows.each( ( row ) => {
+			countsByState[ row.state ] = row.eventCount
+			totalEvaluations += row.eventCount
+			totalDurationMs  += row.totalDurationMs
+		} )
+
+		var summary = arguments.identity.copy()
+		summary[ "totalEvaluations" ] = totalEvaluations
+		summary[ "countsByState" ]    = countsByState
+		summary[ "totalDurationMs" ]  = totalDurationMs
+		summary.append( RuleHealth::of( countsByState, totalEvaluations, totalDurationMs ) )
+		return summary
+	}
+
+}

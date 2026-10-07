@@ -1,0 +1,47 @@
+/**
+ * A pesudo static class to build rule books and rules.
+ */
+@singleton
+@threadsafe
+class{
+
+	/**
+	 * ---------------------------------------------
+	 * DI Injections
+	 * ---------------------------------------------
+	 */
+
+	@inject( "wirebox" )
+	property name="wirebox";
+
+	/**
+	 * Constructor
+	 */
+	function init(){
+		return this
+	}
+
+
+	/**
+	 * Create a new Rule Book
+	 *
+	 * @name Give the rulebook a name
+	 *
+	 * @return A RuleBook instance
+	 */
+	RuleBook function rulebook( string name="" ){
+		return wirebox.getInstance( name: "RuleBook@rulebox", initArguments:{ name = arguments.name } )
+	}
+
+	/**
+	 * Create a new Rule
+	 *
+	 * @name Give the rule a name, this is optional
+	 *
+	 * @return A Rule instance
+	 */
+	Rule function rule( string name ){
+		return wirebox.getInstance( name: "Rule@rulebox", initArguments: arguments )
+	}
+
+}

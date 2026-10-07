@@ -1,0 +1,75 @@
+﻿/**
+* My Event Handler Hint
+*/
+class{
+
+	this.allowedMethods = {
+		startVisualizerRunner: "POST",
+		stopVisualizerRunner : "POST"
+	}
+
+	function index( event, rc, prc ){
+		var runner = ( application.ruleboxDemoRunner ?: { active: false, runs: 0, lastRun: "" } )
+
+		prc.demoRunnerActive     = runner.active
+		prc.demoRunnerRuns       = runner.runs
+		prc.demoRunnerLastRun    = runner.lastRun
+		prc.demoRunnerLoadLink   = event.buildLink( "main.loadVisualizerData" )
+		prc.demoRunnerStartLink  = event.buildLink( "main.startVisualizerRunner" )
+		prc.demoRunnerStopLink   = event.buildLink( "main.stopVisualizerRunner" )
+		prc.visualizerLink       = event.buildLink( "rulebox-visualizer" )
+	}
+
+	// Exercises the ruleBook() application helper mixin from rulebox
+	any function ruleboxMixinTest( event, rc, prc ){
+		return ruleBook( "testconvention" ).getName();
+	}
+
+	/**
+	 * Reset and populate the harness's in-memory visualizer metrics with representative rule runs.
+	 */
+	function loadVisualizerData( event, rc, prc ){
+		var registry = getInstance( "RuleBookRegistry@rulebox" )
+		var store    = getInstance( "InMemoryMetricsStore@rulebox" )
+		var scenarios = [
+			{ rulebook: "shippingrates", facts: { orderTotal: 125, region: "US" } },
+			{ rulebook: "shippingrates", facts: { orderTotal: 45, region: "US" } },
+			{ rulebook: "shippingrates", facts: { orderTotal: 20, region: "AU" } },
+			{ rulebook: "loanapproval", facts: { creditScore: 540 } },
+			{ rulebook: "loanapproval", facts: { creditScore: 630 } },
+			{ rulebook: "loanapproval", facts: { creditScore: 740 } },
+			{ rulebook: "seasonalpromo", facts: {} },
+			{ rulebook: "testconvention", facts: {} }
+		]
+
+		store.reset()
+		for( var scenario in scenarios ){
+			registry.getRuleBook( scenario.rulebook ).run( scenario.facts )
+		}
+
+		event.renderData(
+			type = "json",
+			data = {
+				message  : "Reset and loaded demo evaluations into the in-memory visualizer store.",
+				runs     : scenarios.len(),
+				rulebooks: scenarios.map( ( scenario ) => scenario.rulebook ),
+				dashboard: event.buildLink( "rulebox-visualizer" )
+			}
+		)
+	}
+
+	function startVisualizerRunner( event, rc, prc ){
+		lock name="ruleboxDemoRunnerState" type="exclusive" timeout=5 throwOnTimeout=true {
+			application.ruleboxDemoRunner.active = true
+		}
+		relocate( URI="/?event=main.index", statusCode=303 )
+	}
+
+	function stopVisualizerRunner( event, rc, prc ){
+		lock name="ruleboxDemoRunnerState" type="exclusive" timeout=5 throwOnTimeout=true {
+			application.ruleboxDemoRunner.active = false
+		}
+		relocate( URI="/?event=main.index", statusCode=303 )
+	}
+
+}

@@ -1,0 +1,19 @@
+/**
+ * A plain object-instance predicate, used to test RuleBook.registerPredicate() being handed an object
+ * directly (rather than a closure or a WireBox mapping ID string).
+ */
+class{
+
+	property name="callCount";
+
+	function init(){
+		variables.callCount = 0
+		return this
+	}
+
+	boolean function test( struct facts, struct params ){
+		variables.callCount++
+		return arguments.facts.creditScore >= arguments.params.threshold
+	}
+
+}

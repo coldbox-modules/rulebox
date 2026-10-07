@@ -1,0 +1,165 @@
+/**
+* Copyright Since 2005 ColdBox Framework by Luis Majano and Ortus Solutions, Corp
+* www.ortussolutions.com
+* ---
+*/
+class {
+
+	// Module Properties
+	this.title 				= "rulebox"
+	this.author 			= "Ortus Solutions"
+	this.webURL 			= "https://www.ortussolutions.com"
+	this.description 		= "A natural language rule engine for ColdBox apps"
+	// Model Namespace
+	this.modelNamespace		= "rulebox"
+	// Class Mapping
+	this.classMapping		= "rulebox"
+	// Dependencies
+	this.dependencies 		= []
+	// Global application helper mixins (handlers/views/layouts): ruleBook( name )
+	this.applicationHelper	= [ "mixins/Helpers.bxm" ]
+	// The visualizer itself stays inert (routes 404, no events recorded) unless settings.visualizer.enabled = true.
+	this.entryPoint			= "rulebox-visualizer"
+
+	/**
+	* The default `visualizer` settings. A module is loaded once, so they live in a static struct
+	* that configure() copies and onLoad() uses to fill the keys an app's (shallow-merged)
+	* override left out. Nothing writes to it.
+	*/
+	static {
+		VISUALIZER_DEFAULTS = {
+			// Master switch. While false, the visualizer's routes 404 and no rule events are
+			// recorded or broadcast at all - flipping this on is the only thing that turns on
+			// the (small) per-rule-evaluation bookkeeping cost.
+			enabled        = false,
+			// WireBox mapping ID for the metrics persistence store. Defaults to the in-memory
+			// store (no setup, nothing survives a restart). For persistence across restarts,
+			// point this at "SQLiteMetricsStore@rulebox" - see the "Rule Visualizer" guide for
+			// what that needs (the bx-sqlite module plus a matching datasource), or implement
+			// IMetricsStore@rulebox yourself and point this at its mapping.
+			metricsStore   = "InMemoryMetricsStore@rulebox",
+			// Datasource name SQLiteMetricsStore reads/writes, if you opt into it above.
+			datasourceName = "rulebox_visualizer",
+			// Max live-tracker (SSE) connections open at once; each pins two server threads. Over the cap, stream() answers 503.
+			maxStreams     = 25,
+			// SQLiteMetricsStore retention (0 disables either): prune events older than this many days...
+			retentionDays  = 30,
+			// ...and keep at most this many rows. Checked every ~500 inserts, not on every insert.
+			maxStoredEvents = 100000,
+			// SQLiteMetricsStore circuit breaker: after this many consecutive failures stop
+			// writing for the cool-down (seconds), logging one error on open and one info on recovery.
+			circuitBreakerThreshold       = 5,
+			circuitBreakerCooldownSeconds = 60
+		}
+	}
+
+	/**
+	* Configure Module
+	*/
+	function configure(){
+		variables.settings = {
+			// Named rulebook declarations:
+			// { name : path | inline-array | { source, actions, predicates, facts, enforceFacts, strictFacts } }
+			// See the "Externalized Rule Definitions" guide for the full settings shape.
+			rulebooks      = {},
+			// *.json/*.yaml files dropped here are auto-discovered; name = filename without extension
+			conventionPath = "config/rulebox",
+
+			// The Rule Visualizer: a dashboard/dry-run/metrics/live-tracker admin UI, off by default.
+			// Secure it yourself (e.g. with cbSecurity) once enabled - RuleBox doesn't gate access on its own.
+			// See the "Rule Visualizer" guide for the full settings shape.
+			visualizer = duplicate( static.VISUALIZER_DEFAULTS )
+		}
+
+		// Visualizer routes: the visualizer is a single handler, so give each of its screens and its
+		// JSON/SSE endpoints a clean, flat URL under the /rulebox-visualizer entry point. Route
+		// patterns are relative to the entry point; handler/action are unqualified (module context).
+		variables.routes = [
+			{ pattern="/",              handler="visualizer", action="index" },
+			{ pattern="/chain",         handler="visualizer", action="chain" },
+			{ pattern="/dryrun",        handler="visualizer", action="dryrun" },
+			{ pattern="/runDryRun",     handler="visualizer", action="runDryRun" },
+			{ pattern="/apiFacts",      handler="visualizer", action="apiFacts" },
+			{ pattern="/metrics",       handler="visualizer", action="metrics" },
+			{ pattern="/apiMetrics",    handler="visualizer", action="apiMetrics" },
+			{ pattern="/apiRuleErrors", handler="visualizer", action="apiRuleErrors" },
+			{ pattern="/live",          handler="visualizer", action="live" },
+			{ pattern="/stream",        handler="visualizer", action="stream" }
+		]
+	}
+
+	/**
+	* Fired when the module is registered and activated.
+	*/
+	function onLoad(){
+		// ColdBox merges an app's moduleSettings over ours with a SHALLOW append, so an app that only
+		// writes `visualizer = { enabled = true }` replaces our whole `visualizer` struct. Put the
+		// defaults back underneath whatever the app supplied, then validate. This is the one place
+		// the visualizer settings are completed and checked: every reader trusts them as-is.
+		if( !isStruct( variables.settings.visualizer ?: "" ) ){
+			invalidSetting( "visualizer", variables.settings.visualizer ?: "null", "a struct" )
+		}
+		variables.settings.visualizer.append( static.VISUALIZER_DEFAULTS, false )
+		validateVisualizerSettings( variables.settings.visualizer )
+
+		// Custom injection DSL: inject="rulebook" (the registry) / inject="rulebook:{name}" (a provider)
+		wirebox.registerDSL( namespace = "rulebook", path = "rulebox.models.RuleBookDSL" )
+	}
+
+	/**
+	* Validate the completed visualizer settings so a bad config fails on app start, not on first use.
+	*
+	* @visualizer The visualizer settings, already filled in from VISUALIZER_DEFAULTS
+	*
+	* @throws RuleBox.InvalidSettingException When a setting has the wrong type or an out-of-range value
+	*/
+	private void function validateVisualizerSettings( required struct visualizer ){
+		if( isNull( arguments.visualizer.enabled ) || !isBoolean( arguments.visualizer.enabled ) ){
+			invalidSetting( "visualizer.enabled", arguments.visualizer.enabled ?: "null", "true or false" )
+		}
+		for( var key in [ "metricsStore", "datasourceName" ] ){
+			var value = arguments.visualizer[ key ] ?: ""
+			if( !isSimpleValue( value ) || !len( trim( value ) ) ){
+				invalidSetting( "visualizer.#key#", value, "a non-blank WireBox mapping or name" )
+			}
+		}
+		// Whole-number settings and the smallest value each accepts
+		var minimums = {
+			retentionDays                 : 0,
+			maxStoredEvents               : 0,
+			circuitBreakerThreshold       : 1,
+			circuitBreakerCooldownSeconds : 0,
+			maxStreams                    : 1
+		}
+		for( var key, minimum in minimums ){
+			var value = arguments.visualizer[ key ] ?: ""
+			if( !isNumeric( value ) || value < minimum || value != int( value ) ){
+				invalidSetting( "visualizer.#key#", value, "a whole number of #minimum# or more" )
+			}
+		}
+	}
+
+	/**
+	* Throw the exception every visualizer setting check uses, naming the key and the bad value.
+	*
+	* @key The setting path under moduleSettings.rulebox, such as "visualizer.enabled"
+	* @value The value the app supplied
+	* @expected A short description of what the setting accepts
+	*
+	* @throws RuleBox.InvalidSettingException Always
+	*/
+	private void function invalidSetting( required string key, any value, required string expected ){
+		throw(
+			type    = "RuleBox.InvalidSettingException",
+			message = "Invalid moduleSettings.rulebox.#arguments.key#: expected #arguments.expected#, got #( isSimpleValue( arguments.value ?: "" ) ? "'#arguments.value ?: ""#'" : "a complex value" )#."
+		)
+	}
+
+	/**
+	* Fired when the module is unregistered and unloaded
+	*/
+	function onUnload(){
+
+	}
+
+}

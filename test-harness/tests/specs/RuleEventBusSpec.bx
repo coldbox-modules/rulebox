@@ -1,0 +1,288 @@
+/**
+ * Tests for RuleEventBus: the switch that gates the Rule Visualizer's persistence + live
+ * broadcast, entirely independent of any real RuleBook run.
+ */
+class extends="tests.resources.BaseSpec"{
+
+	function run( testResults, testBox ){
+		describe( "RuleEventBus", function(){
+
+			/**
+			 * A standalone bus instance, bypassing the shared WireBox singleton so each test can
+			 * freely set its own visualizer settings without leaking state into other specs.
+			 */
+			function newBus( required struct visualizerSettings ){
+				var bus = new rulebox.models.metrics.RuleEventBus();
+				bus.setWirebox( getWireBox() );
+				bus.setLogger( getController().getLogBox().getRootLogger() );
+				bus.setSettings( { visualizer: arguments.visualizerSettings } );
+				return bus;
+			}
+
+			function anEvent( rulebookName="rb", ruleName="r1", state="EXECUTED", durationMs=10, timestamp="2026-01-01T00:00:00.000" ){
+				return arguments
+			}
+
+			it( "does not broadcast or persist while disabled", function(){
+				var received = [];
+				var bus = newBus( { enabled: false, metricsStore: "InMemoryMetricsStore@rulebox", datasourceName: "" } );
+				bus.subscribe( ( evt ) => received.append( evt ) );
+
+				bus.publish( anEvent() );
+
+				expect( received ).toBeEmpty();
+			} );
+
+			it( "broadcasts to subscribers and persists to the configured store once enabled", function(){
+				var store = getInstance( "InMemoryMetricsStore@rulebox" );
+				store.reset();
+
+				var received = [];
+				var bus = newBus( { enabled: true, metricsStore: "InMemoryMetricsStore@rulebox", datasourceName: "" } );
+				bus.subscribe( ( evt ) => received.append( evt ) );
+
+				bus.publish( anEvent( rulebookName="busTest" ) );
+
+				expect( received ).toHaveLength( 1 );
+				expect( received[ 1 ].rulebookName ).toBe( "busTest" );
+				expect( store.queryEvents( filters={ rulebookName: "busTest" } ) ).toHaveLength( 1 );
+			} );
+
+			it( "stops delivering to a listener once unsubscribed", function(){
+				var received = [];
+				var bus = newBus( { enabled: true, metricsStore: "InMemoryMetricsStore@rulebox", datasourceName: "" } );
+				var token = bus.subscribe( ( evt ) => received.append( evt ) );
+				bus.unsubscribe( token );
+
+				bus.publish( anEvent() );
+
+				expect( received ).toBeEmpty();
+			} );
+
+			it( "keeps broadcasting even if the configured metrics store fails to record an event", function(){
+				var received = [];
+				// A mapping that resolves fine but has no recordEvent() - exercises publish()'s
+				// persistence try/catch without a WireBox mapping-resolution failure.
+				var bus = newBus( { enabled: true, metricsStore: "RuleBookRegistry@rulebox", datasourceName: "" } );
+				bus.subscribe( ( evt ) => received.append( evt ) );
+
+				// publish() catches store failures internally, so a direct call - rather than an
+				// expect( closure ).notToThrow() wrapper - is enough: an uncaught throw here would
+				// fail this test on its own.
+				bus.publish( anEvent() );
+
+				expect( received ).toHaveLength( 1 );
+			} );
+
+			it( "does not throw from publish() when another thread holds the subscriber lock", function(){
+				var store = getInstance( "InMemoryMetricsStore@rulebox" );
+				store.reset();
+
+				var bus = newBus( { enabled: true, metricsStore: "InMemoryMetricsStore@rulebox", datasourceName: "" } );
+				// Lock timeouts are whole seconds; keep the wait as short as the lock allows
+				bus.setLockTimeout( 1 );
+
+				var holderName = "ruleEventBusLockHolder_#createUUID()#";
+				thread name="#holderName#" {
+					lock name="rulebox_event_bus_subscribers" type="exclusive" timeout="5" {
+						sleep( 2500 );
+					}
+				}
+				// Give the holder thread time to take the lock
+				sleep( 400 );
+
+				var started = getTickCount();
+				// An uncaught lock timeout would fail this test on its own
+				bus.publish( anEvent( rulebookName="lockedBus" ) );
+				var elapsed = getTickCount() - started;
+
+				threadJoin( holderName );
+
+				// Gave up after the short timeout instead of stalling for the old 5 seconds
+				expect( elapsed ).toBeLT( 2400 );
+				// The event was still persisted even though the live broadcast was skipped
+				expect( store.queryEvents( filters={ rulebookName: "lockedBus" } ) ).toHaveLength( 1 );
+			} );
+
+			it( "supports multiple independent subscribers", function(){
+				var firstReceived  = [];
+				var secondReceived = [];
+				var bus = newBus( { enabled: true, metricsStore: "InMemoryMetricsStore@rulebox", datasourceName: "" } );
+				bus.subscribe( ( evt ) => firstReceived.append( evt ) );
+				bus.subscribe( ( evt ) => secondReceived.append( evt ) );
+
+				bus.publish( anEvent() );
+
+				expect( firstReceived ).toHaveLength( 1 );
+				expect( secondReceived ).toHaveLength( 1 );
+			} );
+
+		} );
+
+		describe( "LiveStreams (the Live Tracker's stream cap and bounded queues)", function(){
+
+			function newLiveStreams(){
+				return new rulebox.models.metrics.LiveStreams();
+			}
+
+			function newStreamBus(){
+				var bus = new rulebox.models.metrics.RuleEventBus();
+				bus.setWirebox( getWireBox() );
+				bus.setLogger( getController().getLogBox().getRootLogger() );
+				bus.setSettings( { visualizer: { enabled: true, metricsStore: "InMemoryMetricsStore@rulebox", datasourceName: "" } } );
+				return bus;
+			}
+
+			// Drain a queue into an array of its events' ruleName, oldest first
+			function drainRuleNames( required queue ){
+				var names = [];
+				while( !arguments.queue.isEmpty() ){
+					names.append( arguments.queue.poll().ruleName );
+				}
+				return names;
+			}
+
+			it( "rejects the N+1th stream and admits one again once a slot is released", function(){
+				var streams = newLiveStreams();
+
+				expect( streams.tryAcquire( 2 ) ).toBeTrue();
+				expect( streams.tryAcquire( 2 ) ).toBeTrue();
+				expect( streams.tryAcquire( 2 ) ).toBeFalse();
+				expect( streams.activeCount() ).toBe( 2 );
+
+				streams.release();
+
+				expect( streams.activeCount() ).toBe( 1 );
+				expect( streams.tryAcquire( 2 ) ).toBeTrue();
+			} );
+
+			it( "never lets release() drive the count below zero", function(){
+				var streams = newLiveStreams();
+
+				streams.release();
+
+				expect( streams.activeCount() ).toBe( 0 );
+			} );
+
+			it( "never admits more than the cap under concurrent attempts", function(){
+				var streams = newLiveStreams();
+				var ids = [];
+				for( var i = 1; i <= 100; i++ ){
+					ids.append( i );
+				}
+
+				var admitted = ids.map( ( id ) => streams.tryAcquire( 10 ), true );
+
+				expect( admitted.filter( ( ok ) => ok ) ).toHaveLength( 10 );
+				expect( streams.activeCount() ).toBe( 10 );
+			} );
+
+			it( "serve() refuses to open a stream at the cap, without subscribing or running the opener", function(){
+				var streams = newLiveStreams();
+				var bus     = newStreamBus();
+				var opened  = false;
+				streams.tryAcquire( 1 );
+
+				var served = streams.serve( bus, 1, ( queue ) => { opened = true } );
+
+				expect( served ).toBeFalse();
+				expect( opened ).toBeFalse();
+				expect( bus.getSubscribers() ).toBeEmpty();
+				expect( streams.activeCount() ).toBe( 1 );
+			} );
+
+			it( "serve() runs the opener against a queue the bus feeds, then unsubscribes and frees the slot", function(){
+				var streams = newLiveStreams();
+				var bus     = newStreamBus();
+				var seen    = [];
+				var during  = -1;
+
+				var served = streams.serve( bus, 1, ( queue ) => {
+					bus.publish( { rulebookName: "rb", ruleName: "first", state: "EXECUTED", durationMs: 1, timestamp: "" } );
+					seen   = drainRuleNames( queue );
+					during = streams.activeCount();
+				} );
+
+				expect( served ).toBeTrue();
+				expect( during ).toBe( 1 );
+				expect( seen.toList() ).toBe( "first" );
+				expect( bus.getSubscribers() ).toBeEmpty();
+				expect( streams.activeCount() ).toBe( 0 );
+			} );
+
+			it( "serve() releases the slot and unsubscribes when opening the stream throws", function(){
+				var streams = newLiveStreams();
+				var bus     = newStreamBus();
+				var threw   = false;
+
+				try{
+					streams.serve( bus, 1, ( queue ) => { throw( type="Test.OpenFailed", message="SSE() blew up" ) } );
+				} catch( any e ){
+					threw = ( e.type == "Test.OpenFailed" );
+				}
+
+				expect( threw ).toBeTrue();
+				expect( bus.getSubscribers() ).toBeEmpty();
+				expect( streams.activeCount() ).toBe( 0 );
+				// ...and the freed slot is genuinely usable
+				expect( streams.tryAcquire( 1 ) ).toBeTrue();
+			} );
+
+			it( "serve() releases the slot when subscribing itself throws", function(){
+				var streams = newLiveStreams();
+				var failingBus = {
+					subscribe  : ( listener ) => { throw( type="Test.SubscribeFailed", message="no" ) },
+					unsubscribe: ( token ) => { throw( type="Test.ShouldNotUnsubscribe", message="nothing was subscribed" ) }
+				};
+				var threw = false;
+
+				try{
+					streams.serve( failingBus, 1, ( queue ) => {} );
+				} catch( any e ){
+					threw = ( e.type == "Test.SubscribeFailed" );
+				}
+
+				expect( threw ).toBeTrue();
+				expect( streams.activeCount() ).toBe( 0 );
+			} );
+
+			it( "a full queue drops the OLDEST event instead of growing or blocking", function(){
+				var streams = newLiveStreams();
+				var queue   = streams.newQueue( 3 );
+
+				for( var n = 1; n <= 5; n++ ){
+					streams.offer( queue, { ruleName: "e#n#" } );
+				}
+
+				expect( queue.size() ).toBe( 3 );
+				expect( drainRuleNames( queue ).toList() ).toBe( "e3,e4,e5" );
+			} );
+
+			it( "bounds each stream's queue at 1000 events by default", function(){
+				expect( newLiveStreams().newQueue().remainingCapacity() ).toBe( 1000 );
+			} );
+
+			it( "keeps a stalled subscriber bounded while the bus keeps publishing", function(){
+				var streams = newLiveStreams();
+				var bus     = newStreamBus();
+				var queue   = streams.newQueue( 10 );
+				var token   = bus.subscribe( ( evt ) => streams.offer( queue, evt ) );
+				getInstance( "InMemoryMetricsStore@rulebox" ).reset();
+
+				// Nothing ever drains the queue: a stalled client
+				for( var n = 1; n <= 50; n++ ){
+					bus.publish( { rulebookName: "rb", ruleName: "e#n#", state: "EXECUTED", durationMs: 1, timestamp: "" } );
+				}
+				bus.unsubscribe( token );
+				getInstance( "InMemoryMetricsStore@rulebox" ).reset();
+
+				var kept = drainRuleNames( queue );
+				expect( kept ).toHaveLength( 10 );
+				expect( kept[ 1 ] ).toBe( "e41" );
+				expect( kept[ 10 ] ).toBe( "e50" );
+			} );
+
+		} );
+	}
+
+}

@@ -1,0 +1,579 @@
+/**
+* Tests for the config-driven RuleBookRegistry, its WireBox DSL, and the ruleBook() mixin.
+*/
+class extends="tests.resources.BaseSpec"{
+
+	function run( testResults, testBox ){
+		describe( "RuleBookRegistry", function(){
+
+			/**
+			 * A standalone registry instance, bypassing the shared WireBox singleton entirely, so
+			 * these tests can freely set custom settings without leaking state into other specs.
+			 */
+			function newRegistry( required struct settings ){
+				var registry = new rulebox.models.RuleBookRegistry();
+				registry.setWirebox( getWireBox() );
+				registry.setSettings( arguments.settings );
+				registry.reload();
+				return registry;
+			}
+
+			it( "throws RuleBox.UnknownRuleBookException for an undeclared name", function(){
+				var registry = newRegistry( { rulebooks : {} } );
+				expect( function(){
+					registry.getRuleBook( "doesNotExist" );
+				} ).toThrow( "RuleBox.UnknownRuleBookException" );
+			} );
+
+			it( "resolves a string entry as a rule-source file path", function(){
+				var registry = newRegistry( {
+					rulebooks : { "credit" : "tests/resources/rules/no-action-rules.json" }
+				} );
+
+				var ruleBook = registry.getRuleBook( "credit" );
+
+				expect( ruleBook.getName() ).toBe( "credit" );
+				expect( ruleBook.hasRules() ).toBeTrue();
+			} );
+
+			it( "resolves an array entry as inline rule definitions", function(){
+				var registry = newRegistry( {
+					rulebooks : { "simple" : [ { "name" : "r1" } ] }
+				} );
+
+				var ruleBook = registry.getRuleBook( "simple" );
+
+				expect( ruleBook.hasRules() ).toBeTrue();
+				expect( ruleBook.getRuleStatus( "r1" ) ).toBe( ruleBook.RULE_STATES.REGISTERED );
+			} );
+
+			it( "resolves a struct descriptor's source/actions/predicates", function(){
+				var ranAction = false;
+				var registry  = newRegistry( {
+					rulebooks : {
+						"withActions" : {
+							"source"  : [ { "name" : "r1", "then" : [ { "action" : "flag" } ] } ],
+							"actions" : { "flag" : ( facts, result, params ) => { ranAction = true; } }
+						}
+					}
+				} );
+
+				var ruleBook = registry.getRuleBook( "withActions" );
+				ruleBook.run();
+
+				expect( ranAction ).toBeTrue();
+			} );
+
+			it( "resolves a struct descriptor's db source given a pre-built query", function(){
+				var rows = queryNew( "name", "varchar" );
+				queryAddRow( rows, [ { "name" : "dbRule" } ] );
+
+				var registry = newRegistry( {
+					rulebooks : {
+						"dbBook" : { "source" : { "type" : "db", "query" : rows } }
+					}
+				} );
+
+				var ruleBook = registry.getRuleBook( "dbBook" );
+
+				expect( ruleBook.hasRules() ).toBeTrue();
+				expect( ruleBook.getRuleStatus( "dbRule" ) ).toBe( ruleBook.RULE_STATES.REGISTERED );
+			} );
+
+			it( "layers explicit config actions onto a convention-discovered source", function(){
+				var ranAction = false;
+				var registry  = newRegistry( {
+					rulebooks : {
+						"needsaction" : { "actions" : { "flag" : ( facts, result, params ) => { ranAction = true; } } }
+					}
+				} );
+
+				var ruleBook = registry.getRuleBook( "needsaction" );
+				ruleBook.run();
+
+				expect( ranAction ).toBeTrue();
+			} );
+
+			it( "reload() replaces the previous set of declarations rather than merging", function(){
+				var registry = newRegistry( {
+					rulebooks : { "first" : [ { "name" : "r1" } ] }
+				} );
+				expect( registry.getRuleBook( "first" ).hasRules() ).toBeTrue();
+
+				registry.setSettings( { rulebooks : { "second" : [ { "name" : "r1" } ] } } );
+				registry.reload();
+
+				expect( function(){
+					registry.getRuleBook( "first" );
+				} ).toThrow( "RuleBox.UnknownRuleBookException" );
+				expect( registry.getRuleBook( "second" ).hasRules() ).toBeTrue();
+			} );
+
+			it( "returns a fresh RuleBook instance every call, never a cached one", function(){
+				var registry = newRegistry( {
+					rulebooks : { "simple" : [ { "name" : "r1" } ] }
+				} );
+
+				var first  = registry.getRuleBook( "simple" );
+				var second = registry.getRuleBook( "simple" );
+
+				expect( first ).notToBeSameInstanceAs( second );
+			} );
+
+			it( "gives every RuleBook its own copy of inline definitions, so an action mutating params can't leak", function(){
+				var seen     = [];
+				var registry = newRegistry( {
+					rulebooks : {
+						"counter" : {
+							"source"  : [ { "name" : "r1", "then" : [ { "action" : "bump", "params" : { "n" : 0 } } ] } ],
+							"actions" : { "bump" : ( facts, result, params ) => { params.n++; seen.append( params.n ); } }
+						}
+					}
+				} );
+
+				var first  = registry.getRuleBook( "counter" );
+				var second = registry.getRuleBook( "counter" );
+				first.run();
+				second.run();
+				registry.getRuleBook( "counter" ).run();
+
+				// Shared params would have produced [ 1, 2, 3 ]
+				expect( seen ).toBe( [ 1, 1, 1 ] );
+			} );
+
+			it( "does not let a RuleBook's mutations change what the next getRuleBook() builds", function(){
+				var seen     = [];
+				var registry = newRegistry( {
+					rulebooks : {
+						"counter" : {
+							"source"  : [ { "name" : "r1", "then" : [ { "action" : "bump", "params" : { "n" : 10 } } ] } ],
+							"actions" : { "bump" : ( facts, result, params ) => { params.n = params.n + 5; seen.append( params.n ); } }
+						}
+					}
+				} );
+
+				registry.getRuleBook( "counter" ).run();
+				registry.getRuleBook( "counter" ).run();
+
+				expect( seen ).toBe( [ 15, 15 ] );
+			} );
+
+			it( "keeps its stored declaration immutable when the caller edits the settings afterwards", function(){
+				var seen       = [];
+				var inline     = [ { "name" : "r1", "then" : [ { "action" : "record", "params" : { "n" : 1 } } ] } ];
+				var actions    = { "record" : ( facts, result, params ) => { seen.append( params.n ); } };
+				var registry   = newRegistry( {
+					rulebooks : { "stored" : { "source" : inline, "actions" : actions } }
+				} );
+
+				// Mutate everything the caller still holds a reference to
+				inline[ 1 ].then[ 1 ].params.n = 99;
+				actions[ "extra" ]              = ( facts, result, params ) => {};
+
+				var ruleBook = registry.getRuleBook( "stored" );
+				ruleBook.run();
+
+				expect( seen ).toBe( [ 1 ] );
+				expect( ruleBook.getRuleStatus( "r1" ) ).toBe( ruleBook.RULE_STATES.EXECUTED );
+			} );
+
+			it( "auto-discovers *.json files from the convention folder", function(){
+				var registry = getInstance( "RuleBookRegistry@rulebox" );
+				var ruleBook = registry.getRuleBook( "testconvention" );
+
+				expect( ruleBook.hasRules() ).toBeTrue();
+				expect( ruleBook.getRuleStatus( "conventionRule" ) ).toBe( ruleBook.RULE_STATES.REGISTERED );
+			} );
+
+			describe( "convention-folder discovery", function(){
+
+				/**
+				 * Builds a throwaway convention folder under the test-harness webroot holding the
+				 * given file names (each with one valid rule) and sub-directories, builds a registry
+				 * over it and returns that registry's declared names. Always cleans the folder up.
+				 */
+				var discoverNames = function( array files = [], array dirs = [] ){
+					var relPath = "tests/resources/conv-#createUUID()#";
+					var absPath = expandPath( "/" & relPath );
+					directoryCreate( absPath );
+					try {
+						for( var fileName in arguments.files ){
+							fileWrite( absPath & "/" & fileName, "[ { ""name"": ""r1"" } ]" );
+						}
+						for( var dirName in arguments.dirs ){
+							directoryCreate( absPath & "/" & dirName );
+						}
+						var registry = newRegistry( { conventionPath : relPath, rulebooks : {} } );
+						return registry.getRuleBookNames().sort( "textNoCase" );
+					} finally {
+						if( directoryExists( absPath ) ){
+							directoryDelete( absPath, true );
+						}
+					}
+				};
+
+				it( "ignores a directory whose name looks like a rule file", function(){
+					expect( discoverNames( [ "real.json" ], [ "dir.json", "dir2.yaml" ] ) ).toBe( [ "real" ] );
+				} );
+
+				it( "ignores hidden dotfiles", function(){
+					expect( discoverNames( [ "visible.json", ".hidden.json", ".hidden.yaml" ] ) ).toBe( [ "visible" ] );
+				} );
+
+				it( "matches the extension case-insensitively and still names it without the extension", function(){
+					expect( discoverNames( [ "B.JSON", "c.Json" ] ) ).toBe( [ "B", "c" ] );
+				} );
+
+				it( "discovers .json, .yaml and .yml files and ignores other extensions", function(){
+					expect(
+						discoverNames( [ "a.json", "b.yaml", "c.yml", "d.YML", "notes.txt", "e.json.bak", "noext" ] )
+					).toBe( [ "a", "b", "c", "d" ] );
+				} );
+
+				it( "throws RuleBox.DuplicateRuleBookException naming both files for a.json plus a.yaml", function(){
+					var caught = "";
+					try {
+						discoverNames( [ "a.json", "a.yaml" ] );
+					} catch( any e ){
+						caught = e;
+					}
+					expect( isSimpleValue( caught ) ).toBeFalse( "expected an exception to be thrown" );
+					expect( caught.type ).toBe( "RuleBox.DuplicateRuleBookException" );
+					expect( caught.message ).toInclude( "a.json" );
+					expect( caught.message ).toInclude( "a.yaml" );
+				} );
+
+				it( "treats a.json and a.yml (or a.yaml and a.YML) as duplicates too", function(){
+					expect( function(){
+						discoverNames( [ "a.json", "a.yml" ] );
+					} ).toThrow( "RuleBox.DuplicateRuleBookException" );
+					expect( function(){
+						discoverNames( [ "a.yaml", "a.YML" ] );
+					} ).toThrow( "RuleBox.DuplicateRuleBookException" );
+				} );
+
+			} );
+
+		} );
+
+		describe( "InlineRuleSource", function(){
+
+			it( "load() hands out an independent deep copy on every call", function(){
+				var source = new rulebox.models.InlineRuleSource( [
+					{ "name" : "r1", "then" : [ { "action" : "a", "params" : { "n" : 1 } } ] }
+				] );
+
+				var first = source.load();
+				first[ 1 ].then[ 1 ].params.n = 99;
+				first[ 1 ].name               = "mutated";
+				first.append( { "name" : "extra" } );
+
+				var second = source.load();
+
+				expect( second ).toHaveLength( 1 );
+				expect( second[ 1 ].name ).toBe( "r1" );
+				expect( second[ 1 ].then[ 1 ].params.n ).toBe( 1 );
+			} );
+
+			it( "is not affected by the caller mutating the array it was built from", function(){
+				var definitions = [ { "name" : "r1", "then" : [ { "action" : "a", "params" : { "n" : 1 } } ] } ];
+				var source      = new rulebox.models.InlineRuleSource( definitions );
+
+				definitions[ 1 ].then[ 1 ].params.n = 99;
+
+				expect( source.load()[ 1 ].then[ 1 ].params.n ).toBe( 1 );
+			} );
+
+		} );
+
+		describe( "RuleBookRegistry path resolution and declaration validation", function(){
+
+			function buildRegistry( required struct settings, any wirebox = getWireBox() ){
+				var registry = new rulebox.models.RuleBookRegistry();
+				registry.setWirebox( arguments.wirebox );
+				registry.setSettings( arguments.settings );
+				registry.reload();
+				return registry;
+			}
+
+			/**
+			 * Builds a rulebook declared as `declared` against a WireBox that records the file path the
+			 * registry hands to the JSON/YAML rule source - so we can see how a path was resolved
+			 * without needing that file to exist.
+			 */
+			function resolvedPathFor( required string declared ){
+				var seen = { path : "" };
+				var real = getWireBox();
+				var spy  = {
+					getInstance : function( name, initArguments = {} ){
+						if( name == "JSONRuleSource@rulebox" || name == "YAMLRuleSource@rulebox" ){
+							seen.path = initArguments.filePath;
+							return real.getInstance( name = "InlineRuleSource@rulebox", initArguments = { definitions : [] } );
+						}
+						return real.getInstance( name = name, initArguments = initArguments );
+					}
+				};
+				buildRegistry( { rulebooks : { "probe" : declared } }, spy ).getRuleBook( "probe" );
+				return seen.path;
+			}
+
+			/**
+			 * Runs the closure and returns the exception it throws ( or a struct with an empty type if it doesn't )
+			 */
+			function caught( required any fn ){
+				try{
+					fn();
+				} catch( any e ){
+					return e;
+				}
+				return { type : "", message : "", detail : "" };
+			}
+
+			function normalized( required string path ){
+				return replace( path, "\", "/", "all" );
+			}
+
+			function tempPath( required string extension ){
+				return normalized( getTempDirectory() ).reReplace( "/+$", "" ) & "/rulebox-spec-" & createUUID() & "." & arguments.extension;
+			}
+
+			it( "resolves a relative path against the app root", function(){
+				expect( normalized( resolvedPathFor( "config/rules/x.json" ) ) )
+					.toBe( normalized( expandPath( "/config/rules/x.json" ) ) );
+			} );
+
+			it( "still treats a leading slash as app-relative", function(){
+				expect( normalized( resolvedPathFor( "/config/rules/x.json" ) ) )
+					.toBe( normalized( expandPath( "/config/rules/x.json" ) ) );
+			} );
+
+			it( "normalises . and .. segments that stay inside the app root", function(){
+				expect( normalized( resolvedPathFor( "config/./other/../rules/x.json" ) ) )
+					.toBe( normalized( expandPath( "/config/rules/x.json" ) ) );
+			} );
+
+			it( "rejects a relative path that climbs out of the app root with RuleBox.InvalidRuleBookPathException", function(){
+				var escapes = [
+					"../../../../etc/hostname",
+					"../x.json",
+					"config/../../x.json",
+					"/../x.json",
+					"config\..\..\x.json"
+				];
+				for( var declared in escapes ){
+					var e = caught( function(){
+						buildRegistry( { rulebooks : { "evil" : declared } } );
+					} );
+					expect( e.type ).toBe( "RuleBox.InvalidRuleBookPathException" );
+					expect( e.message ).toInclude( declared );
+				}
+			} );
+
+			it( "also rejects an escaping path inside a struct descriptor", function(){
+				var e = caught( function(){
+					buildRegistry( { rulebooks : { "evil" : { "source" : "../../../../etc/hostname" } } } );
+				} );
+				expect( e.type ).toBe( "RuleBox.InvalidRuleBookPathException" );
+			} );
+
+			it( "keeps an absolute path that exists on disk working as given", function(){
+				var file = tempPath( "json" );
+				fileWrite( file, '[ { "name" : "absRule" } ]' );
+				try{
+					expect( resolvedPathFor( file ) ).toBe( file );
+
+					var ruleBook = buildRegistry( { rulebooks : { "abs" : file } } ).getRuleBook( "abs" );
+					expect( ruleBook.getRuleStatus( "absRule" ) ).toBe( ruleBook.RULE_STATES.REGISTERED );
+				} finally {
+					if( fileExists( file ) ){
+						fileDelete( file );
+					}
+				}
+			} );
+
+			it( "passes Windows drive-letter and UNC paths through without mangling them", function(){
+				var paths = [
+					"C:\rules\x.json",
+					"c:/rules/x.json",
+					"D:\rules\..\other\x.json",
+					"\\fileserver\share\rules\x.json",
+					"//fileserver/share/rules/x.json"
+				];
+				for( var declared in paths ){
+					expect( resolvedPathFor( declared ) ).toBe( declared );
+				}
+			} );
+
+			it( "rejects a declaration that is not a path, array or struct with RuleBox.InvalidRuleBookDeclarationException naming the rulebook", function(){
+				var e = caught( function(){
+					buildRegistry( { rulebooks : { "closure" : () => 42 } } );
+				} );
+				expect( e.type ).toBe( "RuleBox.InvalidRuleBookDeclarationException" );
+				expect( e.message ).toInclude( "closure" );
+			} );
+
+			it( "rejects a null declaration", function(){
+				var e = caught( function(){
+					buildRegistry( { rulebooks : { "nothing" : null } } );
+				} );
+				expect( e.type ).toBe( "RuleBox.InvalidRuleBookDeclarationException" );
+				expect( e.message ).toInclude( "nothing" );
+			} );
+
+			it( "rejects a blank path", function(){
+				var e = caught( function(){
+					buildRegistry( { rulebooks : { "blank" : "   " } } );
+				} );
+				expect( e.type ).toBe( "RuleBox.InvalidRuleBookDeclarationException" );
+				expect( e.message ).toInclude( "blank" );
+			} );
+
+			it( "rejects a struct descriptor with no source", function(){
+				var e = caught( function(){
+					buildRegistry( { rulebooks : { "nosource" : { "actions" : {} } } } );
+				} );
+				expect( e.type ).toBe( "RuleBox.InvalidRuleBookDeclarationException" );
+				expect( e.message ).toInclude( "nosource" );
+			} );
+
+			it( "rejects a struct descriptor whose source is not a path, array or struct, or is null", function(){
+				var e = caught( function(){
+					buildRegistry( { rulebooks : { "closuresource" : { "source" : () => 7 } } } );
+				} );
+				expect( e.type ).toBe( "RuleBox.InvalidRuleBookDeclarationException" );
+				expect( e.message ).toInclude( "closuresource" );
+
+				e = caught( function(){
+					buildRegistry( { rulebooks : { "nullsource" : { "source" : null } } } );
+				} );
+				expect( e.type ).toBe( "RuleBox.InvalidRuleBookDeclarationException" );
+				expect( e.message ).toInclude( "nullsource" );
+			} );
+
+			it( "rejects non-struct actions/predicates and non-struct inline definitions", function(){
+				var e = caught( function(){
+					buildRegistry( { rulebooks : { "badactions" : { "source" : [], "actions" : "flag" } } } );
+				} );
+				expect( e.type ).toBe( "RuleBox.InvalidRuleBookDeclarationException" );
+				expect( e.message ).toInclude( "badactions" );
+
+				e = caught( function(){
+					buildRegistry( { rulebooks : { "badinline" : [ 1, 2 ] } } );
+				} );
+				expect( e.type ).toBe( "RuleBox.InvalidRuleBookDeclarationException" );
+				expect( e.message ).toInclude( "badinline" );
+			} );
+
+			it( "validates when reload() runs, not at the first getRuleBook()", function(){
+				var registry = buildRegistry( { rulebooks : { "ok" : [ { "name" : "r1" } ] } } );
+				registry.setSettings( { rulebooks : { "ok" : [ { "name" : "r1" } ], "broken" : () => 42 } } );
+
+				var e = caught( function(){
+					registry.reload();
+				} );
+				expect( e.type ).toBe( "RuleBox.InvalidRuleBookDeclarationException" );
+
+				// A failed reload leaves the previous definitions in place
+				expect( registry.getRuleBookNames() ).toInclude( "ok" );
+				expect( registry.getRuleBookNames() ).notToInclude( "broken" );
+			} );
+
+			it( "accepts a string path, an inline array and a db descriptor, and layers actions onto a convention file", function(){
+				var registry = buildRegistry( {
+					rulebooks : {
+						"fromPath"    : "tests/resources/rules/no-action-rules.json",
+						"inline"      : [ { "name" : "r1" } ],
+						"fromDb"      : { "source" : { "type" : "db", "query" : queryNew( "name", "varchar" ) } },
+						"needsaction" : { "actions" : { "flag" : ( facts, result, params ) => {} } }
+					}
+				} );
+				expect( registry.getRuleBookNames() ).toInclude( "fromPath" );
+				expect( registry.getRuleBookNames() ).toInclude( "inline" );
+				expect( registry.getRuleBookNames() ).toInclude( "fromDb" );
+				expect( registry.getRuleBookNames() ).toInclude( "needsaction" );
+			} );
+
+			it( "still starts with the convention fixture that references an unregistered action, failing only when it is built", function(){
+				var registry = buildRegistry( { rulebooks : {} } );
+
+				expect( registry.getRuleBookNames() ).toInclude( "needsaction" );
+				expect( function(){
+					registry.getRuleBook( "needsaction" );
+				} ).toThrow( "RuleBox.UnregisteredActionException" );
+			} );
+
+			it( "reports a malformed JSON rule file by path and position, never by content", function(){
+				var file = tempPath( "json" );
+				fileWrite( file, '[ { "name" : "TOP-SECRET-CONTENT"' & char( 10 ) );
+				try{
+					var e = caught( function(){
+						buildRegistry( { rulebooks : { "bad" : file } } ).getRuleBook( "bad" );
+					} );
+
+					expect( e.type ).toBe( "RuleBox.RuleSourceParseException" );
+					expect( e.message ).toInclude( file );
+					expect( e.message ).notToInclude( "TOP-SECRET-CONTENT" );
+					expect( e.detail ).notToInclude( "TOP-SECRET-CONTENT" );
+					expect( e.message ).toMatch( "line: \d+, column: \d+" );
+				} finally {
+					if( fileExists( file ) ){
+						fileDelete( file );
+					}
+				}
+			} );
+
+			it( "reports a malformed YAML rule file by path, never by content, when the optional YAML module is installed", function(){
+				var file = tempPath( "yaml" );
+				fileWrite( file, "TOP-SECRET-CONTENT: [unclosed" & char( 10 ) & "  - : :" );
+				try{
+					var e = caught( function(){
+						getInstance( "YAMLRuleSource@rulebox", { filePath : file } ).load();
+					} );
+
+					if( e.type == "RuleBox.YamlModuleMissingException" ){
+						skip( "The optional bx-yaml module is not installed" );
+						return;
+					}
+
+					expect( e.type ).toBe( "RuleBox.RuleSourceParseException" );
+					expect( e.message ).toInclude( file );
+					expect( e.message ).notToInclude( "TOP-SECRET-CONTENT" );
+				} finally {
+					if( fileExists( file ) ){
+						fileDelete( file );
+					}
+				}
+			} );
+
+		} );
+
+		describe( "The rulebook WireBox DSL", function(){
+
+			it( "resolves the bare 'rulebook' namespace to the registry singleton", function(){
+				var registry = getWireBox().getInstance( dsl = "rulebook" );
+				expect( registry.getRuleBook( "testconvention" ).hasRules() ).toBeTrue();
+			} );
+
+			it( "resolves 'rulebook:{name}' to a provider that builds fresh instances", function(){
+				var provider = getWireBox().getInstance( dsl = "rulebook:testconvention" );
+
+				var first  = provider.get();
+				var second = provider.get();
+
+				expect( first.hasRules() ).toBeTrue();
+				expect( first ).notToBeSameInstanceAs( second );
+			} );
+
+		} );
+
+		describe( "The ruleBook() application helper mixin", function(){
+
+			it( "is available in handlers and builds a declared rulebook by name", function(){
+				var event = execute( event = "main.ruleboxMixinTest", renderResults = true );
+				expect( event.getRenderedContent() ).toBe( "testconvention" );
+			} );
+
+		} );
+	}
+
+}

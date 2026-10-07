@@ -1,0 +1,14 @@
+{
+	"description": "Approves credit scores of 600 or more",
+	"facts": {
+		"creditScore": { "type": "numeric", "required": true, "description": "FICO score", "example": 680 },
+		"cashOnHand": { "type": "numeric", "default": 0 }
+	},
+	"enforceFacts": true,
+	"rules": [
+		{
+			"name": "approve",
+			"when": { "gte": [ "creditScore", 600 ] }
+		}
+	]
+}

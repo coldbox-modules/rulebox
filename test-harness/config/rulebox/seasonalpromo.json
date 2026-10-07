@@ -1,0 +1,25 @@
+{
+	"description": "Applies the discount for the current sale season.",
+	"rules": [
+		{
+			"name": "autumnSaleDiscount",
+			"description": "The September sale, which stops the chain",
+			"priority": 10,
+			"activeFrom": "2026-09-01T00:00:00",
+			"activeUntil": "2026-09-30T23:59:59",
+			"stop": true
+		},
+		{
+			"name": "springSaleDiscount",
+			"description": "The March sale",
+			"priority": 5,
+			"activeFrom": "2026-03-01T00:00:00",
+			"activeUntil": "2026-03-31T23:59:59"
+		},
+		{
+			"name": "everydayDiscount",
+			"description": "The everyday discount, always on",
+			"priority": 0
+		}
+	]
+}
