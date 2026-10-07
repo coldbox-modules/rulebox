@@ -81,3 +81,6 @@ Once installed, the module registers the following objects in WireBox:
 
 - [Defining RuleBooks](guides/defining-rulebooks.md)
 - [The RuleBook DSL](guides/the-dsl.md)
+
+Need help beyond the docs? See [Help and Consulting](help-and-consulting.md)
+for professional support from the Ortus Solutions team.

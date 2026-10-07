@@ -4,6 +4,7 @@
 		"title": "Introduction",
 		"children": [
 			"getting-started.md",
+			"help-and-consulting.md",
 			"releases.md"
 		]
 	},
