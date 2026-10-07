@@ -145,11 +145,12 @@
 .rb-install {
     display: inline-flex; align-items: center; gap: 12px; padding: 10px 10px 10px 16px; border-radius: 12px;
     background: var(--rb-code-bg); color: #dbe6f5; font-family: var(--rb-mono, monospace); font-size: 14px;
+	width:98%;
 }
 .rb-install .rb-prompt { color: #2bf59a; }
 .rb-install button {
     width: 32px; height: 32px; border: 0; border-radius: 8px; background: #17223a; color: #9fb0cc;
-    cursor: pointer; display: grid; place-items: center;
+    cursor: pointer; display: grid; place-items: center; margin-left: auto;
 }
 .rb-install button svg { width: 14px; height: 14px; }
 .rb-badges { display: flex; gap: 8px; flex-wrap: wrap; font-size: 13px; font-weight: 700; color: var(--rb-muted); }

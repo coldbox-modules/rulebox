@@ -294,13 +294,15 @@
 						</span>
 						The rules engine for ColdBox and BoxLang
 					</div>
-					<h1>Write rules like you speak.<br><span class="rb-grad">Run them like code.</span></h1>
-					<p class="rb-lead">RuleBox turns tangled <code>if</code>/<code>else</code> blocks into named rules you can read, test and audit. Given some facts, when a condition holds, then act. In BoxLang, or as JSON your team can change without a deploy.</p>
+					<h1>Business rules, <br><span class="rb-grad">without the business logic mess!</span></h1>
+					<p class="rb-lead"><strong>RuleBox</strong> turns tangled <code>if</code>/<code>else</code> blocks into named rules you can read,
+						test and audit. Given some facts, when a condition holds, then act. Write them in BoxLang, YAML, JSON or even the database and
+						your business rules can change without a deploy.</p>
 					<div class="rb-actions">
 						<a class="rb-btn rb-btn-primary" href="#variables.basePath#course/">Start the Tutorial
 							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
 						</a>
-						<a class="rb-btn rb-btn-ghost" href="#variables.basePath#guides/">Read the Guides</a>
+						<a class="rb-btn rb-btn-ghost" href="#variables.basePath#guides/">Read the Docs</a>
 					</div>
 					<div class="rb-install-row">
 						<div class="rb-install">
