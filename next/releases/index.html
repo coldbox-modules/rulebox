@@ -247,8 +247,14 @@ files, then get them from <code>RuleBookRegistry</code> or the <code>ruleBook()<
 See <a href="/next/guides/external-rules/index.html">Externalized Rule Definitions</a>.</li>
 <li><strong><code>dryRun()</code></strong> - preview which rules would fire, without running any
 <code>then()</code> consumers. See <a href="/next/guides/auditing/index.html">Auditing Rules</a>.</li>
-<li><strong>Rule metrics</strong> - per-rule counts and timings across runs. See
-<a href="/next/guides/auditing/index.html">Auditing Rules</a>.</li>
+<li><strong>Declared facts</strong> - declare the facts a rulebook takes, with types,
+defaults and descriptions, and optionally enforce them before any rule
+runs. See <a href="/next/guides/declaring-facts/index.html">Declaring Facts</a>.</li>
+<li><strong>Descriptions</strong> - describe rulebooks and rules, or let a class's
+docblock do it. See
+<a href="/next/guides/defining-rulebooks/index.html#describing-a-rulebook">Defining RuleBooks</a>.</li>
+<li><strong>Rule metrics and health</strong> - per-rule counts, timings, error rates and
+the last error across runs. See <a href="/next/guides/auditing/index.html">Auditing Rules</a>.</li>
 <li><strong><code>active()</code> time windows</strong> - limit a rule to a date range. See
 <a href="/next/guides/the-dsl/index.html">The RuleBook DSL</a>.</li>
 <li><strong>Rule Visualizer</strong> - an admin UI, off by default. See
@@ -284,7 +290,7 @@ it's now respected on both <code>Rule</code> and <code>RuleBook</code>.</li>
 <h2 id="migrating-from-100"><a href="#migrating-from-100" id="migrating-from-100" name="migrating-from-100" class="anchor"></a>Migrating from 1.0.0</h2>
 <p>What to change when you upgrade from 1.0.0:</p>
 <ul>
-<li><strong>Run on BoxLang.</strong> 2.0.0 no longer supports other engines.</li>
+<li><strong>Run on BoxLang 1.18+.</strong> 2.0.0 no longer supports other engines.</li>
 <li><strong>Replace <code>NONE</code> with <code>REGISTERED</code>.</strong> The state of a rule that was added
 but not reached is now <code>REGISTERED</code>. Update any code that compares a rule
 status to <code>&quot;NONE&quot;</code>. See <a href="/next/guides/auditing/index.html">Auditing Rules</a>.</li>

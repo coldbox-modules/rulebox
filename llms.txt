@@ -8,6 +8,7 @@
 - [Home](https://rulebox.coldbox.org/index.md) ([HTML](https://rulebox.coldbox.org/index.html))
 - [Getting Started](https://rulebox.coldbox.org/getting-started.md) ([HTML](https://rulebox.coldbox.org/getting-started/index.html))
 - [The RuleBook DSL](https://rulebox.coldbox.org/guides/the-dsl.md) ([HTML](https://rulebox.coldbox.org/guides/the-dsl/index.html))
+- [Declaring Facts](https://rulebox.coldbox.org/guides/declaring-facts.md) ([HTML](https://rulebox.coldbox.org/guides/declaring-facts/index.html))
 - [Facts & Results](https://rulebox.coldbox.org/guides/facts-and-results.md) ([HTML](https://rulebox.coldbox.org/guides/facts-and-results/index.html))
 - [Releases](https://rulebox.coldbox.org/releases.md) ([HTML](https://rulebox.coldbox.org/releases/index.html))
 - [Tutorial Course](https://rulebox.coldbox.org/course/index.md) ([HTML](https://rulebox.coldbox.org/course/index.html))

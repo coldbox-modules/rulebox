@@ -407,14 +407,6 @@ Each row shows the time, rulebook, rule, outcome state, and duration. A
 rule name; click it to expand the cause chain and stack traces. Use
 <strong>Pause</strong> to freeze the table while you read it; the table keeps the latest
 200 rows.</p>
-<blockquote>
-<p><strong>Needs BoxLang 1.18.0 or later.</strong> Earlier web runtimes apply whitespace
-compression to <code>text/event-stream</code> responses, which strips the blank line
-that ends each event, so the browser connects (the badge says <strong>Live</strong>) but
-never receives a row. 1.18.0 never compresses SSE. On an older runtime, set
-<code>whitespaceCompressionEnabled</code> to <code>false</code> in <code>boxlang.json</code>, keeping in mind
-that it applies to all of your app's output.</p>
-</blockquote>
 <h4 id="limiting-live-connections"><a href="#limiting-live-connections" id="limiting-live-connections" name="limiting-live-connections" class="anchor"></a>Limiting live connections</h4>
 <p>Each open Live Tracker tab holds a stream open, and that pins two server
 threads for as long as it stays connected. RuleBox therefore caps how many
