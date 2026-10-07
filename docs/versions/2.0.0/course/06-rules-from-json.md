@@ -18,6 +18,7 @@ Save this as `config/rules/loan.json`:
 [
 	{
 		"name": "declineLowScores",
+		"description": "Declines a score under 580",
 		"priority": 20,
 		"when": { "lt": [ "creditScore", 580 ] },
 		"then": [ { "action": "decide", "params": { "decision": "DECLINED" } } ],
@@ -25,6 +26,7 @@ Save this as `config/rules/loan.json`:
 	},
 	{
 		"name": "autoApprove",
+		"description": "Approves a good score, unless the amount is very large",
 		"when": { "gte": [ "creditScore", 680 ] },
 		"except": { "gt": [ "requestedAmount", 500000 ] },
 		"then": [ { "action": "decide", "params": { "decision": "APPROVED" } } ]
@@ -32,8 +34,8 @@ Save this as `config/rules/loan.json`:
 ]
 ```
 
-It is the same two rules, using the same ideas: a `name`, a `priority`, a
-`when`, an `except`, a `then`, and `stop`.
+It is the same two rules, using the same ideas: a `name`, a `description`,
+a `priority`, a `when`, an `except`, a `then`, and `stop`.
 
 ## Conditions without code
 
@@ -80,6 +82,43 @@ you get the default, `MANUAL_REVIEW`.
 
 Everything from lesson 5 still works on a rulebook loaded from a file:
 the audit trail, `dryRun()` and metrics.
+
+## Describe the file and its facts
+
+A rule file can also describe the rulebook and declare its facts, like
+`defineFacts()` in lesson 3. Wrap the rules in an object:
+
+```json
+{
+	"description": "Decides a loan application from the credit score",
+	"facts": {
+		"creditScore": { "type": "numeric", "required": true, "description": "300 to 850" },
+		"requestedAmount": { "type": "numeric", "default": 0 }
+	},
+	"enforceFacts": true,
+	"rules": [
+		{
+			"name": "declineLowScores",
+			"description": "Declines a score under 580",
+			"priority": 20,
+			"when": { "lt": [ "creditScore", 580 ] },
+			"then": [ { "action": "decide", "params": { "decision": "DECLINED" } } ],
+			"stop": true
+		},
+		{
+			"name": "autoApprove",
+			"description": "Approves a good score, unless the amount is very large",
+			"when": { "gte": [ "creditScore", 680 ] },
+			"except": { "gt": [ "requestedAmount", 500000 ] },
+			"then": [ { "action": "decide", "params": { "decision": "APPROVED" } } ]
+		}
+	]
+}
+```
+
+`rules` holds the same array as before. `enforceFacts` checks the facts on
+every run, and `strictFacts` would also reject undeclared ones. A bare
+array still works, so add this only when you want it.
 
 ## Other sources
 

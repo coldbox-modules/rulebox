@@ -88,6 +88,44 @@ Rule names must be unique within a `RuleBook`, because the
 already taken throws a `RuleBox.DuplicateRuleNameException`; unnamed rules
 are never affected.
 
+## Describing a RuleBook
+
+Give a RuleBook a description to say what it decides. It is shown in the
+[Rule Visualizer](visualizer.md) and returned by `getDescription()`, and it
+has no effect on how the rulebook runs. The simplest way is the class's
+docblock:
+
+```js title="LoanApproval.bx"
+/**
+ * Decides a loan application from the applicant's credit score.
+ */
+class extends="rulebox.models.RuleBook"{
+	// ...
+}
+```
+
+`getDescription()` looks in this order and uses the first one it finds:
+
+1. a description set with `withDescription( text )`, a
+   [rule file](external-rules.md#declaring-facts-in-a-rule-file) or
+   [config](external-rules.md#declaring-rulebooks-in-config)
+2. the class's `@description` annotation, then its `@hint` annotation
+3. the class's docblock, with its line breaks folded into spaces
+
+```js
+@description( "Decides a loan application from the applicant's credit score" )
+class extends="rulebox.models.RuleBook"{
+}
+
+// Or on any instance, including one from the Builder
+getInstance( "LoanApproval" ).withDescription( "Decides loans for the spring promotion" )
+```
+
+A plain `RuleBook`, such as one from [the Builder](the-builder.md), has no
+class hint, so its description is empty until you set one.
+Rules can be described too, with
+[`withDescription()`](the-dsl.md#withdescription).
+
 ## Retrieving a RuleBook
 
 A RuleBook class is a normal WireBox-mapped class, so you retrieve it

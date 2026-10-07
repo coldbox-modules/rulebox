@@ -146,6 +146,26 @@ is already added, so a later, higher-priority rule (or a rule whose priority
 was raised after it was added) correctly slots ahead of rules already
 registered.
 
+## withDescription()
+
+Describe what a rule does. The description is shown on the rule in the
+[Rule Visualizer](visualizer.md), returned by `getDescription()`, and
+included in each rule's [dryRun()](auditing.md) report. It has no effect on
+how the rule runs:
+
+```js
+addRule(
+	newRule( "checkBlocklist" )
+		.withDescription( "Declines any applicant on the blocklist" )
+		.when( ( facts ) => facts.applicant.isBlocklisted() )
+		.then( ( facts, result ) => result.setValue( 0 ) )
+		.stop()
+)
+```
+
+A RuleBook can be described as well; see
+[Describing a RuleBook](defining-rulebooks.md#describing-a-rulebook).
+
 ## stop()
 
 `stop()` breaks the rule chain. If specified on a rule whose `when()`

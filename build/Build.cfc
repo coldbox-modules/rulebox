@@ -20,7 +20,6 @@ component {
 		variables.excludes = [
 			"build",
 			"node-modules",
-			"resources",
 			"test-harness",
 			"(package|package-lock).json",
 			"webpack.config.js",

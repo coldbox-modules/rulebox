@@ -233,13 +233,6 @@ rule name; click it to expand the cause chain and stack traces. Use
 **Pause** to freeze the table while you read it; the table keeps the latest
 200 rows.
 
-> **Needs BoxLang 1.18.0 or later.** Earlier web runtimes apply whitespace
-> compression to `text/event-stream` responses, which strips the blank line
-> that ends each event, so the browser connects (the badge says **Live**) but
-> never receives a row. 1.18.0 never compresses SSE. On an older runtime, set
-> `whitespaceCompressionEnabled` to `false` in `boxlang.json`, keeping in mind
-> that it applies to all of your app's output.
-
 #### Limiting live connections
 
 Each open Live Tracker tab holds a stream open, and that pins two server

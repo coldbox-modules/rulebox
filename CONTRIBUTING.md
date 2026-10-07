@@ -66,9 +66,7 @@ If you discover a security vulnerability, please send an email to the Ortus secu
 
 This is a BoxLang-only project. Please make sure your code runs on:
 
-- BoxLang 1.14+
-
-The Visualizer Live Tracker needs BoxLang 1.18.0+. Older runtimes whitespace-compress server-sent events and drop the blank line that ends each event. This was fixed in boxlang-web-support for 1.18.0.
+- BoxLang 1.18+
 
 ## Coding Styles & Formatting
 

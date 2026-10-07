@@ -16,11 +16,15 @@ A RuleBook is a class that extends `rulebox.models.RuleBook` and adds its
 rules in a `defineRules()` method. Save this as `models/LoanApproval.bx`:
 
 ```js
+/**
+ * Decides a loan application from the applicant's credit score.
+ */
 class extends="rulebox.models.RuleBook"{
 
 	function defineRules(){
 		addRule(
 			newRule( "declineLowScores" )
+				.withDescription( "Declines a score under 580" )
 				.when( ( facts ) => facts.creditScore < 580 )
 				.then( ( facts, result ) => result.setValue( "DECLINED" ) )
 		)
@@ -31,8 +35,12 @@ class extends="rulebox.models.RuleBook"{
 
 Read it out loud, it says what it does:
 
+- The comment above the class describes the whole rulebook.
 - `newRule( "declineLowScores" )` makes a rule and names it. Always name
   your rules. The name shows up when you look at what ran.
+- `withDescription(...)` says in plain words what the rule does.
+  Descriptions do not change how anything runs; they show up in the
+  Visualizer (lesson 9) and in `getDescription()`.
 - `when(...)` is the condition. It receives the `facts` and returns `true`
   or `false`.
 - `then(...)` is the action. It runs only when the condition is `true`.

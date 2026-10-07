@@ -28,12 +28,13 @@ writeDump( report )
 ```
 
 `RuleBook.dryRun()` returns an array of structs, one per rule reached, in
-execution order:
+execution order. `description` is the rule's
+[description](the-dsl.md#withdescription), or `""`:
 
 ```js
 [
-	{ "name" : "checkBlocklist",         "wouldExecute" : false, "wouldStop" : false },
-	{ "name" : "creditScoreAdjustment",  "wouldExecute" : true,  "wouldStop" : false }
+	{ "name" : "checkBlocklist",         "description" : "Declines blocklisted applicants", "wouldExecute" : false, "wouldStop" : false },
+	{ "name" : "creditScoreAdjustment",  "description" : "",                                "wouldExecute" : true,  "wouldStop" : false }
 ]
 ```
 

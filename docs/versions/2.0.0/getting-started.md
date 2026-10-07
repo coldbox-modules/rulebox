@@ -10,11 +10,8 @@ tags: [guides, setup]
 
 ## Requirements
 
-- BoxLang 1.14+
+- BoxLang 1.18+
 - ColdBox 8+
-
-The Visualizer Live Tracker needs BoxLang 1.18.0+. Older runtimes strip the
-blank line that ends each server-sent event. This is fixed in 1.18.0.
 
 ## Installation
 

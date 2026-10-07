@@ -98,9 +98,6 @@ error once, with how many times it happened, what caused it, and where.
 from lesson 7 in another tab and watch the rows arrive. A failed evaluation
 shows up in red with its error.
 
-> The Live Tracker needs BoxLang **1.18.0 or later**. The other four screens
-> work on older versions.
-
 The screenshots above come from RuleBox's own test app, so your rulebook
 names will differ.
 
