@@ -9,6 +9,8 @@ theme:
     favicon: "assets/brand/rulebox-icon-full.svg"
     options:
         {
+            # Dark by default; the header toggle still switches, and a visitor's choice is remembered
+            colorMode: dark,
             navCollapsible: true,
             navExpandAll: false,
             tocPosition: sticky,
