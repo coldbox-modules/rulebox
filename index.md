@@ -55,6 +55,7 @@ which rules fired, skipped, stopped, or failed.
 ## Where to start
 
 - [Getting Started](getting-started.md) - run your first rule
+- [Help and Consulting](help-and-consulting.md) - get professional help with your RuleBox integration
 - [Tutorial Course](course/index.md) - learn RuleBox in ten short lessons by building a loan decision
 - [Defining RuleBooks](guides/defining-rulebooks.md) - your first rules
 - [The RuleBook DSL](guides/the-dsl.md) - `given`/`when`/`except`/`then`/`using`/`stop`
