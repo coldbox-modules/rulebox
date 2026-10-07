@@ -48,7 +48,7 @@
 	
 	<script>
 		( function () {
-			var configuredMode = "auto";
+			var configuredMode = "dark";
 			var stored = localStorage.getItem( "bxsites-theme" );
 			var prefersDark = window.matchMedia( "(prefers-color-scheme: dark)" ).matches;
 			var wantsDark = stored ? stored === "dark" : ( configuredMode === "dark" || ( configuredMode === "auto" && prefersDark ) );
