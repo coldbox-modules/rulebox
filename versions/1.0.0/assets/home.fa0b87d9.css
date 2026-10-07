@@ -1175,6 +1175,59 @@
 	color: var(--muted);
 }
 
+/* ---------- tutorial course ---------- */
+.course-grid {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 14px;
+	margin-top: 36px;
+}
+
+@media (max-width: 640px) {
+	.course-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+.course-card {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 18px 20px;
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	background: var(--surface);
+	transition: border-color .2s, background .2s;
+}
+
+.course-card:hover {
+	border-color: var(--brand2);
+	background: var(--raised);
+}
+
+.course-num {
+	flex: none;
+	font-family: var(--mono);
+	font-size: .92rem;
+	font-weight: 700;
+	color: var(--brand1);
+	background: var(--surface-2);
+	border: 1px solid var(--border-strong);
+	border-radius: 8px;
+	width: 40px;
+	height: 40px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.bxsites-home .course-card-title {
+	font-family: var(--display);
+	font-weight: 600;
+	font-size: .95rem;
+	color: var(--text);
+}
+
 /* ---------- cta ---------- */
 .cta {
 	position: relative;
