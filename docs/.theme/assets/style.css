@@ -344,6 +344,12 @@ body {
     color: var(--bxsites-sidebar-text);
 }
 
+.sidebar .nav-link > .bxsites-icon {
+    width: 1.35em;
+    height: 1.35em;
+    vertical-align: -0.2em;
+}
+
 .sidebar .nav-link.disabled {
     color: var(--bxsites-muted);
     font-weight: 600;
