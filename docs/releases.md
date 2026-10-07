@@ -25,8 +25,14 @@ A BoxLang-only rewrite of the module. The main additions:
   See [Externalized Rule Definitions](guides/external-rules.md).
 - **`dryRun()`** - preview which rules would fire, without running any
   `then()` consumers. See [Auditing Rules](guides/auditing.md).
-- **Rule metrics** - per-rule counts and timings across runs. See
-  [Auditing Rules](guides/auditing.md).
+- **Declared facts** - declare the facts a rulebook takes, with types,
+  defaults and descriptions, and optionally enforce them before any rule
+  runs. See [Declaring Facts](guides/declaring-facts.md).
+- **Descriptions** - describe rulebooks and rules, or let a class's
+  docblock do it. See
+  [Defining RuleBooks](guides/defining-rulebooks.md#describing-a-rulebook).
+- **Rule metrics and health** - per-rule counts, timings, error rates and
+  the last error across runs. See [Auditing Rules](guides/auditing.md).
 - **`active()` time windows** - limit a rule to a date range. See
   [The RuleBook DSL](guides/the-dsl.md).
 - **Rule Visualizer** - an admin UI, off by default. See
@@ -63,7 +69,7 @@ Also in 2.0.0, with fixes and smaller changes:
 
 What to change when you upgrade from 1.0.0:
 
-- **Run on BoxLang.** 2.0.0 no longer supports other engines.
+- **Run on BoxLang 1.18+.** 2.0.0 no longer supports other engines.
 - **Replace `NONE` with `REGISTERED`.** The state of a rule that was added
   but not reached is now `REGISTERED`. Update any code that compares a rule
   status to `"NONE"`. See [Auditing Rules](guides/auditing.md).

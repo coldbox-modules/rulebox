@@ -70,9 +70,9 @@
 		{ icon: "text-aa", title: "Natural-language DSL", text: "Rules read like sentences. No nested conditionals, no scattered business logic.", code: "given / when / except / then", href: "guides/the-dsl/" },
 		{ icon: "brackets-curly", title: "Rules as data", text: "Load rules from JSON, YAML or a database table, with named actions and predicates.", code: "loadRules( source )", href: "guides/external-rules/" },
 		{ icon: "books", title: "Declared rulebooks", text: "Declare rulebooks in config or a folder, then get one anywhere by name.", code: 'ruleBook( "loan" )', href: "guides/external-rules/" },
-		{ icon: "clipboard-text", title: "Declared facts", next: true, text: "Say which facts a rulebook takes, with types, defaults, examples and descriptions.", code: 'fact( "creditScore" ).required()', href: "guides/declaring-facts/" },
-		{ icon: "shield-check", title: "Enforced facts", next: true, text: "Reject a missing or invalid fact before any rule runs, with every problem listed.", code: "enforceFacts() / strictFacts()", href: "guides/declaring-facts/" },
-		{ icon: "note-pencil", title: "Self-describing", next: true, text: "Describe rulebooks and rules, or let a class's docblock do it. The Visualizer shows them.", code: 'withDescription( "..." )', href: "guides/defining-rulebooks/" },
+		{ icon: "clipboard-text", title: "Declared facts", text: "Say which facts a rulebook takes, with types, defaults, examples and descriptions.", code: 'fact( "creditScore" ).required()', href: "guides/declaring-facts/" },
+		{ icon: "shield-check", title: "Enforced facts", text: "Reject a missing or invalid fact before any rule runs, with every problem listed.", code: "enforceFacts() / strictFacts()", href: "guides/declaring-facts/" },
+		{ icon: "note-pencil", title: "Self-describing", text: "Describe rulebooks and rules, or let a class's docblock do it. The Visualizer shows them.", code: 'withDescription( "..." )', href: "guides/defining-rulebooks/" },
 		{ icon: "list-checks", title: "Full audit trail", text: "Know which rules executed, skipped or failed on every run.", code: "getRuleStatusMap()", href: "guides/auditing/" },
 		{ icon: "flask", title: "Dry runs", text: "Ask what would happen for a set of facts, without running a single action.", code: "dryRun( facts )", href: "guides/auditing/" },
 		{ icon: "ranking", title: "Priorities and stops", text: "Order rules explicitly and let one rule end the chain.", code: "withPriority( 20 ).stop()", href: "guides/the-dsl/" },
@@ -310,7 +310,7 @@
 								<svg x-show="copied" x-cloak viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
 							</button>
 						</div>
-						<div class="rb-badges"><span>BoxLang 1.17+</span><span>ColdBox 8+</span><span>Apache 2.0</span></div>
+						<div class="rb-badges"><span>BoxLang 1.18+</span><span>ColdBox 8+</span><span>Apache 2.0</span></div>
 					</div>
 				</div>
 

@@ -292,6 +292,94 @@ This project has access to the following Model Context Protocol (MCP) documentat
 
 <!-- ℹ️ YOUR PROJECT DOCUMENTATION — Add your custom details below. ColdBox CLI will NOT overwrite this section. -->
 
+## RuleBox Conventions
+
+<!-- Kept outside the COLDBOX-CLI markers so `coldbox ai refresh` does not remove it. -->
+
+### BoxLang Idioms
+
+This is BoxLang, not Java. Write it the BoxLang way:
+
+- **Looping with an index or key:** use the two-part (destructuring) `for-in` instead of a manual counter or a `struct[ key ]` lookup. It works on arrays, structs and queries. Both variables are local to the function.
+
+  ```js
+  // Arrays: element, then its 1-based index
+  for( var item, index in meals ){
+      systemOutput( "Meal #index#: #item#" )
+  }
+
+  // Structs: key, then its value
+  for( var key, value in produce ){
+      systemOutput( "I just had #value# #key#" )
+  }
+
+  // Queries: the row as a struct, then its 1-based row number
+  for( var row, rowNumber in qRules ){
+      systemOutput( "Row #rowNumber#: #row.name#" )
+  }
+  ```
+
+  Keep a classic `for( var i = 1; ... )` only for counting loops with no collection, or when the body needs a neighbour (`items[ i + 1 ]`).
+- **Literal `#`:** inside `bx:output`, `.bxm` templates and interpolated strings, `#` starts an expression. Write `##` for a literal `#` (an HTML entity is `&##10084;`), or use the character itself.
+- **`null`:** use the `null` keyword, never `javaCast( "null", "" )`.
+- **Elvis and safe navigation:** use `x ?: default` instead of `s.keyExists( "k" ) ? s.k : default` or `isNull( x ) ? default : x`. Use `obj?.method()` instead of an `if( !isNull( obj ) )` guard around a single call. `?:` falls back only on null or a missing key, never on `""`, `false` or `0`, and its right side runs only when needed.
+- **Truthiness and types:** BoxLang does truthy comparisons and type coercion behind the scenes. Don't add Java-style conversions or casts it already does for you.
+- **Attribute pairs mean component syntax, except native blocks:** `lock`, `thread` and `transaction` are native BoxLang blocks, so write them bare: `lock name="x" type="exclusive" timeout="5" { ... }`, `thread name="t1" { ... }`, `transaction action="rollback";`. Any other statement that takes attribute pairs is a BoxLang component with the `bx:` prefix, such as `bx:param name="rc.name" default="";`. A component without a body ends with `;`. Never write a component bare (`param name=...`).
+- **`param`:** prefer the shorthand `param rc.name = ""`. Use `bx:param name="rc.name" default="";` only when you need its other attributes. A bare `param name="rc.name" default=""` without `;` reads as the shorthand: it declares a local `name` (default `"rc.name"`) and assigns a local `default`, so `rc.name` is never set.
+- **No backslash escapes:** BoxLang strings are literal, so `"\\"` is two backslashes. Write `"\"` for one.
+- **`static`:** constants that never change, and the defaults a module loads once, live in a `static {}` block and are read as `static.NAME`. A helper with no state is a class of `static` functions, called as `ClassName::method()`, not an instance.
+
+### BoxLang Classes
+
+- **Fields are properties:** every instance field (anything a class keeps in `variables`) is declared with `property`, including runtime state such as counters and lazily resolved objects. `ModuleConfig.bx` is the exception: `variables.settings` there is the ColdBox module convention.
+- **Docblocks:** every non-injected property has a `/** ... */` docblock saying what it holds. Injected properties (`@inject( "..." )`) don't need one. Every method has a docblock too.
+- **No hand-written accessors:** BoxLang generates `getX()` and `setX()` for every property, and the generated setter returns `this`, so chaining works. Only write a `get`/`set` method when it does more than read or assign the field.
+- **Properties come first:** declare every `property` before a `static {}` block. BoxLang does not compile a property that comes after one.
+- **A declared property always exists:** it sits in `variables` as `null` until it is set. Test it with `isNull( variables.x )`, never `structKeyExists( variables, "x" )`, which is always true.
+- **Singletons and `@threadSafe`:** a `@singleton` class that has property injection or an `onDIComplete()` method also gets `@threadSafe`, so WireBox holds its lock through injection. This does not apply to classes in a circular dependency.
+
+  ```js
+  @singleton
+  @threadSafe
+  class{
+
+      @inject( "wirebox" )
+      property name="wirebox";
+
+      /**
+       * The last subscription token handed out by subscribe()
+       */
+      property name="nextToken" type="numeric";
+
+      /**
+       * Wire up anything that needs the injected dependencies
+       */
+      function onDIComplete(){
+          variables.nextToken = 0
+      }
+  }
+  ```
+
+The full set of rules is also packaged as the `rulebox-boxlang-conventions` skill in `.agents/skills-custom/`.
+
+### Updating the Visualizer's CDN Assets
+
+The Rule Visualizer UI loads Bootstrap, Alpine.js and Phosphor Icons from CDNs in `layouts/Visualizer.bxm`. Every `<script>` and `<link rel="stylesheet">` is pinned to an exact version and carries a Subresource Integrity hash (`integrity="sha384-..."` plus `crossorigin="anonymous"`). The browser refuses a file whose hash doesn't match, so a version bump without a new hash breaks the UI.
+
+To bump an asset:
+
+1. Change the version in its URL in `layouts/Visualizer.bxm`.
+2. Compute the new hash from the exact URL and paste it into that tag's `integrity` attribute:
+
+   ```bash
+   echo "sha384-$(curl -sSfL "<asset URL>" | openssl dgst -sha384 -binary | openssl base64 -A)"
+   ```
+
+3. Update the version numbers in two more places:
+   - The `loads every CDN script and stylesheet in the layout with Subresource Integrity` spec in `test-harness/tests/specs/VisualizerHandlerSpec.bx`, which asserts the pinned Alpine.js and Bootstrap versions.
+   - The pinned versions listed in `docs/guides/visualizer.md`.
+4. Run the tests, then open the Visualizer and check the browser console for integrity errors.
+
 ## About This Application
 
 > ⚠️ Fill in this section to give your AI assistant context about your specific application.

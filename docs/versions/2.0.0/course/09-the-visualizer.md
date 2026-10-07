@@ -36,7 +36,7 @@ variables.moduleSettings = {
 Restart your app, then open:
 
 ```
-/rulebox-visualizer/visualizer/index
+/rulebox-visualizer
 ```
 
 > **Lock it down.** RuleBox does not secure the Visualizer for you. Put
@@ -46,23 +46,23 @@ Restart your app, then open:
 ## A tour
 
 <figure class="rb-video">
-<video controls preload="metadata" playsinline poster="../../assets/video/2.0.0/rulebox-visualizer-intro-poster.png" aria-label="A one-minute tour of the RuleBox Visualizer">
-<source src="../../assets/video/2.0.0/rulebox-visualizer-intro.mp4" type="video/mp4">
+<video controls preload="metadata" playsinline poster="../../assets/video/rulebox-visualizer-intro-poster.png" aria-label="A one-minute tour of the RuleBox Visualizer">
+<source src="../../assets/video/rulebox-visualizer-intro.mp4" type="video/mp4">
 </video>
 </figure>
 
 ::: image-gallery columns="3"
-::: image src="../assets/visualizer/2.0.0/dashboard.png" alt="The Dashboard: totals, Problem rules and Slowest rules panels, a table of every rulebook with its outcomes, and a recent activity feed" caption="Dashboard"
+::: image src="../assets/visualizer/dashboard.png" alt="The Dashboard: totals, Problem rules and Slowest rules panels, a table of every rulebook with its description and outcomes, and a recent activity feed" caption="Dashboard"
 :::
-::: image src="../assets/visualizer/2.0.0/chain-loanapproval.png" alt="The chain view for a rulebook, showing priority badges, a stops-chain marker and per-rule outcome counts" caption="Rule Visualizer"
+::: image src="../assets/visualizer/chain-loanapproval.png" alt="The chain view for a rulebook: the facts it declares, then its rules with priority badges, a stops-chain marker and per-rule outcome counts" caption="Rule Visualizer"
 :::
-::: image src="../assets/visualizer/2.0.0/dryrun.png" alt="The Dry Run screen: facts as JSON on the left, which rules would execute on the right" caption="Dry Run"
+::: image src="../assets/visualizer/dryrun.png" alt="The Dry Run screen: a form for the rulebook's facts on the left, which rules would execute on the right" caption="Dry Run"
 :::
-::: image src="../assets/visualizer/2.0.0/metrics.png" alt="The Metrics screen: evaluation count, average duration, completion and error rates, a rule health table and outcomes by state" caption="Metrics"
+::: image src="../assets/visualizer/metrics.png" alt="The Metrics screen: evaluation count, average duration, completion and error rates, a rule health table and outcomes by state" caption="Metrics"
 :::
-::: image src="../assets/visualizer/2.0.0/metrics-errors.png" alt="A failing rule's errors: each distinct error once, with how many times it happened, what caused it and where it was thrown" caption="Errors and stack traces"
+::: image src="../assets/visualizer/metrics-errors.png" alt="A failing rule's errors: each distinct error once, with how many times it happened, what caused it and where it was thrown" caption="Errors and stack traces"
 :::
-::: image src="../assets/visualizer/2.0.0/live.png" alt="The Live Tracker: rule evaluations streaming in as they run, with a failed one opened to show why it failed" caption="Live Tracker"
+::: image src="../assets/visualizer/live.png" alt="The Live Tracker: rule evaluations streaming in as they run, with a failed one opened to show why it failed" caption="Live Tracker"
 :::
 :::
 
@@ -74,12 +74,18 @@ rules** lists the rules that fail most and **Slowest rules** the ones that take
 longest, so you know where to look first.
 
 **Rule Visualizer.** Click **View chain** on a rulebook to see its rules in
-the order they really run, with their priorities and which ones stop the
-chain. This is lesson 4 as a picture.
+the order they really run, with their priorities, their descriptions and
+which ones stop the chain. This is lesson 4 as a picture. The rulebook's
+description sits under its name, and if it declares its facts (lesson 3),
+they are listed above the rules, with a badge that says whether they are
+enforced.
 
-**Dry Run.** Pick a rulebook, type facts as JSON, such as
-`{ "creditScore": 640 }`, and press **Run dry run**. It is `dryRun()` from
-lesson 5 with a button. Nothing is executed or recorded.
+**Dry Run.** Pick a rulebook, fill in its facts, and press **Run dry run**.
+It is `dryRun()` from lesson 5 with a button. Nothing is executed or
+recorded. A rulebook that declares its facts gets a form, with a field for
+each fact; switch to **JSON** to type them as `{ "creditScore": 640 }`
+instead. If the rulebook enforces its facts, leave out a required one and
+the problem shows next to its field.
 
 **Metrics.** Totals and averages per rulebook, gathered across every run, not
 just one RuleBook instance. The **Rule health** table shows each rule's
@@ -91,9 +97,6 @@ error once, with how many times it happened, what caused it, and where.
 **Live Tracker.** Every rule evaluation, as it happens. Run your handler
 from lesson 7 in another tab and watch the rows arrive. A failed evaluation
 shows up in red with its error.
-
-> The Live Tracker needs BoxLang **1.18.0 or later**. The other four screens
-> work on older versions.
 
 The screenshots above come from RuleBox's own test app, so your rulebook
 names will differ.

@@ -65,12 +65,9 @@ which rules fired, skipped, stopped, or failed.
 
 ## Requirements
 
-- BoxLang 1.14+
+- BoxLang 1.18+
 - ColdBox 8+
 - Installs into your app's `modules/` folder
-
-The Visualizer Live Tracker needs BoxLang 1.18.0+. Older runtimes strip the
-blank line that ends each server-sent event. This is fixed in 1.18.0.
 
 ## Credits
 

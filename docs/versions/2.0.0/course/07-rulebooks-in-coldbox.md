@@ -33,6 +33,9 @@ variables.moduleSettings = {
 > any error.
 
 `source` is the JSON file from lesson 6, found relative to your app root.
+If the file describes the rulebook and declares its facts, they come along.
+The same struct also takes `description`, `facts`, `enforceFacts` and
+`strictFacts` keys, for when you would rather keep them in config.
 `actions` maps the action name to a **WireBox ID**, so the code lives in a
 normal class. Save this as `models/DecisionAction.bx`:
 
