@@ -43,6 +43,7 @@
 		<link rel="icon" href="/versions/1.0.0/assets/brand/rulebox-icon-full.svg">
 	
 	<link rel="apple-touch-icon" href="/versions/1.0.0/assets/brand/apple-touch-icon.png">
+	<link rel="apple-touch-icon" href="/versions/1.0.0/assets/brand/apple-touch-icon.png">
 
 	
 	<script>
@@ -60,12 +61,23 @@
 	
 	<link rel="stylesheet" href="/versions/1.0.0/assets/vendor/bootstrap/bootstrap.min.css">
 	<link rel="stylesheet" href="/versions/1.0.0/assets/vendor/highlight/github.min.css">
-	<link rel="stylesheet" href="/versions/1.0.0/assets/theme/style.c3768468.css">
+	<link rel="stylesheet" href="/versions/1.0.0/assets/theme/style.ad212ef9.css">
 
 	
 	<link rel="stylesheet" href="/versions/1.0.0/assets/bundle.ffb388e3.css">
 
 	
+	
+
+	
+	
+		<style>
+			.bxsites-nav-nested {
+				border-inline-start: 2px solid var(--bxsites-accent, var(--bxsites-border));
+				margin-inline-start: 0.2rem;
+				padding-inline-start: 0.85rem;
+			}
+		</style>
 	
 
 	
@@ -138,11 +150,6 @@
 
 				
 				
-					<select class="version-switcher form-select form-select-sm" onchange="location.href=this.value" aria-label="Version"><option value="/next/">Next</option><option disabled>──────</option><option value="/">2.0.0 &#x28;Current&#x29;</option><option value="/versions/1.0.0/" selected>1.0.0</option></select>
-				
-
-				
-				
 
 				
 				
@@ -178,9 +185,13 @@
 		<div class="row" :class="{ 'bxsites-nav-collapsed' : !navOpen }">
 			
 			<aside class="col-lg-3 col-xl-2 sidebar" id="bxsites-sidebar" x-show="navOpen" x-cloak>
+				
+				
+					<select class="version-switcher form-select form-select-sm sidebar-version-switcher" onchange="location.href=this.value" aria-label="Version"><option value="/">2.0.0 &#x28;Current&#x29;</option><option value="/versions/1.0.0/" selected>1.0.0</option><option disabled>──────────</option><option value="/next/">Next</option></select>
+				
 				<ul class="nav flex-column"><li class="nav-item"><a class="nav-link active" href="/versions/1.0.0/index.html"><svg class="bxsites-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M216,96v96a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V96Z" opacity="0.2"/><path d="M224,48H32A16,16,0,0,0,16,64V88a16,16,0,0,0,16,16v88a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V104a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48ZM208,192H48V104H208ZM224,88H32V64H224V88ZM96,136a8,8,0,0,1,8-8h48a8,8,0,0,1,0,16H104A8,8,0,0,1,96,136Z"/></svg> RuleBox 1.0.0</a></li></ul>
 				<a class="bxsites-powered-by" href="https://bxsites.io" target="_blank" rel="noopener noreferrer">
-					<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg> <span>Powered by BxSites</span>
+					<img class="bxsites-powered-by__logo" src="/versions/1.0.0/assets/bxsites-logo.svg" alt="" aria-hidden="true"> <span>Powered by BxSites</span>
 				</a>
 			</aside>
 
@@ -220,7 +231,7 @@
 		
 		
 		
-			<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#requirements">Requirements</a></li><li class="toc-level-2"><a href="#installation">Installation</a></li><li class="toc-level-2"><a href="#usage">Usage</a></li><li class="toc-level-3"><a href="#defining-rules">Defining Rules</a></li><li class="toc-level-3"><a href="#a-helloworld-example">A HelloWorld Example</a></li><li class="toc-level-3"><a href="#the-above-example-using-facts">The Above Example Using Facts</a></li><li class="toc-level-3"><a href="#a-more-complex-scenario">A More Complex Scenario</a></li><li class="toc-level-3"><a href="#thread-safety">Thread Safety</a></li><li class="toc-level-2"><a href="#the-rulebook-domain-specific-language-explained">The RuleBook Domain Specific Language Explained</a></li><li class="toc-level-3"><a href="#given-when-then-the-basis-of-the-rulebook-language">Given-When-Then&#x3a; The Basis of the RuleBook Language</a></li><li class="toc-level-3"><a href="#the-using-method">The Using Method</a></li><li class="toc-level-3"><a href="#the-stop-method">The Stop Method</a></li><li class="toc-level-3"><a href="#working-with-facts">Working With Facts</a></li><li class="toc-level-3"><a href="#auditing-rules">Auditing Rules</a></li></ul></details>
+			<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4v16"/><path d="M6 8h6"/><path d="M6 14h9"/><path d="M6 20h4"/></svg> On this page</summary><ul class="list-unstyled"><li class="toc-level-2"><a href="#requirements">Requirements</a></li><li class="toc-level-2"><a href="#installation">Installation</a></li><li class="toc-level-2"><a href="#usage">Usage</a></li><li class="toc-level-3"><a href="#defining-rules">Defining Rules</a></li><li class="toc-level-3"><a href="#a-helloworld-example">A HelloWorld Example</a></li><li class="toc-level-3"><a href="#the-above-example-using-facts">The Above Example Using Facts</a></li><li class="toc-level-3"><a href="#a-more-complex-scenario">A More Complex Scenario</a></li><li class="toc-level-3"><a href="#thread-safety">Thread Safety</a></li><li class="toc-level-2"><a href="#the-rulebook-domain-specific-language-explained">The RuleBook Domain Specific Language Explained</a></li><li class="toc-level-3"><a href="#given-when-then-the-basis-of-the-rulebook-language">Given-When-Then&#x3a; The Basis of the RuleBook Language</a></li><li class="toc-level-3"><a href="#the-using-method">The Using Method</a></li><li class="toc-level-3"><a href="#the-stop-method">The Stop Method</a></li><li class="toc-level-3"><a href="#working-with-facts">Working With Facts</a></li><li class="toc-level-3"><a href="#auditing-rules">Auditing Rules</a></li></ul></details>
 		
 
 		
@@ -724,7 +735,7 @@ status = ruleBook.getRuleStatus(&quot;rule2&quot;)
 
 	
 	
-		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/versions/1.0.0/index.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/versions/1.0.0/index.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 7, 2026, 10&#x3a;59&#x3a;26 AM</span></div>
+		<div class="page-meta"><a href="https://github.com/coldbox-modules/rulebox/edit/development/docs/versions/1.0.0/index.md" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit this page</a><a href="/versions/1.0.0/index.md" download><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M8 15v-3l1.5 2 1.5-2v3"/><path d="M14.5 12v4M13 15.5l1.5 1.5 1.5-1.5"/></svg> Download Markdown</a><span class="page-meta__item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Last updated Oct 13, 2026, 8&#x3a;42&#x3a;39 PM</span></div>
 	
 </article>
 
@@ -743,7 +754,7 @@ status = ruleBook.getRuleStatus(&quot;rule2&quot;)
 			
 			
 				<aside class="col-xl-2 toc-sidebar d-none d-xl-block">
-					<nav class="toc mb-4" aria-label="On this page"><div class="toc-title">On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#requirements">Requirements</a></li><li class="toc-level-2"><a href="#installation">Installation</a></li><li class="toc-level-2"><a href="#usage">Usage</a></li><li class="toc-level-3"><a href="#defining-rules">Defining Rules</a></li><li class="toc-level-3"><a href="#a-helloworld-example">A HelloWorld Example</a></li><li class="toc-level-3"><a href="#the-above-example-using-facts">The Above Example Using Facts</a></li><li class="toc-level-3"><a href="#a-more-complex-scenario">A More Complex Scenario</a></li><li class="toc-level-3"><a href="#thread-safety">Thread Safety</a></li><li class="toc-level-2"><a href="#the-rulebook-domain-specific-language-explained">The RuleBook Domain Specific Language Explained</a></li><li class="toc-level-3"><a href="#given-when-then-the-basis-of-the-rulebook-language">Given-When-Then&#x3a; The Basis of the RuleBook Language</a></li><li class="toc-level-3"><a href="#the-using-method">The Using Method</a></li><li class="toc-level-3"><a href="#the-stop-method">The Stop Method</a></li><li class="toc-level-3"><a href="#working-with-facts">Working With Facts</a></li><li class="toc-level-3"><a href="#auditing-rules">Auditing Rules</a></li></ul></nav>
+					<nav class="toc bxsites-toc mb-4" aria-label="On this page"><div class="toc-title bxsites-toc__title"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4v16"/><path d="M6 8h6"/><path d="M6 14h9"/><path d="M6 20h4"/></svg> On this page</div><ul class="list-unstyled"><li class="toc-level-2"><a href="#requirements">Requirements</a></li><li class="toc-level-2"><a href="#installation">Installation</a></li><li class="toc-level-2"><a href="#usage">Usage</a></li><li class="toc-level-3"><a href="#defining-rules">Defining Rules</a></li><li class="toc-level-3"><a href="#a-helloworld-example">A HelloWorld Example</a></li><li class="toc-level-3"><a href="#the-above-example-using-facts">The Above Example Using Facts</a></li><li class="toc-level-3"><a href="#a-more-complex-scenario">A More Complex Scenario</a></li><li class="toc-level-3"><a href="#thread-safety">Thread Safety</a></li><li class="toc-level-2"><a href="#the-rulebook-domain-specific-language-explained">The RuleBook Domain Specific Language Explained</a></li><li class="toc-level-3"><a href="#given-when-then-the-basis-of-the-rulebook-language">Given-When-Then&#x3a; The Basis of the RuleBook Language</a></li><li class="toc-level-3"><a href="#the-using-method">The Using Method</a></li><li class="toc-level-3"><a href="#the-stop-method">The Stop Method</a></li><li class="toc-level-3"><a href="#working-with-facts">Working With Facts</a></li><li class="toc-level-3"><a href="#auditing-rules">Auditing Rules</a></li></ul></nav>
 				</aside>
 			
 		</div>

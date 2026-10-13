@@ -304,8 +304,41 @@ body {
 }
 
 .sidebar {
+    display: flex;
+    flex-direction: column;
     padding-top: 1.5rem;
     background: var(--bxsites-sidebar-bg);
+}
+
+.sidebar-version-switcher {
+    width: auto;
+    max-width: none;
+    height: auto;
+    margin: 0 0 1rem;
+    padding: 0.4rem 0.6rem;
+}
+
+@media (min-width: 992px) {
+    .sidebar {
+        flex: 0 0 280px;
+        max-width: 280px;
+        position: sticky;
+        top: 56px;
+        height: calc(100vh - 56px);
+        overflow-y: auto;
+    }
+
+    .row:not(.bxsites-nav-collapsed) .content {
+        flex: 0 0 calc(100% - 280px);
+        max-width: calc(100% - 280px);
+    }
+}
+
+@media (min-width: 1200px) {
+    .row:not(.bxsites-nav-collapsed):has(.toc-sidebar) .content {
+        flex: 0 0 calc(100% - 280px - 16.66667%);
+        max-width: calc(100% - 280px - 16.66667%);
+    }
 }
 
 /* The toggler is Alpine-driven (layout.bxm's own `navOpen`) at every
@@ -342,12 +375,6 @@ body {
 
 .sidebar .nav-link {
     color: var(--bxsites-sidebar-text);
-}
-
-.sidebar .nav-link > .bxsites-icon {
-    width: 1.35em;
-    height: 1.35em;
-    vertical-align: -0.2em;
 }
 
 .sidebar .nav-link.disabled {
@@ -1017,11 +1044,24 @@ dd {
 }
 
 .toc-title {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
     font-weight: 600;
     text-transform: uppercase;
     font-size: 0.75rem;
     color: var(--bxsites-muted);
     margin-bottom: 0.25rem;
+}
+
+.toc-title svg {
+    flex: 0 0 auto;
+    opacity: 0.8;
+}
+
+.toc,
+.toc-mobile {
+    font-size: 0.875rem;
 }
 
 .toc li,
@@ -1031,9 +1071,14 @@ dd {
 }
 
 .toc .toc-level-3,
-.toc-mobile .toc-level-3 {
-    padding-left: 1rem;
+.toc .toc-level-4,
+.toc-mobile .toc-level-3,
+.toc-mobile .toc-level-4 {
+    padding-left: 0.85rem;
+    margin-left: 0.15rem;
+    border-left: 2px solid var(--bxsites-border);
     font-size: 0.9em;
+    color: var(--bxsites-muted);
 }
 
 /* `theme.options.tocPosition: "sticky"` renders the same TOC list in its
@@ -2927,7 +2972,7 @@ a.button.primary {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin: 1.5rem 0 0.5rem;
+    margin: auto 0 0.5rem;
     padding: 0.7rem 0.85rem;
     border: 1px solid currentColor;
     border-radius: 0.75rem;
@@ -2942,7 +2987,7 @@ a.button.primary {
     opacity: 1;
 }
 
-.bxsites-powered-by .bxsites-icon {
+.bxsites-powered-by__logo {
     width: 1.25rem;
     height: 1.25rem;
     flex: 0 0 auto;

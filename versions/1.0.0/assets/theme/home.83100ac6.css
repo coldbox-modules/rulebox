@@ -81,7 +81,7 @@
 .rb-navcta .rb-menu-btn { display: none; }
 .rb-navlinks a { color: var(--rb-text); }
 .rb-navcta { display: flex; align-items: center; gap: 10px; }
-.rb-nav .form-control, .rb-nav .version-switcher {
+.rb-nav .form-control {
     background-color: var(--rb-surface); color: var(--rb-text); border-color: var(--rb-line);
 }
 .rb-nav .form-control::placeholder { color: var(--rb-muted); }
@@ -348,7 +348,7 @@
     .rb-link { display: none; }
 }
 @media (max-width: 720px) {
-    .rb-search, .rb-navcta .version-switcher { display: none; }
+    .rb-search { display: none; }
     .rb-hero h1 { font-size: 44px; }
     .rb-section-head h2 { font-size: 30px; }
     .rb-grid3, .rb-grid2, .rb-lessons, .rb-foot { grid-template-columns: minmax(0, 1fr); }
