@@ -31,6 +31,8 @@
 	variables.pageActionsPosition = variables.siteConfig.theme.options.pageActionsPosition ?: "top"
 	variables.accentColor = trim( variables.siteConfig.theme.options.accentColor ?: "" )
 	variables.accentColorDark = trim( variables.siteConfig.theme.options.accentColorDark ?: "" )
+	variables.navAccentLine = ( variables.siteConfig.theme.options.navAccentLine ?: true ) ? true : false
+	variables.navAccentLineColor = trim( variables.siteConfig.theme.options.navAccentLineColor ?: "" )
 </bx:script>
 <bx:output>
 <!doctype html>
@@ -69,6 +71,7 @@
 	<bx:if len( variables.faviconUrl )>
 		<link rel="icon" href="#resolveAssetUrl( variables.faviconUrl )#">
 	</bx:if>
+	<link rel="apple-touch-icon" href="#resolveAssetUrl( 'assets/brand/apple-touch-icon.png' )#">
 	<link rel="apple-touch-icon" href="#resolveAssetUrl( 'assets/brand/apple-touch-icon.png' )#">
 
 	<!--- Theme color and accent color --->
@@ -111,6 +114,17 @@
 					--bxsites-link-hover: color-mix( in srgb, #variables.accentColorDark# 85%, white );
 				}
 			</bx:if>
+		</style>
+	</bx:if>
+
+	<!--- Sidebar sub-menu accent line (theme.options.navAccentLine, default on) --->
+	<bx:if variables.navAccentLine>
+		<style>
+			.bxsites-nav-nested {
+				border-inline-start: 2px solid #len( variables.navAccentLineColor ) ? variables.navAccentLineColor : 'var(--bxsites-accent, var(--bxsites-border))'#;
+				margin-inline-start: 0.2rem;
+				padding-inline-start: 0.85rem;
+			}
 		</style>
 	</bx:if>
 
@@ -184,11 +198,6 @@
 					<bx:include template="#variables.themeDir#/search.bxm">
 				</bx:if>
 
-				<!--- Version switcher --->
-				<bx:if variables.versions.len() gt 1>
-					#renderVersionSwitcher( variables.versions, variables.currentVersion )#
-				</bx:if>
-
 				<!--- Locale dropdown --->
 				<bx:if variables.locales.len() gt 1>
 					#renderLocaleDropdown( variables.locales, variables.currentLocale )#
@@ -228,9 +237,15 @@
 		<div class="row" :class="{ 'bxsites-nav-collapsed' : !navOpen }">
 			<!--- Sidebar --->
 			<aside class="col-lg-3 col-xl-2 sidebar" id="bxsites-sidebar" x-show="navOpen" x-cloak>
+				<!--- Version switcher (moved above the nav tree, matching the
+				      "version dropdown above the menu" layout of most docs
+				      sites, rather than cluttering the top navbar) --->
+				<bx:if variables.versions.len() gt 1>
+					#renderVersionSwitcher( variables.versions, variables.currentVersion, 'form-select form-select-sm sidebar-version-switcher' )#
+				</bx:if>
 				#renderNavList( variables.nav )#
 				<a class="bxsites-powered-by" href="https://bxsites.io" target="_blank" rel="noopener noreferrer">
-					#bxsitesIcon( "phosphor:stack" )# <span>Powered by BxSites</span>
+					<img class="bxsites-powered-by__logo" src="#moduleAssetUrl( 'bxsites-logo.svg' )#" alt="" aria-hidden="true"> <span>Powered by BxSites</span>
 				</a>
 			</aside>
 

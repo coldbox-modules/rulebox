@@ -38,6 +38,8 @@
 	variables.pageActionsPosition = variables.siteConfig.theme.options.pageActionsPosition ?: "top"
 	variables.accentColor = trim( variables.siteConfig.theme.options.accentColor ?: "" )
 	variables.accentColorDark = trim( variables.siteConfig.theme.options.accentColorDark ?: "" )
+	variables.navAccentLine = ( variables.siteConfig.theme.options.navAccentLine ?: true ) ? true : false
+	variables.navAccentLineColor = trim( variables.siteConfig.theme.options.navAccentLineColor ?: "" )
 	// page.bxm (this layout's own default body) reads variables.tocPosition
 	// directly for its inline "On this page" rendering - still needed here
 	// even though this layout drops the sticky-rail aside, since a listing
@@ -83,6 +85,7 @@
 		<link rel="icon" href="#resolveAssetUrl( variables.faviconUrl )#">
 	</bx:if>
 	<link rel="apple-touch-icon" href="#resolveAssetUrl( 'assets/brand/apple-touch-icon.png' )#">
+	<link rel="apple-touch-icon" href="#resolveAssetUrl( 'assets/brand/apple-touch-icon.png' )#">
 
 	<!--- Color mode detection (before CSS, to avoid flash) --->
 	<script>
@@ -124,6 +127,17 @@
 					--bxsites-link-hover: color-mix( in srgb, #variables.accentColorDark# 85%, white );
 				}
 			</bx:if>
+		</style>
+	</bx:if>
+
+	<!--- Sidebar sub-menu accent line (theme.options.navAccentLine, default on) --->
+	<bx:if variables.navAccentLine>
+		<style>
+			.bxsites-nav-nested {
+				border-inline-start: 2px solid #len( variables.navAccentLineColor ) ? variables.navAccentLineColor : 'var(--bxsites-accent, var(--bxsites-border))'#;
+				margin-inline-start: 0.2rem;
+				padding-inline-start: 0.85rem;
+			}
 		</style>
 	</bx:if>
 
@@ -197,11 +211,6 @@
 					<bx:include template="#variables.themeDir#/search.bxm">
 				</bx:if>
 
-				<!--- Version switcher --->
-				<bx:if variables.versions.len() gt 1>
-					#renderVersionSwitcher( variables.versions, variables.currentVersion )#
-				</bx:if>
-
 				<!--- Locale dropdown --->
 				<bx:if variables.locales.len() gt 1>
 					#renderLocaleDropdown( variables.locales, variables.currentLocale )#
@@ -238,8 +247,12 @@
 		<div class="row" :class="{ 'bxsites-nav-collapsed' : !navOpen }">
 			<!--- Sidebar --->
 			<aside class="col-lg-3 col-xl-2 sidebar" id="bxsites-sidebar" x-show="navOpen" x-cloak>
+				<!--- Version switcher (moved above the nav tree) --->
+				<bx:if variables.versions.len() gt 1>
+					#renderVersionSwitcher( variables.versions, variables.currentVersion, 'form-select form-select-sm sidebar-version-switcher' )#
+				</bx:if>
 				#renderNavList( variables.nav )#
-				<a class="bxsites-powered-by" href="https://bxsites.io" target="_blank" rel="noopener noreferrer">#bxsitesIcon( "phosphor:stack" )# <span>Powered by BxSites</span></a>
+				<a class="bxsites-powered-by" href="https://bxsites.io" target="_blank" rel="noopener noreferrer"><img class="bxsites-powered-by__logo" src="#moduleAssetUrl( 'bxsites-logo.svg' )#" alt="" aria-hidden="true"> <span>Powered by BxSites</span></a>
 			</aside>
 
 			<!--- Main content (full width the sticky TOC rail would otherwise reserve) --->

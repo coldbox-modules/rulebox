@@ -263,9 +263,6 @@
 				<bx:if variables.searchEnabled>
 					<div class="rb-search"><bx:include template="#variables.themeDir#/search.bxm"></div>
 				</bx:if>
-				<bx:if variables.versions.len() gt 1>
-					#renderVersionSwitcher( variables.versions, variables.currentVersion )#
-				</bx:if>
 				<button type="button" class="rb-icon-btn" @click="dark = !dark" aria-label="#encodeForHTML( variables.strings.toggleDarkMode )#">
 					<span x-show="!dark">#bxsitesIcon( "moon" )#</span>
 					<span x-show="dark" x-cloak>#bxsitesIcon( "sun" )#</span>

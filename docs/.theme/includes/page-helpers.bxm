@@ -10,7 +10,8 @@
 			return ""
 		}
 		var html = sb{ '<nav class="breadcrumb-nav mb-3" aria-label="breadcrumb"><ol class="breadcrumb">' }
-		for ( var crumb, i in arguments.crumbs ) {
+		for ( var i = 1; i <= arguments.crumbs.len(); i++ ) {
+			var crumb = arguments.crumbs[ i ]
 			if ( i == arguments.crumbs.len() ) {
 				html &= '<li class="breadcrumb-item active" aria-current="page">' & encodeForHTML( crumb.title ) & '</li>'
 			} else {
@@ -116,10 +117,10 @@
 		listHtml &= '</ul>'
 
 		if ( arguments.hideAtXl ) {
-			return '<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">' & encodeForHTML( variables.strings.onThisPage ) & '</summary>' & listHtml & '</details>'
+			return '<details class="bxsites-toc-mobile toc-mobile d-xl-none"><summary class="toc-mobile__summary">' & bxsitesIcon( "outline" ) & ' ' & encodeForHTML( variables.strings.onThisPage ) & '</summary>' & listHtml & '</details>'
 		}
 
-		return '<nav class="toc mb-4" aria-label="' & encodeForHTML( variables.strings.onThisPage ) & '"><div class="toc-title">' & encodeForHTML( variables.strings.onThisPage ) & '</div>' & listHtml & '</nav>'
+		return '<nav class="toc bxsites-toc mb-4" aria-label="' & encodeForHTML( variables.strings.onThisPage ) & '"><div class="toc-title bxsites-toc__title">' & bxsitesIcon( "outline" ) & ' ' & encodeForHTML( variables.strings.onThisPage ) & '</div>' & listHtml & '</nav>'
 	}
 
 	/**
